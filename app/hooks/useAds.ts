@@ -14,8 +14,14 @@ export function useAds(supabase: any, currentUser: string) {
   const fetchAds = useCallback(async () => {
     if (!supabase) return;
     const { data, error } = await supabase
-      .from("ads").select("*").order("created_at", { ascending: false });
-    if (!error) setAds(data || []);
+      .from("ads")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("fetchAds error:", error);
+      return;
+    }
+    setAds(data || []);
     setLoading(false);
   }, [supabase]);
 
@@ -32,48 +38,50 @@ export function useAds(supabase: any, currentUser: string) {
       stage_updated_at: new Date().toISOString(),
       time_log: JSON.stringify(initialLog)
     }]);
-    if (!error) {
-      setIsNewAdOpen(false);
-      setNewAd(DEFAULT_NEW_AD);
-      fetchAds();
+    if (error) {
+      console.error("Create error:", error);
+      alert("Failed to create ad: " + error.message);
+      return;
     }
+    setIsNewAdOpen(false);
+    setNewAd(DEFAULT_NEW_AD);
+    fetchAds();
   };
 
   const handleUpdateAd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase || !selectedAd) return;
 
-    const allowedRoles = ["Founder", "Strategist", "Content Coordinator", "VA"];
-    if (!allowedRoles.includes(currentUser) && currentUser !== selectedAd.assigned_editor && currentUser !== selectedAd.assigned_copywriter) {
-      alert("You don't have permission to update this ad.");
-      return;
-    }
-
     try {
       const originalAd = ads.find(a => a.id === selectedAd.id);
-      if (!originalAd) return;
-
-      const daysLeft = getDaysLeftInTesting(originalAd.live_date);
-      const isLocked = originalAd.status === "Testing" && daysLeft > 0;
-      if (isLocked && originalAd.status !== selectedAd.status) {
-        alert(`Cannot move from Testing yet. ${daysLeft} days remaining.`);
+      if (!originalAd) {
+        console.error("Original ad not found");
         return;
       }
 
       const statusChanged = originalAd.status !== selectedAd.status;
-      if (statusChanged && !ALLOWED_TRANSITIONS[originalAd.status].includes(selectedAd.status)) {
-        alert(`Invalid movement. Ads must proceed 1-by-1 through stages. (Current: ${originalAd.status} -> Target: ${selectedAd.status})`);
-        return;
+
+      if (statusChanged) {
+        const daysLeft = getDaysLeftInTesting(originalAd.live_date);
+        if (originalAd.status === "Testing" && daysLeft > 0) {
+          alert(`Cannot move from Testing yet. ${daysLeft} days remaining.`);
+          return;
+        }
+        const validTransitions = ALLOWED_TRANSITIONS[originalAd.status] || [];
+        if (!validTransitions.includes(selectedAd.status)) {
+          alert(`Invalid stage move: ${originalAd.status} → ${selectedAd.status}`);
+          return;
+        }
       }
+
+      let updatedTimeLog: TimeLogEntry[] = [];
+      try { updatedTimeLog = JSON.parse(originalAd.time_log || "[]"); } catch { updatedTimeLog = []; }
 
       let newRevisionCount = selectedAd.revision_count || 0;
       let newLiveDate = selectedAd.live_date;
       let newStageUpdatedDate = selectedAd.stage_updated_at;
 
-      let updatedTimeLog: TimeLogEntry[] = [];
-      try { updatedTimeLog = JSON.parse(originalAd.time_log || "[]"); } catch { updatedTimeLog = []; }
-
-      if (statusChanged || manualLogNote.trim() !== "") {
+      if (statusChanged || manualLogNote.trim()) {
         updatedTimeLog.push({
           action: statusChanged ? `Moved to ${selectedAd.status}` : "Activity Updated",
           user: currentUser,
@@ -104,20 +112,47 @@ export function useAds(supabase: any, currentUser: string) {
         }
       }
 
-      const { id, created_at, ...updateFields } = selectedAd;
-      await supabase.from("ads").update({
-        ...updateFields,
-        revision_count: newRevisionCount,
-        live_date: newLiveDate,
-        stage_updated_at: newStageUpdatedDate,
-        time_log: JSON.stringify(updatedTimeLog)
-      }).eq("id", selectedAd.id);
+      // Only update columns that exist in the table
+      const { error: updateError, data: updateData } = await supabase
+        .from("ads")
+        .update({
+          status: selectedAd.status,
+          ad_format: selectedAd.ad_format,
+          ad_spend: selectedAd.ad_spend,
+          ad_type: selectedAd.ad_type,
+          angle: selectedAd.angle,
+          assigned_copywriter: selectedAd.assigned_copywriter,
+          assigned_editor: selectedAd.assigned_editor,
+          brief_link: selectedAd.brief_link,
+          concept_name: selectedAd.concept_name,
+          content_source: selectedAd.content_source,
+          live_date: newLiveDate,
+          notes: selectedAd.notes,
+          priority: selectedAd.priority,
+          product: selectedAd.product,
+          result: selectedAd.result,
+          review_link: selectedAd.review_link,
+          revision_count: newRevisionCount,
+          stage_updated_at: newStageUpdatedDate,
+          time_log: JSON.stringify(updatedTimeLog),
+        })
+        .eq("id", selectedAd.id)
+        .select();
 
+      if (updateError) {
+        console.error("Update error details:", JSON.stringify(updateError));
+        alert("Failed to update: " + JSON.stringify(updateError));
+        return;
+      }
+
+      console.log("Update successful!", updateData);
       setSelectedAd(null);
       setManualLogNote("");
-      fetchAds();
+      await fetchAds();
+
     } catch (err: any) {
-      console.error("Update failed:", err.message);
+      console.error("Unexpected error:", err);
+      alert("Unexpected error: " + err.message);
     }
   };
 
@@ -128,7 +163,13 @@ export function useAds(supabase: any, currentUser: string) {
       return;
     }
     const { error } = await supabase.from("ads").delete().eq("id", selectedAd.id);
-    if (!error) { setSelectedAd(null); fetchAds(); }
+    if (error) {
+      console.error("Delete error:", error);
+      alert("Failed to delete: " + error.message);
+      return;
+    }
+    setSelectedAd(null);
+    fetchAds();
   };
 
   return {
