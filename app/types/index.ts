@@ -26,6 +26,7 @@ export interface Ad {
   result?: string;
   notes?: string;
   review_link?: string;
+  due_date?: string;
   created_at: string;
 }
 
@@ -78,4 +79,5 @@ export interface NewAdForm {
   assigned_editor: string;
   assigned_copywriter: string;
   brief_link: string;
+  due_date?: string;
 }

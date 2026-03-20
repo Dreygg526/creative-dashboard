@@ -149,36 +149,25 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
           if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
 
-          // Determine who to notify based on next stage
           let targetUser = "";
-
           if (selectedAd.status === "Brief Revision Required") {
-            // Notify the assigned copywriter
             targetUser = selectedAd.assigned_copywriter || "";
           } else if (selectedAd.status === "Brief Approved") {
-            // Notify Content Coordinator
             targetUser = await getProfileByRole("Content Coordinator");
           } else if (selectedAd.status === "Preparing Content") {
-            // Notify Content Coordinator
             targetUser = await getProfileByRole("Content Coordinator");
           } else if (selectedAd.status === "Content Revision Required") {
-            // Notify Content Coordinator
             targetUser = await getProfileByRole("Content Coordinator");
           } else if (selectedAd.status === "Content Ready") {
-            // Notify Founder/Strategist
             targetUser = await getProfileByRole("Strategist");
             if (!targetUser) targetUser = await getProfileByRole("Founder");
           } else if (selectedAd.status === "Editor Assigned" || selectedAd.status === "In Progress") {
-            // Notify assigned editor
             targetUser = selectedAd.assigned_editor || "";
           } else if (selectedAd.status === "Ad Revision") {
-            // Notify assigned editor for revision
             targetUser = selectedAd.assigned_editor || "";
           } else if (selectedAd.status === "Pending Upload") {
-            // Notify VA
             targetUser = await getProfileByRole("VA");
-          } else if (selectedAd.status === "Testing" || selectedAd.status === "Completed" || selectedAd.status === "Killed") {
-            // Notify Strategist or Founder
+          } else if (["Testing", "Completed", "Killed"].includes(selectedAd.status)) {
             targetUser = await getProfileByRole("Strategist");
             if (!targetUser) targetUser = await getProfileByRole("Founder");
           }
@@ -207,6 +196,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           brief_link: selectedAd.brief_link,
           concept_name: isFounder || isStrategist ? selectedAd.concept_name : originalAd.concept_name,
           content_source: selectedAd.content_source,
+          due_date: selectedAd.due_date || null,
           live_date: newLiveDate,
           notes: selectedAd.notes,
           priority: isFounder ? selectedAd.priority : originalAd.priority,

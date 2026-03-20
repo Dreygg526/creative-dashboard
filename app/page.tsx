@@ -26,12 +26,13 @@ import IdeasView from "./components/views/IdeasView";
 import MembersView from "./components/views/MembersView";
 import LearningsView from "./components/views/LearningsView";
 import SettingsView from "./components/views/SettingsView";
+import ArchiveView from "./components/views/ArchiveView";
 
 // Constants & Utils
 import { PRIORITY_ORDER } from "./constants";
 import { IdeaEntry } from "./types";
 
-type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings";
+type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings" | "Archive";
 
 export default function App() {
   const { supabase, libError } = useSupabaseClient();
@@ -46,20 +47,18 @@ export default function App() {
   const currentUser = profile?.full_name || profile?.email || "User";
   const currentRole = profile?.role || "Editor";
 
-  // Role flags
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
   const isManager = isFounder || isStrategist;
-  const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
   const canManageIdeas = isManager;
   const canCreateAd = isManager;
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-  if (typeof window === "undefined") return "Dashboard";
-  return (localStorage.getItem("creative_ops_view") as ViewMode) || "Dashboard";
-});
+    if (typeof window === "undefined") return "Dashboard";
+    return (localStorage.getItem("creative_ops_view") as ViewMode) || "Dashboard";
+  });
 
   const handleSetViewMode = (v: ViewMode) => {
     setViewMode(v);
@@ -95,17 +94,17 @@ export default function App() {
   } = useIdeas(supabase, currentUser);
 
   const {
-  learnings, fetchLearnings,
-  learningsFilter, setLearningsFilter,
-  isLearningFormOpen, setIsLearningFormOpen,
-  newLearning, setNewLearning,
-  adSearchQuery, setAdSearchQuery,
-  isSubmittingLearning,
-  expandedLearning, setExpandedLearning,
-  handleSubmitLearning, handleDeleteLearning,
-  handleMarkReviewed, handleUnmarkReviewed,
-  filteredAdSearch, filteredLearnings, learningCounts
-} = useLearnings(supabase, currentUser, ads);
+    learnings, fetchLearnings,
+    learningsFilter, setLearningsFilter,
+    isLearningFormOpen, setIsLearningFormOpen,
+    newLearning, setNewLearning,
+    adSearchQuery, setAdSearchQuery,
+    isSubmittingLearning,
+    expandedLearning, setExpandedLearning,
+    handleSubmitLearning, handleDeleteLearning,
+    handleMarkReviewed, handleUnmarkReviewed,
+    filteredAdSearch, filteredLearnings, learningCounts
+  } = useLearnings(supabase, currentUser, ads);
 
   const {
     notifications, fetchNotifications,
@@ -217,18 +216,16 @@ export default function App() {
       .sort();
   }, [allProfiles]);
 
-  // Nav items based on role
   const navItems: ViewMode[] = isFounder
-  ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members"]
-  : isStrategist
-  ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
-  : isVA
-  ? ["Dashboard"]
-  : isContentCoord
-  ? ["Dashboard", "MyQueue", "Ideas", "Learnings"]
-  : ["Dashboard", "MyQueue", "Ideas", "Learnings"];
+    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
+    : isStrategist
+    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
+    : isVA
+    ? ["Dashboard"]
+    : isContentCoord
+    ? ["Dashboard", "MyQueue", "Ideas"]
+    : ["Dashboard", "MyQueue", "Ideas"];
 
-  // ── LOADING / AUTH STATES ──
   if (libError) return (
     <div className="min-h-screen flex items-center justify-center p-4 text-rose-600 font-bold">{libError}</div>
   );
@@ -324,7 +321,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* User info + logout */}
               <div className="relative">
                 <div
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
@@ -369,7 +365,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* Desktop notif */}
               <div className="hidden lg:relative lg:block">
                 <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="text-xl p-2 hover:bg-slate-100 rounded-full relative transition-colors">
                   🔔
@@ -402,7 +397,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── KPI BAR — Founder & Strategist only ── */}
+        {/* ── KPI BAR ── */}
         {isManager && (
           <div className="bg-slate-50/50 p-2 overflow-x-auto no-scrollbar border-b border-slate-100">
             <div className="max-w-[1800px] mx-auto grid grid-cols-4 md:grid-cols-8 gap-2 min-w-[800px]">
@@ -433,26 +428,26 @@ export default function App() {
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {viewMode === "Dashboard" && (
-  <DashboardView
-    ads={ads}
-    currentUser={currentUser}
-    currentRole={currentRole}
-    onSelectAd={setSelectedAd}
-    onNewAd={() => setIsNewAdOpen(true)}
-    onNavigate={handleSetViewMode}
-    allProfiles={allProfiles}
-  />
-)}
+          <DashboardView
+            ads={ads}
+            currentUser={currentUser}
+            currentRole={currentRole}
+            onSelectAd={setSelectedAd}
+            onNewAd={() => setIsNewAdOpen(true)}
+            onNavigate={handleSetViewMode}
+            allProfiles={allProfiles}
+          />
+        )}
         {viewMode === "Pipeline" && (isFounder || isStrategist) && (
-  <PipelineView
-    ads={ads}
-    activeStage={activeStage}
-    setActiveStage={setActiveStage}
-    setSelectedAd={setSelectedAd}
-    currentRole={currentRole}
-    currentUser={currentUser}
-  />
-)}
+          <PipelineView
+            ads={ads}
+            activeStage={activeStage}
+            setActiveStage={setActiveStage}
+            setSelectedAd={setSelectedAd}
+            currentRole={currentRole}
+            currentUser={currentUser}
+          />
+        )}
         {viewMode === "MyQueue" && (
           <MyQueueView currentUser={currentUser} myQueue={myQueue} setSelectedAd={setSelectedAd} />
         )}
@@ -487,34 +482,40 @@ export default function App() {
           />
         )}
         {viewMode === "Learnings" && (
-  <LearningsView
-    learnings={learnings}
-    filteredLearnings={filteredLearnings}
-    learningCounts={learningCounts}
-    learningsFilter={learningsFilter}
-    setLearningsFilter={setLearningsFilter}
-    isLearningFormOpen={isLearningFormOpen}
-    setIsLearningFormOpen={setIsLearningFormOpen}
-    newLearning={newLearning}
-    setNewLearning={setNewLearning}
-    adSearchQuery={adSearchQuery}
-    setAdSearchQuery={setAdSearchQuery}
-    filteredAdSearch={filteredAdSearch}
-    isSubmittingLearning={isSubmittingLearning}
-    onSubmit={handleSubmitLearning}
-    onDelete={handleDeleteLearning}
-    onMarkReviewed={handleMarkReviewed}
-    onUnmarkReviewed={handleUnmarkReviewed}
-    currentUser={currentUser}
-    currentRole={currentRole}
-    expandedLearning={expandedLearning}
-    setExpandedLearning={setExpandedLearning}
-  />
-)}
+          <LearningsView
+            learnings={learnings}
+            filteredLearnings={filteredLearnings}
+            learningCounts={learningCounts}
+            learningsFilter={learningsFilter}
+            setLearningsFilter={setLearningsFilter}
+            isLearningFormOpen={isLearningFormOpen}
+            setIsLearningFormOpen={setIsLearningFormOpen}
+            newLearning={newLearning}
+            setNewLearning={setNewLearning}
+            adSearchQuery={adSearchQuery}
+            setAdSearchQuery={setAdSearchQuery}
+            filteredAdSearch={filteredAdSearch}
+            isSubmittingLearning={isSubmittingLearning}
+            onSubmit={handleSubmitLearning}
+            onDelete={handleDeleteLearning}
+            onMarkReviewed={handleMarkReviewed}
+            onUnmarkReviewed={handleUnmarkReviewed}
+            currentUser={currentUser}
+            currentRole={currentRole}
+            expandedLearning={expandedLearning}
+            setExpandedLearning={setExpandedLearning}
+          />
+        )}
         {viewMode === "Members" && isFounder && (
           <MembersView
             profiles={allProfiles}
             currentUser={currentUser}
+          />
+        )}
+        {viewMode === "Archive" && isFounder && (
+          <ArchiveView
+            ads={ads}
+            onSelectAd={setSelectedAd}
           />
         )}
         {viewMode === "Settings" && isFounder && profile && (

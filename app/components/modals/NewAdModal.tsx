@@ -23,7 +23,7 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
               <input
                 required
                 type="text"
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-indigo-500 bg-slate-50 font-bold transition-all"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-indigo-500 bg-slate-50 font-bold transition-all text-slate-900"
                 value={newAd.concept_name}
                 onChange={e => setNewAd({ ...newAd, concept_name: e.target.value })}
               />
@@ -33,7 +33,7 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
             <div>
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Ad Type</label>
               <select
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold text-slate-900"
                 value={newAd.ad_type}
                 onChange={e => setNewAd({ ...newAd, ad_type: e.target.value })}
               >
@@ -46,7 +46,7 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
             <div>
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Priority</label>
               <select
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold text-slate-900"
                 value={newAd.priority}
                 onChange={e => setNewAd({ ...newAd, priority: e.target.value })}
               >
@@ -60,7 +60,7 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
             <div className="md:col-span-2">
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Content Source</label>
               <select
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold text-slate-900"
                 value={newAd.content_source}
                 onChange={e => setNewAd({ ...newAd, content_source: e.target.value })}
               >
@@ -74,7 +74,7 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
             <div className="md:col-span-2">
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Format</label>
               <select
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold text-slate-900"
                 value={newAd.ad_format}
                 onChange={e => setNewAd({ ...newAd, ad_format: e.target.value })}
               >
@@ -90,19 +90,19 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
               <input
                 required
                 type="text"
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-indigo-500 bg-slate-50 font-bold transition-all"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-indigo-500 bg-slate-50 font-bold transition-all text-slate-900"
                 value={newAd.product}
                 onChange={e => setNewAd({ ...newAd, product: e.target.value })}
               />
             </div>
 
-            {/* Editor — dropdown only, no typing */}
-            <div className="md:col-span-2">
+            {/* Editor */}
+            <div>
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">
                 Editor <span className="text-slate-300 normal-case font-medium">(optional)</span>
               </label>
               <select
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold text-slate-900"
                 value={newAd.assigned_editor}
                 onChange={e => setNewAd({ ...newAd, assigned_editor: e.target.value })}
               >
@@ -113,12 +113,25 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
               </select>
             </div>
 
+            {/* Due Date */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">
+                Due Date <span className="text-slate-300 normal-case font-medium">(optional)</span>
+              </label>
+              <input
+                type="date"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-indigo-500 bg-slate-50 font-bold transition-all text-slate-900"
+                value={newAd.due_date ? newAd.due_date.split("T")[0] : ""}
+                onChange={e => setNewAd({ ...newAd, due_date: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+              />
+            </div>
+
             {/* Brief Link */}
             <div className="md:col-span-2">
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Brief Link (G-Drive)</label>
               <input
                 type="url"
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-indigo-500 bg-slate-50 font-bold transition-all"
+                className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-indigo-500 bg-slate-50 font-bold transition-all text-slate-900"
                 placeholder="Optional"
                 value={newAd.brief_link}
                 onChange={e => setNewAd({ ...newAd, brief_link: e.target.value })}
