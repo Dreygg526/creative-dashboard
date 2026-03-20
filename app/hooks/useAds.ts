@@ -33,6 +33,16 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
     setLoading(false);
   }, [supabase]);
 
+  const getProfileByRole = async (role: string): Promise<string> => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("role", role)
+      .eq("is_active", true)
+      .limit(1);
+    return data?.[0]?.full_name || "";
+  };
+
   const handleCreateAd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
@@ -70,7 +80,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
 
       const statusChanged = originalAd.status !== selectedAd.status;
 
-      // Check if this role can move this stage
       if (statusChanged && !isFounder) {
         const daysLeft = getDaysLeftInTesting(originalAd.live_date);
         if (originalAd.status === "Testing" && daysLeft > 0) {
@@ -78,14 +87,12 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           return;
         }
 
-        // Validate transition
         const validTransitions = ALLOWED_TRANSITIONS[originalAd.status] || [];
         if (!validTransitions.includes(selectedAd.status)) {
           alert(`Invalid stage move: ${originalAd.status} → ${selectedAd.status}`);
           return;
         }
 
-        // Role-based stage permission checks
         if (isStrategist) {
           const strategistStages = ["Ad Revision", "Testing", "Completed", "Killed", "Writing Brief", "Brief Revision Required", "Brief Approved"];
           if (!strategistStages.includes(selectedAd.status)) {
@@ -122,7 +129,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
         }
       }
 
-      // Build time log
       let updatedTimeLog: TimeLogEntry[] = [];
       try { updatedTimeLog = JSON.parse(originalAd.time_log || "[]"); } catch { updatedTimeLog = []; }
 
@@ -143,32 +149,39 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
           if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
 
+          // Determine who to notify based on next stage
           let targetUser = "";
-if (selectedAd.status === "Brief Revision Required") {
-  targetUser = selectedAd.assigned_copywriter || "";
-} else if (["Brief Approved", "Content Revision Required"].includes(selectedAd.status)) {
-  targetUser = selectedAd.assigned_copywriter || "";
-} else if (["Editor Assigned", "In Progress"].includes(selectedAd.status)) {
-  targetUser = selectedAd.assigned_editor || "";
-} else if (["Ad Revision", "Testing", "Completed"].includes(selectedAd.status)) {
-  // Find the strategist from profiles
-  const { data: strategists } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("role", "Strategist")
-    .eq("is_active", true)
-    .limit(1);
-  targetUser = strategists?.[0]?.full_name || "";
-} else if (selectedAd.status === "Pending Upload") {
-  // Find the VA from profiles
-  const { data: vas } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("role", "VA")
-    .eq("is_active", true)
-    .limit(1);
-  targetUser = vas?.[0]?.full_name || "";
-}
+
+          if (selectedAd.status === "Brief Revision Required") {
+            // Notify the assigned copywriter
+            targetUser = selectedAd.assigned_copywriter || "";
+          } else if (selectedAd.status === "Brief Approved") {
+            // Notify Content Coordinator
+            targetUser = await getProfileByRole("Content Coordinator");
+          } else if (selectedAd.status === "Preparing Content") {
+            // Notify Content Coordinator
+            targetUser = await getProfileByRole("Content Coordinator");
+          } else if (selectedAd.status === "Content Revision Required") {
+            // Notify Content Coordinator
+            targetUser = await getProfileByRole("Content Coordinator");
+          } else if (selectedAd.status === "Content Ready") {
+            // Notify Founder/Strategist
+            targetUser = await getProfileByRole("Strategist");
+            if (!targetUser) targetUser = await getProfileByRole("Founder");
+          } else if (selectedAd.status === "Editor Assigned" || selectedAd.status === "In Progress") {
+            // Notify assigned editor
+            targetUser = selectedAd.assigned_editor || "";
+          } else if (selectedAd.status === "Ad Revision") {
+            // Notify assigned editor for revision
+            targetUser = selectedAd.assigned_editor || "";
+          } else if (selectedAd.status === "Pending Upload") {
+            // Notify VA
+            targetUser = await getProfileByRole("VA");
+          } else if (selectedAd.status === "Testing" || selectedAd.status === "Completed" || selectedAd.status === "Killed") {
+            // Notify Strategist or Founder
+            targetUser = await getProfileByRole("Strategist");
+            if (!targetUser) targetUser = await getProfileByRole("Founder");
+          }
 
           if (targetUser?.trim()) {
             await supabase.from("notifications").insert([{
