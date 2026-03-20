@@ -166,23 +166,38 @@ export function useAuth(supabase: any) {
     });
     if (error) throw error;
   };
+const inviteUser = async (email: string, fullName: string, role: string) => {
+  if (!supabase) return;
 
-  const inviteUser = async (email: string, fullName: string, role: string) => {
-    if (!supabase) return;
-    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+  // Generate a temporary password they'll reset
+  const tempPassword = Math.random().toString(36).slice(-10) + "A1!";
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password: tempPassword,
+    options: {
       data: { full_name: fullName, role }
-    });
-    if (error) throw error;
-    if (data?.user) {
-      await supabase.from("profiles").insert([{
-        id: data.user.id,
-        email,
-        full_name: fullName,
-        role,
-        is_active: true
-      }]);
     }
-  };
+  });
+
+  if (error) throw error;
+
+  if (data?.user) {
+    // Create profile
+    await supabase.from("profiles").insert([{
+      id: data.user.id,
+      email,
+      full_name: fullName,
+      role,
+      is_active: true
+    }]);
+
+    // Send password reset so they set their own password
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`
+    });
+  }
+};
 
   const getAllUsers = async (): Promise<UserProfile[]> => {
     if (!supabase) return [];
