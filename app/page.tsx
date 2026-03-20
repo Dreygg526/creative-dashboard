@@ -80,7 +80,7 @@ export default function App() {
     newAd, setNewAd,
     manualLogNote, setManualLogNote,
     fetchAds, handleCreateAd, handleUpdateAd, handleDeleteAd
-  } = useAds(supabase, currentUser);
+  } = useAds(supabase, currentUser, currentRole);
 
   const {
     fetchIdeas,

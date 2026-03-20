@@ -3,13 +3,21 @@ import { Ad, TimeLogEntry, NewAdForm } from "../types";
 import { ALLOWED_TRANSITIONS, DEFAULT_NEW_AD } from "../constants";
 import { getDaysLeftInTesting } from "../utils/helpers";
 
-export function useAds(supabase: any, currentUser: string) {
+export function useAds(supabase: any, currentUser: string, currentRole?: string) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
   const [isNewAdOpen, setIsNewAdOpen] = useState(false);
   const [newAd, setNewAd] = useState<NewAdForm>(DEFAULT_NEW_AD);
   const [manualLogNote, setManualLogNote] = useState("");
+
+  const isFounder = currentRole === "Founder";
+  const isStrategist = currentRole === "Strategist";
+  const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
+  const isVA = currentRole === "VA";
+  const isContentCoord = currentRole === "Content Coordinator";
+  const canCreate = isFounder || isStrategist;
+  const canDelete = isFounder;
 
   const fetchAds = useCallback(async () => {
     if (!supabase) return;
@@ -28,6 +36,10 @@ export function useAds(supabase: any, currentUser: string) {
   const handleCreateAd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
+    if (!canCreate) {
+      alert("You don't have permission to create ads.");
+      return;
+    }
     const initialLog: TimeLogEntry[] = [
       { action: "Concept Logged", user: currentUser, timestamp: new Date().toISOString() }
     ];
@@ -54,26 +66,63 @@ export function useAds(supabase: any, currentUser: string) {
 
     try {
       const originalAd = ads.find(a => a.id === selectedAd.id);
-      if (!originalAd) {
-        console.error("Original ad not found");
-        return;
-      }
+      if (!originalAd) return;
 
       const statusChanged = originalAd.status !== selectedAd.status;
 
-      if (statusChanged) {
+      // Check if this role can move this stage
+      if (statusChanged && !isFounder) {
         const daysLeft = getDaysLeftInTesting(originalAd.live_date);
         if (originalAd.status === "Testing" && daysLeft > 0) {
           alert(`Cannot move from Testing yet. ${daysLeft} days remaining.`);
           return;
         }
+
+        // Validate transition
         const validTransitions = ALLOWED_TRANSITIONS[originalAd.status] || [];
         if (!validTransitions.includes(selectedAd.status)) {
           alert(`Invalid stage move: ${originalAd.status} → ${selectedAd.status}`);
           return;
         }
+
+        // Role-based stage permission checks
+        if (isStrategist) {
+          const strategistStages = ["Ad Revision", "Testing", "Completed", "Killed", "Writing Brief", "Brief Revision Required", "Brief Approved"];
+          if (!strategistStages.includes(selectedAd.status)) {
+            alert("You can only move ads within your assigned stages.");
+            return;
+          }
+        }
+
+        if (isEditor) {
+          if (originalAd.assigned_editor !== currentUser) {
+            alert("You can only move ads assigned to you.");
+            return;
+          }
+          const editorStages = ["In Progress", "Content Revision Required", "Ad Revision", "Pending Upload"];
+          if (!editorStages.includes(selectedAd.status)) {
+            alert("You can only move ads to your assigned stages.");
+            return;
+          }
+        }
+
+        if (isVA) {
+          if (originalAd.status !== "Pending Upload" || selectedAd.status !== "Testing") {
+            alert("You can only move ads from Pending Upload to Testing.");
+            return;
+          }
+        }
+
+        if (isContentCoord) {
+          const coordStages = ["Content Ready", "Content Revision Required"];
+          if (!coordStages.includes(selectedAd.status)) {
+            alert("You can only update content stages.");
+            return;
+          }
+        }
       }
 
+      // Build time log
       let updatedTimeLog: TimeLogEntry[] = [];
       try { updatedTimeLog = JSON.parse(originalAd.time_log || "[]"); } catch { updatedTimeLog = []; }
 
@@ -94,6 +143,7 @@ export function useAds(supabase: any, currentUser: string) {
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
           if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
 
+          // Send notification
           let targetUser = "";
           if (selectedAd.status === "Brief Revision Required") targetUser = selectedAd.assigned_copywriter;
           else if (["Brief Approved", "Content Revision Required"].includes(selectedAd.status)) targetUser = "Content Coordinator";
@@ -112,8 +162,7 @@ export function useAds(supabase: any, currentUser: string) {
         }
       }
 
-      // Only update columns that exist in the table
-      const { error: updateError, data: updateData } = await supabase
+      const { error: updateError } = await supabase
         .from("ads")
         .update({
           status: selectedAd.status,
@@ -121,16 +170,16 @@ export function useAds(supabase: any, currentUser: string) {
           ad_spend: selectedAd.ad_spend,
           ad_type: selectedAd.ad_type,
           angle: selectedAd.angle,
-          assigned_copywriter: selectedAd.assigned_copywriter,
-          assigned_editor: selectedAd.assigned_editor,
+          assigned_copywriter: isFounder ? selectedAd.assigned_copywriter : originalAd.assigned_copywriter,
+          assigned_editor: isFounder ? selectedAd.assigned_editor : originalAd.assigned_editor,
           brief_link: selectedAd.brief_link,
-          concept_name: selectedAd.concept_name,
+          concept_name: isFounder || isStrategist ? selectedAd.concept_name : originalAd.concept_name,
           content_source: selectedAd.content_source,
           live_date: newLiveDate,
           notes: selectedAd.notes,
-          priority: selectedAd.priority,
+          priority: isFounder ? selectedAd.priority : originalAd.priority,
           product: selectedAd.product,
-          result: selectedAd.result,
+          result: isFounder || isStrategist ? selectedAd.result : originalAd.result,
           review_link: selectedAd.review_link,
           revision_count: newRevisionCount,
           stage_updated_at: newStageUpdatedDate,
@@ -140,12 +189,11 @@ export function useAds(supabase: any, currentUser: string) {
         .select();
 
       if (updateError) {
-        console.error("Update error details:", JSON.stringify(updateError));
+        console.error("Update error:", JSON.stringify(updateError));
         alert("Failed to update: " + JSON.stringify(updateError));
         return;
       }
 
-      console.log("Update successful!", updateData);
       setSelectedAd(null);
       setManualLogNote("");
       await fetchAds();
@@ -158,8 +206,8 @@ export function useAds(supabase: any, currentUser: string) {
 
   const handleDeleteAd = async () => {
     if (!supabase || !selectedAd) return;
-    if (currentUser !== "Founder" && currentUser !== "Strategist") {
-      alert("You don't have permission to delete ads.");
+    if (!canDelete) {
+      alert("Only the Founder can delete ads.");
       return;
     }
     const { error } = await supabase.from("ads").delete().eq("id", selectedAd.id);
