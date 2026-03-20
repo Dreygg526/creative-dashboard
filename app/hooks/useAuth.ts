@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export interface UserProfile {
   id: string;
@@ -13,9 +13,8 @@ export function useAuth(supabase: any) {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const profileFetched = useRef(false);
 
-  const fetchProfile = useCallback(async (userId: string, userEmail: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     if (!supabase) return;
     try {
       const { data } = await supabase
@@ -23,28 +22,7 @@ export function useAuth(supabase: any) {
         .select("*")
         .eq("id", userId)
         .maybeSingle();
-
-      if (data) {
-        setProfile(data);
-        profileFetched.current = true;
-      } else {
-        // Only create if no profile exists at all
-        const { data: newProfile } = await supabase
-          .from("profiles")
-          .insert([{
-            id: userId,
-            email: userEmail,
-            full_name: userEmail.split("@")[0],
-            role: "Editor",
-            is_active: true
-          }])
-          .select()
-          .maybeSingle();
-        if (newProfile) {
-          setProfile(newProfile);
-          profileFetched.current = true;
-        }
-      }
+      if (data) setProfile(data);
     } catch (err) {
       console.error("fetchProfile error:", err);
     } finally {
@@ -59,16 +37,14 @@ export function useAuth(supabase: any) {
     }
 
     let mounted = true;
-    profileFetched.current = false;
 
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
-
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id, session.user.email);
+          await fetchProfile(session.user.id);
         } else {
           setUser(null);
           setProfile(null);
@@ -85,25 +61,16 @@ export function useAuth(supabase: any) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: any) => {
         if (!mounted) return;
-
         if (event === "SIGNED_OUT") {
           setUser(null);
           setProfile(null);
-          profileFetched.current = false;
           setAuthLoading(false);
           return;
         }
-
-        if (event === "SIGNED_IN" && profileFetched.current) {
-          // Already fetched profile from getSession — skip
-          return;
-        }
-
+        if (event === "INITIAL_SESSION") return;
         if (session?.user) {
           setUser(session.user);
-          if (!profileFetched.current) {
-            await fetchProfile(session.user.id, session.user.email);
-          }
+          await fetchProfile(session.user.id);
         } else {
           setUser(null);
           setProfile(null);
@@ -132,7 +99,6 @@ export function useAuth(supabase: any) {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
-    profileFetched.current = false;
   };
 
   const resetPassword = async (email: string) => {
