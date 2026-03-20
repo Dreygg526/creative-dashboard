@@ -56,6 +56,7 @@ export default function App() {
     localStorage.setItem("creative_ops_view", v);
   };
 
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [activeStage, setActiveStage] = useState("Idea");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isSpendModalOpen, setIsSpendModalOpen] = useState(false);
@@ -105,7 +106,6 @@ export default function App() {
 
   const {
     members, fetchMembers,
-    addMember, deleteMember,
     editors, copywriters
   } = useMembers(supabase);
 
@@ -114,6 +114,13 @@ export default function App() {
     conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
     weeklyChartData, teamOutput, pipelineVelocityData
   } = useKPIs(ads);
+
+  // Fetch all profiles for Members view
+  useEffect(() => {
+    if (supabase && user) {
+      getAllUsers().then(setAllProfiles);
+    }
+  }, [supabase, user, profile]);
 
   useEffect(() => {
     if (!supabase || !user) return;
@@ -134,6 +141,11 @@ export default function App() {
     const membersChannel = supabase.channel("members-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "members" }, () => fetchMembers())
       .subscribe();
+    const profilesChannel = supabase.channel("profiles-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        getAllUsers().then(setAllProfiles);
+      })
+      .subscribe();
     const notifChannel = supabase.channel("notif-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
         if (payload.new.target_user === currentUserRef.current) {
@@ -148,6 +160,7 @@ export default function App() {
       supabase.removeChannel(ideasChannel);
       supabase.removeChannel(learningsChannel);
       supabase.removeChannel(membersChannel);
+      supabase.removeChannel(profilesChannel);
       supabase.removeChannel(notifChannel);
     };
   }, [supabase, user]);
@@ -477,9 +490,7 @@ export default function App() {
         )}
         {viewMode === "Members" && (
           <MembersView
-            members={members}
-            onAdd={addMember}
-            onDelete={deleteMember}
+            profiles={allProfiles}
             currentUser={currentUser}
           />
         )}
