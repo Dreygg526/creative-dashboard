@@ -1,4 +1,5 @@
 "use client";
+import { useMemo } from "react";
 import { Ad } from "../../types";
 import { getPriorityBadge } from "../../utils/helpers";
 
@@ -93,88 +94,303 @@ export function ManagerView({ workloads, setSelectedAd }: ManagerProps) {
 // ─── REPORTS VIEW ─────────────────────────────────────────────────────────────
 
 interface ReportsProps {
+  ads: Ad[];
   weeklyChartData: { label: string; count: number }[];
   avgDaysToUpload: string;
   pipelineVelocityData: { upload: string; testing: string };
   teamOutput: [string, { strategist: number; editor: number }][];
+  hitRate: number;
+  inTesting: number;
+  conceptsVsIterations: string;
+  creativeDiversity: string;
+  rankedSpend: [string, number][];
 }
 
-export function ReportsView({ weeklyChartData, avgDaysToUpload, pipelineVelocityData, teamOutput }: ReportsProps) {
-  return (
-    <div className="flex-1 p-6 md:p-12 overflow-y-auto max-w-[1100px] mx-auto w-full">
-      <div className="mb-10">
-        <h2 className="text-3xl font-black text-slate-800 mb-2">Creative Output Report</h2>
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">System intelligence & performance analytics</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+export function ReportsView({
+  ads, weeklyChartData, avgDaysToUpload, pipelineVelocityData,
+  teamOutput, hitRate, inTesting, conceptsVsIterations, creativeDiversity, rankedSpend
+}: ReportsProps) {
 
-        <div className="bg-white p-6 rounded-[32px] border-2 border-slate-100 shadow-sm">
-          <h3 className="font-black text-slate-800 mb-6 flex items-center gap-2">📈 Output Trends <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">(Weekly Produced)</span></h3>
-          <div className="flex items-end gap-3 h-40 pt-4">
-            {weeklyChartData.map((d, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full bg-indigo-500 rounded-t-xl transition-all hover:bg-indigo-600 cursor-help relative group" style={{ height: `${Math.max(d.count * 15, 10)}%` }}>
-                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-black px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">{d.count} Ads</span>
+  const maxWeeklyCount = Math.max(...weeklyChartData.map(d => d.count), 1);
+
+  // Pipeline speed per stage
+  const pipelineSpeed = useMemo(() => {
+    const stages = [
+      "Idea", "Writing Brief", "Brief Approved",
+      "Editor Assigned", "In Progress", "Ad Revision",
+      "Pending Upload", "Testing"
+    ];
+    return stages.map(stage => {
+      const stageAds = ads.filter(ad => ad.status === stage);
+      const avgDays = stageAds.length > 0
+        ? Math.round(stageAds.reduce((sum, ad) => {
+            return sum + Math.floor((new Date().getTime() - new Date(ad.stage_updated_at || ad.created_at).getTime()) / (1000 * 3600 * 24));
+          }, 0) / stageAds.length)
+        : 0;
+      return { stage: stage.replace(" Required", "").replace("Editor Assigned", "Assigned"), avgDays, count: stageAds.length };
+    });
+  }, [ads]);
+
+  // Format diversity
+  const totalAds = ads.length || 1;
+  const videoCount = ads.filter(a => a.ad_format === "Video Ad").length;
+  const staticCount = ads.filter(a => a.ad_format === "Static Ad").length;
+  const nativeCount = ads.filter(a => a.ad_format === "Native Ad").length;
+  const videoPct = Math.round((videoCount / totalAds) * 100);
+  const staticPct = Math.round((staticCount / totalAds) * 100);
+  const nativePct = Math.round((nativeCount / totalAds) * 100);
+
+  // New vs Iterations this week
+  const [newCount, iterCount] = conceptsVsIterations.split(" / ").map(Number);
+  const totalNI = (newCount + iterCount) || 1;
+
+  // Total ad spend
+  const totalSpend = ads.reduce((sum, ad) => sum + Number(ad.ad_spend || 0), 0);
+
+  return (
+    <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[1300px] mx-auto w-full">
+
+      {/* Header */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-black text-slate-800 mb-1">Creative Output Report</h2>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">All charts pull live from the database</p>
+      </div>
+
+      {/* Top stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white border-2 border-slate-100 rounded-[20px] p-5 shadow-sm">
+          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Volume This Week</p>
+          <p className="text-3xl font-black text-slate-800">{weeklyChartData[weeklyChartData.length - 1]?.count || 0}</p>
+          <p className="text-[10px] font-bold text-slate-400 mt-1">ads created</p>
+        </div>
+        <div className="bg-white border-2 border-slate-100 rounded-[20px] p-5 shadow-sm">
+          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Hit Rate</p>
+          <p className={`text-3xl font-black ${hitRate >= 50 ? "text-emerald-600" : hitRate >= 25 ? "text-amber-500" : "text-rose-500"}`}>{hitRate}%</p>
+          <p className="text-[10px] font-bold text-slate-400 mt-1">winners / completed</p>
+        </div>
+        <div className="bg-white border-2 border-slate-100 rounded-[20px] p-5 shadow-sm">
+          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">In Testing</p>
+          <p className="text-3xl font-black text-indigo-600">{inTesting}</p>
+          <p className="text-[10px] font-bold text-slate-400 mt-1">ads live</p>
+        </div>
+        <div className="bg-white border-2 border-slate-100 rounded-[20px] p-5 shadow-sm">
+          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Ad Spend</p>
+          <p className="text-3xl font-black text-amber-600">
+            ${totalSpend.toLocaleString()}
+          </p>
+          <p className="text-[10px] font-bold text-slate-400 mt-1">all time</p>
+        </div>
+      </div>
+
+      {/* Row 1: Output chart + New vs Iterations */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+        {/* Output Over Time */}
+        <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-black text-slate-800">Output Over Time</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Weekly Produced</p>
+            </div>
+            <span className="text-2xl">📈</span>
+          </div>
+          <div className="flex items-end gap-3 h-36">
+            {weeklyChartData.map((d, i) => {
+              const heightPct = maxWeeklyCount > 0 ? (d.count / maxWeeklyCount) * 100 : 0;
+              const isThisWeek = i === weeklyChartData.length - 1;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                  <span className="text-[10px] font-black text-slate-600">{d.count}</span>
+                  <div className="w-full relative group" style={{ height: "100px" }}>
+                    <div
+                      className={`absolute bottom-0 w-full rounded-t-xl transition-all ${isThisWeek ? "bg-indigo-600" : "bg-indigo-200"} hover:opacity-80`}
+                      style={{ height: `${Math.max(heightPct, 5)}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase text-center leading-tight">{d.label}</span>
                 </div>
-                <span className="text-[9px] font-black text-slate-400 uppercase">{d.label}</span>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* New Concepts vs Iterations */}
+        <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-black text-slate-800">New vs Iterations</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">This Week</p>
+            </div>
+            <span className="text-2xl">🔁</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-indigo-50 rounded-2xl p-4 text-center border border-indigo-100">
+              <p className="text-4xl font-black text-indigo-600 mb-1">{newCount}</p>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">New Concepts</p>
+            </div>
+            <div className="bg-emerald-50 rounded-2xl p-4 text-center border border-emerald-100">
+              <p className="text-4xl font-black text-emerald-600 mb-1">{iterCount}</p>
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Iterations</p>
+            </div>
+          </div>
+          {/* Progress bar */}
+          <div className="h-3 bg-slate-100 rounded-full overflow-hidden flex">
+            <div
+              className="h-full bg-indigo-500 transition-all"
+              style={{ width: `${(newCount / totalNI) * 100}%` }}
+            />
+            <div
+              className="h-full bg-emerald-400 transition-all"
+              style={{ width: `${(iterCount / totalNI) * 100}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-2">
+            <span className="text-[9px] font-black text-indigo-400">New {Math.round((newCount / totalNI) * 100)}%</span>
+            <span className="text-[9px] font-black text-emerald-400">Iter {Math.round((iterCount / totalNI) * 100)}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Team Output + Creative Diversity */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+        {/* Output by Team Member */}
+        <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-black text-slate-800">Output by Team Member</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">This Week</p>
+            </div>
+            <span className="text-2xl">👷</span>
+          </div>
+          {teamOutput.length === 0 ? (
+            <div className="text-center py-8 text-slate-300 font-bold">No output data yet</div>
+          ) : (
+            <div className="space-y-4">
+              {teamOutput.map(([name, stats]) => {
+                const total = stats.strategist + stats.editor;
+                const maxTotal = Math.max(...teamOutput.map(([, s]) => s.strategist + s.editor), 1);
+                return (
+                  <div key={name}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-[10px]">
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-black text-slate-700">{name}</span>
+                      </div>
+                      <span className="text-sm font-black text-slate-500">{total}</span>
+                    </div>
+                    <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all"
+                        style={{ width: `${(total / maxTotal) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Creative Diversity */}
+        <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-black text-slate-800">Creative Diversity</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Format Split — All Time</p>
+            </div>
+            <span className="text-2xl">🎨</span>
+          </div>
+          <div className="space-y-5">
+            {[
+              { label: "Video", count: videoCount, pct: videoPct, color: "bg-indigo-500" },
+              { label: "Static", count: staticCount, pct: staticPct, color: "bg-emerald-400" },
+              { label: "Native", count: nativeCount, pct: nativePct, color: "bg-amber-400" },
+            ].map(f => (
+              <div key={f.label}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-black text-slate-700">{f.label}</span>
+                  <span className="text-sm font-black text-slate-500">{f.pct}%</span>
+                </div>
+                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${f.color} rounded-full transition-all`}
+                    style={{ width: `${f.pct}%` }}
+                  />
+                </div>
+                <p className="text-[9px] font-bold text-slate-400 mt-1">{f.count} ads</p>
               </div>
             ))}
           </div>
         </div>
-
-        <div className="bg-white p-6 rounded-[32px] border-2 border-slate-100 shadow-sm">
-          <h3 className="font-black text-slate-800 mb-6">⏱ Pipeline Velocity</h3>
-          <div className="space-y-6">
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Idea → Upload</p>
-                <p className="text-xl font-black text-indigo-600">{avgDaysToUpload} Days</p>
-              </div>
-              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(Number(avgDaysToUpload) * 10, 100)}%` }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Upload → Testing</p>
-                <p className="text-xl font-black text-emerald-600">{pipelineVelocityData.testing} Days</p>
-              </div>
-              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(Number(pipelineVelocityData.testing) * 20, 100)}%` }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-[32px] border-2 border-slate-100 shadow-sm md:col-span-2">
-          <h3 className="font-black text-slate-800 mb-6 flex items-center justify-between">
-            👷 Team Performance <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded">This Week</span>
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b-2 border-slate-50">
-                  <th className="pb-4 text-[10px] font-black uppercase text-slate-400">Team Member</th>
-                  <th className="pb-4 text-[10px] font-black uppercase text-slate-400">Strategist / Copy</th>
-                  <th className="pb-4 text-[10px] font-black uppercase text-slate-400">Editing / Design</th>
-                  <th className="pb-4 text-[10px] font-black uppercase text-slate-400">Total Weight</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {teamOutput.map(([name, stats]) => (
-                  <tr key={name} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-4 font-black text-slate-700">{name}</td>
-                    <td className="py-4"><span className={`font-bold ${stats.strategist > 0 ? "text-indigo-600" : "text-slate-300"}`}>{stats.strategist} Produced</span></td>
-                    <td className="py-4"><span className={`font-bold ${stats.editor > 0 ? "text-emerald-600" : "text-slate-300"}`}>{stats.editor} Produced</span></td>
-                    <td className="py-4"><span className="bg-slate-100 px-3 py-1 rounded-full text-xs font-black text-slate-500">{stats.strategist + stats.editor} Tasks</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
+
+      {/* Row 3: Pipeline Speed */}
+      <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="font-black text-slate-800">Pipeline Speed</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Avg Days Per Stage</p>
+          </div>
+          <span className="text-2xl">⚡</span>
+        </div>
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+          {pipelineSpeed.map((s, i) => {
+            const isStale = s.avgDays >= 5;
+            return (
+              <div
+                key={i}
+                className={`rounded-2xl p-4 text-center border-2 ${isStale ? "border-rose-200 bg-rose-50" : "border-slate-100 bg-slate-50"}`}
+              >
+                <p className={`text-2xl font-black mb-1 ${isStale ? "text-rose-600" : "text-slate-800"}`}>
+                  {s.avgDays}d
+                </p>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-tight">{s.stage}</p>
+                <p className={`text-[8px] font-bold mt-1 ${isStale ? "text-rose-400" : "text-slate-300"}`}>{s.count} ads</p>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[9px] font-bold text-slate-400 mt-3">Stages with 5+ day average are flagged red</p>
+      </div>
+
+      {/* Row 4: Ad Spend Rankings */}
+      {rankedSpend.length > 0 && (
+        <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-black text-slate-800">Ad Spend Rankings</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">By Team Member</p>
+            </div>
+            <span className="text-2xl">💰</span>
+          </div>
+          <div className="space-y-4">
+            {rankedSpend.map(([name, spend], i) => {
+              const maxSpend = rankedSpend[0][1];
+              return (
+                <div key={name} className="flex items-center gap-4">
+                  <span className={`text-[10px] font-black w-5 ${i === 0 ? "text-amber-500" : "text-slate-400"}`}>#{i + 1}</span>
+                  <div className="flex items-center gap-2 w-32 shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-[10px]">
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-black text-slate-700 truncate">{name}</span>
+                  </div>
+                  <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-amber-400 rounded-full transition-all"
+                      style={{ width: `${(spend / maxSpend) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-black text-slate-700 w-24 text-right">${spend.toLocaleString()}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

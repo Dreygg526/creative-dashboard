@@ -115,10 +115,10 @@ export default function App() {
   } = useNotifications(supabase, currentUser, ads, setSelectedAd);
 
   const {
-    volWk, hitRate, avgRevs, inTesting,
-    conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
-    weeklyChartData, teamOutput, pipelineVelocityData
-  } = useKPIs(ads);
+  hitRate, inTesting,
+  conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
+  weeklyChartData, teamOutput, pipelineVelocityData
+} = useKPIs(ads);
 
   const loadAllProfiles = async () => {
     const data = await getAllUsers();
@@ -426,32 +426,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── KPI BAR ── */}
-        {isManager && (
-          <div className="bg-slate-50/50 p-2 overflow-x-auto no-scrollbar border-b border-slate-100">
-            <div className="max-w-[1800px] mx-auto grid grid-cols-4 md:grid-cols-8 gap-2 min-w-[800px]">
-              {[
-                { label: "Vol (Wk)", val: volWk },
-                { label: "Hit Rate", val: hitRate + "%" },
-                { label: "Avg Revs", val: avgRevs },
-                { label: "In Testing", val: inTesting },
-                { label: "New/Iter", val: conceptsVsIterations },
-                { label: "Days to Up", val: avgDaysToUpload },
-                { label: "Diversity", val: creativeDiversity },
-                { label: "Spend", val: "Rankings ↗", action: () => setIsSpendModalOpen(true) }
-              ].map((m, i) => (
-                <div
-                  key={i}
-                  onClick={m.action}
-                  className={`bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex flex-col items-center justify-center ${m.action ? "cursor-pointer hover:bg-indigo-50 hover:border-indigo-200" : ""}`}
-                >
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">{m.label}</p>
-                  <p className={`text-xs md:text-sm font-black whitespace-nowrap ${m.action ? "text-indigo-600" : "text-slate-800"}`}>{m.val}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        
       </nav>
 
       {/* ── MAIN CONTENT ── */}
@@ -489,13 +464,19 @@ export default function App() {
           <ManagerView workloads={workloads} setSelectedAd={setSelectedAd} />
         )}
         {viewMode === "Reports" && isManager && (
-          <ReportsView
-            weeklyChartData={weeklyChartData}
-            avgDaysToUpload={avgDaysToUpload}
-            pipelineVelocityData={pipelineVelocityData}
-            teamOutput={teamOutput}
-          />
-        )}
+  <ReportsView
+    ads={ads}
+    weeklyChartData={weeklyChartData}
+    avgDaysToUpload={avgDaysToUpload}
+    pipelineVelocityData={pipelineVelocityData}
+    teamOutput={teamOutput}
+    hitRate={hitRate}
+    inTesting={inTesting}
+    conceptsVsIterations={conceptsVsIterations}
+    creativeDiversity={creativeDiversity}
+    rankedSpend={rankedSpend}
+  />
+)}
         {viewMode === "Ideas" && (
           <IdeasView
             currentUser={currentUser}
