@@ -46,7 +46,16 @@ export default function App() {
   const currentUser = profile?.full_name || profile?.email || "User";
   const currentRole = profile?.role || "Editor";
 
-  const [viewMode, setViewMode] = useState<ViewMode>("Pipeline");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === "undefined") return "Pipeline";
+    return (localStorage.getItem("creative_ops_view") as ViewMode) || "Pipeline";
+  });
+
+  const handleSetViewMode = (v: ViewMode) => {
+    setViewMode(v);
+    localStorage.setItem("creative_ops_view", v);
+  };
+
   const [activeStage, setActiveStage] = useState("Idea");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isSpendModalOpen, setIsSpendModalOpen] = useState(false);
@@ -145,16 +154,6 @@ export default function App() {
 
   useEffect(() => { if (supabase && user) fetchNotifications(); }, [currentUser, supabase, user]);
 
-  // Set default view based on role
-  useEffect(() => {
-    if (!profile) return;
-    if (profile.role === "Founder" || profile.role === "Strategist") {
-      setViewMode("Pipeline");
-    } else {
-      setViewMode("MyQueue");
-    }
-  }, [profile]);
-
   const canManageIdeas = currentRole === "Founder" || currentRole === "Strategist";
   const isFounder = currentRole === "Founder";
   const isManager = currentRole === "Founder" || currentRole === "Strategist";
@@ -217,16 +216,16 @@ export default function App() {
   );
 
   if (authLoading) return (
-  <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
-);
+    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
+  );
 
-if (!user) return (
-  <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
-);
+  if (!user) return (
+    <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
+  );
 
- if (!supabase) return (
-  <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
-);
+  if (!supabase) return (
+    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
+  );
 
   // Nav items based on role
   const navItems: ViewMode[] = isManager
@@ -283,7 +282,7 @@ if (!user) return (
                 {navItems.map(v => (
                   <button
                     key={v}
-                    onClick={() => setViewMode(v)}
+                    onClick={() => handleSetViewMode(v)}
                     className={`relative px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === v ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
                   >
                     {v === "MyQueue" ? "My Queue" : v}
@@ -296,7 +295,7 @@ if (!user) return (
                 ))}
                 {isManager && (
                   <button
-                    onClick={() => setViewMode("Manager")}
+                    onClick={() => handleSetViewMode("Manager")}
                     className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Manager" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
                   >
                     Workload
@@ -304,7 +303,7 @@ if (!user) return (
                 )}
                 {isFounder && (
                   <button
-                    onClick={() => setViewMode("Settings")}
+                    onClick={() => handleSetViewMode("Settings")}
                     className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Settings" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
                   >
                     Settings
@@ -340,7 +339,7 @@ if (!user) return (
                       <p className="text-[10px] text-slate-400">{profile?.email}</p>
                     </div>
                     <button
-                      onClick={() => { setViewMode("Settings"); setIsUserDropdownOpen(false); }}
+                      onClick={() => { handleSetViewMode("Settings"); setIsUserDropdownOpen(false); }}
                       className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-50 text-slate-600 transition-colors"
                     >
                       ⚙️ Settings
@@ -509,7 +508,7 @@ if (!user) return (
       {ideaToPromote && (
         <PromoteIdeaModal
           idea={ideaToPromote}
-          onConfirm={(idea) => handlePromoteIdea(idea, setNewAd, setIsNewAdOpen, setViewMode)}
+          onConfirm={(idea) => handlePromoteIdea(idea, setNewAd, setIsNewAdOpen, handleSetViewMode)}
           onCancel={() => setIdeaToPromote(null)}
         />
       )}
