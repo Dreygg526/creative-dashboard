@@ -10,12 +10,14 @@ import { useNotifications } from "./hooks/useNotifications";
 import { useAudio } from "./hooks/useAudio";
 import { useKPIs } from "./hooks/useKPIs";
 import { useMembers } from "./hooks/useMembers";
+import { useAuth } from "./hooks/useAuth";
 
 // Components
 import NotificationDropdown from "./components/NotificationDropdown";
 import NewAdModal from "./components/modals/NewAdModal";
 import AdDetailModal from "./components/modals/AdDetailModal";
 import { PromoteIdeaModal, SpendModal } from "./components/modals/OtherModals";
+import LoginPage from "./components/LoginPage";
 
 // Views
 import PipelineView from "./components/views/PipelineView";
@@ -23,31 +25,35 @@ import { MyQueueView, ManagerView, ReportsView } from "./components/views/OtherV
 import IdeasView from "./components/views/IdeasView";
 import MembersView from "./components/views/MembersView";
 import LearningsView from "./components/views/LearningsView";
+import SettingsView from "./components/views/SettingsView";
 
 // Constants & Utils
 import { PRIORITY_ORDER } from "./constants";
 import { IdeaEntry } from "./types";
 
-type ViewMode = "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members";
+type ViewMode = "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings";
 
 export default function App() {
   const { supabase, libError } = useSupabaseClient();
   const { isAudioUnlocked, playNotificationSound } = useAudio();
+  const {
+    user, profile, authLoading,
+    signIn, signOut, resetPassword,
+    inviteUser, getAllUsers,
+    updateUserRole, deactivateUser
+  } = useAuth(supabase);
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("creative_pipeline_user") || "Founder";
-    }
-    return "Founder";
-  });
-  const currentUserRef = useRef(currentUser);
+  const currentUser = profile?.full_name || profile?.email || "User";
+  const currentRole = profile?.role || "Editor";
 
   const [viewMode, setViewMode] = useState<ViewMode>("Pipeline");
   const [activeStage, setActiveStage] = useState("Idea");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [expandedRoleGroup, setExpandedRoleGroup] = useState<string | null>(null);
   const [isSpendModalOpen, setIsSpendModalOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   const {
     ads, loading, selectedAd, setSelectedAd,
@@ -101,12 +107,7 @@ export default function App() {
   } = useKPIs(ads);
 
   useEffect(() => {
-    currentUserRef.current = currentUser;
-    localStorage.setItem("creative_pipeline_user", currentUser);
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (!supabase) return;
+    if (!supabase || !user) return;
     fetchAds();
     fetchIdeas();
     fetchLearnings();
@@ -115,19 +116,15 @@ export default function App() {
     const adsChannel = supabase.channel("ads-main")
       .on("postgres_changes", { event: "*", schema: "public", table: "ads" }, () => fetchAds())
       .subscribe();
-
     const ideasChannel = supabase.channel("ideas-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "ideas" }, () => fetchIdeas())
       .subscribe();
-
     const learningsChannel = supabase.channel("learnings-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "learnings" }, () => fetchLearnings())
       .subscribe();
-
     const membersChannel = supabase.channel("members-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "members" }, () => fetchMembers())
       .subscribe();
-
     const notifChannel = supabase.channel("notif-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
         if (payload.new.target_user === currentUserRef.current) {
@@ -144,16 +141,29 @@ export default function App() {
       supabase.removeChannel(membersChannel);
       supabase.removeChannel(notifChannel);
     };
-  }, [supabase]);
+  }, [supabase, user]);
 
-  useEffect(() => { fetchNotifications(); }, [currentUser, supabase]);
+  useEffect(() => { if (supabase && user) fetchNotifications(); }, [currentUser, supabase, user]);
 
-  const canManageIdeas = currentUser === "Founder" || currentUser === "Strategist";
+  // Set default view based on role
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.role === "Founder" || profile.role === "Strategist") {
+      setViewMode("Pipeline");
+    } else {
+      setViewMode("MyQueue");
+    }
+  }, [profile]);
+
+  const canManageIdeas = currentRole === "Founder" || currentRole === "Strategist";
+  const isFounder = currentRole === "Founder";
+  const isManager = currentRole === "Founder" || currentRole === "Strategist";
 
   const myQueue = useMemo(() => {
     const queue = ads.filter(ad => {
-      if (currentUser === "VA") return ad.status === "Pending Upload";
-      if (currentUser === "Strategist") return ["Ad Revision", "Testing"].includes(ad.status);
+      if (currentRole === "VA") return ad.status === "Pending Upload";
+      if (currentRole === "Strategist") return ["Ad Revision", "Testing"].includes(ad.status);
+      if (currentRole === "Content Coordinator") return ["Brief Approved", "Content Revision Required"].includes(ad.status);
       if (ad.assigned_copywriter === currentUser) return ["Writing Brief", "Brief Revision Required"].includes(ad.status);
       if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Content Revision Required", "Ad Revision"].includes(ad.status);
       return false;
@@ -164,7 +174,7 @@ export default function App() {
       if (pA !== pB) return pA - pB;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [ads, currentUser]);
+  }, [ads, currentUser, currentRole]);
 
   const workloads = useMemo(() => {
     const people = Array.from(new Set([
@@ -172,7 +182,6 @@ export default function App() {
       ...ads.map(a => a.assigned_copywriter),
       "VA", "Strategist"
     ])).filter((p): p is string => !!p && p !== "Founder");
-
     const result: Record<string, typeof ads> = {};
     people.forEach(p => {
       result[p] = ads.filter(ad =>
@@ -199,33 +208,35 @@ export default function App() {
   }, [copywriters, ads]);
 
   const allDesigners = useMemo(() => {
-    return members
-      .filter(m => m.role === "Graphic Designer")
-      .map(m => m.name)
-      .sort();
+    return members.filter(m => m.role === "Graphic Designer").map(m => m.name).sort();
   }, [members]);
 
+  // ── LOADING / AUTH STATES ──
   if (libError) return (
-    <div className="min-h-screen flex items-center justify-center p-4 text-rose-600 font-bold">
-      {libError}
-    </div>
+    <div className="min-h-screen flex items-center justify-center p-4 text-rose-600 font-bold">{libError}</div>
+  );
+
+  if (authLoading) return (
+    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
+  );
+
+  if (!user) return (
+    <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
   );
 
   if (loading || !supabase) return (
-    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">
-      Initializing...
-    </div>
+    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
   );
+
+  // Nav items based on role
+  const navItems: ViewMode[] = isManager
+    ? ["Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members"]
+    : ["MyQueue", "Ideas", "Learnings"];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans text-[13px] flex flex-col">
-
-      <datalist id="editor-autocomplete">
-        {allEditors.map(n => <option key={n} value={n} />)}
-      </datalist>
-      <datalist id="copywriter-autocomplete">
-        {allCopywriters.map(n => <option key={n} value={n} />)}
-      </datalist>
+      <datalist id="editor-autocomplete">{allEditors.map(n => <option key={n} value={n} />)}</datalist>
+      <datalist id="copywriter-autocomplete">{allCopywriters.map(n => <option key={n} value={n} />)}</datalist>
 
       {/* ── NAV ── */}
       <nav className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
@@ -259,15 +270,17 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                <button onClick={() => setIsNewAdOpen(true)} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium text-xs">
-                  + New
-                </button>
+                {isManager && (
+                  <button onClick={() => setIsNewAdOpen(true)} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium text-xs">
+                    + New
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 md:gap-4">
               <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner flex-wrap gap-1">
-                {(["Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members"] as ViewMode[]).map(v => (
+                {navItems.map(v => (
                   <button
                     key={v}
                     onClick={() => setViewMode(v)}
@@ -281,7 +294,7 @@ export default function App() {
                     )}
                   </button>
                 ))}
-                {(currentUser === "Founder" || currentUser === "Strategist") && (
+                {isManager && (
                   <button
                     onClick={() => setViewMode("Manager")}
                     className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Manager" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
@@ -289,75 +302,60 @@ export default function App() {
                     Workload
                   </button>
                 )}
+                {isFounder && (
+                  <button
+                    onClick={() => setViewMode("Settings")}
+                    className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Settings" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
+                  >
+                    Settings
+                  </button>
+                )}
               </div>
 
+              {/* User info + logout */}
               <div className="relative">
                 <div
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                  className={`flex items-center gap-2 border cursor-pointer select-none ${isAudioUnlocked ? "border-indigo-200 bg-indigo-50/30" : "border-slate-200 bg-white"} px-3 py-1.5 rounded-lg shadow-sm hover:bg-slate-50`}
+                  className="flex items-center gap-2 border border-slate-200 bg-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-slate-50 cursor-pointer"
                 >
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase whitespace-nowrap">I am:</span>
-                  <span className="text-xs font-bold text-indigo-700">{currentUser}</span>
+                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-[10px]">
+                    {currentUser.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-800 leading-none">{currentUser}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentRole}</p>
+                  </div>
                   <span className={`text-[10px] transition-transform ${isUserDropdownOpen ? "rotate-180" : ""}`}>▼</span>
                   <button
                     onClick={e => { e.stopPropagation(); playNotificationSound(); }}
-                    className={`ml-1 p-1 rounded-md transition-all ${isAudioUnlocked ? "text-emerald-600" : "text-slate-400 animate-bounce"}`}
+                    className={`ml-1 p-1 rounded-md transition-all ${isAudioUnlocked ? "text-emerald-600" : "text-slate-400"}`}
                   >
                     {isAudioUnlocked ? "🔊" : "🔇"}
                   </button>
                 </div>
-
                 {isUserDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
-                    <div className="px-3 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">
-                      Core Roles
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
+                    <div className="px-4 py-2 border-b border-slate-50">
+                      <p className="text-xs font-black text-slate-700">{currentUser}</p>
+                      <p className="text-[10px] text-slate-400">{profile?.email}</p>
                     </div>
-                    {["Founder", "Strategist", "Content Coordinator", "VA"].map(role => (
-                      <button
-                        key={role}
-                        onClick={() => { setCurrentUser(role); setIsUserDropdownOpen(false); }}
-                        className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-indigo-50 transition-colors ${currentUser === role ? "text-indigo-600 bg-indigo-50/50" : "text-slate-600"}`}
-                      >
-                        {role}
-                      </button>
-                    ))}
-                    <div className="border-t border-slate-100 mt-1">
-                      {([
-                        ["Editor", allEditors],
-                        ["Copywriter", allCopywriters],
-                        ["Graphic Designer", allDesigners]
-                      ] as [string, string[]][]).map(([label, names]) => (
-                        <div key={label}>
-                          <button
-                            onClick={() => setExpandedRoleGroup(expandedRoleGroup === label ? null : label)}
-                            className="w-full text-left px-4 py-2 text-xs font-black text-slate-800 flex justify-between items-center hover:bg-slate-50"
-                          >
-                            {label}
-                            <span className={`text-[8px] transition-transform ${expandedRoleGroup === label ? "rotate-180" : ""}`}>▼</span>
-                          </button>
-                          {expandedRoleGroup === label && (
-                            <div className="bg-slate-50 py-1">
-                              {names.length === 0
-                                ? <p className="px-6 py-2 text-[10px] italic text-slate-400">No {label}s added yet</p>
-                                : names.map(name => (
-                                  <button
-                                    key={name}
-                                    onClick={() => { setCurrentUser(name); setIsUserDropdownOpen(false); }}
-                                    className={`w-full text-left px-8 py-2 text-xs font-bold hover:bg-indigo-100 transition-colors ${currentUser === name ? "text-indigo-600" : "text-slate-500"}`}
-                                  >
-                                    {name}
-                                  </button>
-                                ))
-                              }
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <button
+                      onClick={() => { setViewMode("Settings"); setIsUserDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-50 text-slate-600 transition-colors"
+                    >
+                      ⚙️ Settings
+                    </button>
+                    <button
+                      onClick={() => { signOut(); setIsUserDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-rose-50 text-rose-500 transition-colors"
+                    >
+                      🚪 Sign Out
+                    </button>
                   </div>
                 )}
               </div>
 
+              {/* Desktop notif */}
               <div className="hidden lg:relative lg:block">
                 <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="text-xl p-2 hover:bg-slate-100 rounded-full relative transition-colors">
                   🔔
@@ -378,40 +376,44 @@ export default function App() {
                 )}
               </div>
 
-              <button
-                onClick={() => setIsNewAdOpen(true)}
-                className="hidden lg:block bg-indigo-600 text-white px-5 py-2 rounded-lg font-black hover:bg-indigo-700 text-sm shadow-sm transition-all"
-              >
-                + New Ad
-              </button>
+              {isManager && (
+                <button
+                  onClick={() => setIsNewAdOpen(true)}
+                  className="hidden lg:block bg-indigo-600 text-white px-5 py-2 rounded-lg font-black hover:bg-indigo-700 text-sm shadow-sm transition-all"
+                >
+                  + New Ad
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* ── KPI BAR ── */}
-        <div className="bg-slate-50/50 p-2 overflow-x-auto no-scrollbar border-b border-slate-100">
-          <div className="max-w-[1800px] mx-auto grid grid-cols-4 md:grid-cols-8 gap-2 min-w-[800px]">
-            {[
-              { label: "Vol (Wk)",   val: volWk },
-              { label: "Hit Rate",   val: hitRate + "%" },
-              { label: "Avg Revs",   val: avgRevs },
-              { label: "In Testing", val: inTesting },
-              { label: "New/Iter",   val: conceptsVsIterations },
-              { label: "Days to Up", val: avgDaysToUpload },
-              { label: "Diversity",  val: creativeDiversity },
-              { label: "Spend",      val: "Rankings ↗", action: () => setIsSpendModalOpen(true) }
-            ].map((m, i) => (
-              <div
-                key={i}
-                onClick={m.action}
-                className={`bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex flex-col items-center justify-center ${m.action ? "cursor-pointer hover:bg-indigo-50 hover:border-indigo-200" : ""}`}
-              >
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">{m.label}</p>
-                <p className={`text-xs md:text-sm font-black whitespace-nowrap ${m.action ? "text-indigo-600" : "text-slate-800"}`}>{m.val}</p>
-              </div>
-            ))}
+        {isManager && (
+          <div className="bg-slate-50/50 p-2 overflow-x-auto no-scrollbar border-b border-slate-100">
+            <div className="max-w-[1800px] mx-auto grid grid-cols-4 md:grid-cols-8 gap-2 min-w-[800px]">
+              {[
+                { label: "Vol (Wk)", val: volWk },
+                { label: "Hit Rate", val: hitRate + "%" },
+                { label: "Avg Revs", val: avgRevs },
+                { label: "In Testing", val: inTesting },
+                { label: "New/Iter", val: conceptsVsIterations },
+                { label: "Days to Up", val: avgDaysToUpload },
+                { label: "Diversity", val: creativeDiversity },
+                { label: "Spend", val: "Rankings ↗", action: () => setIsSpendModalOpen(true) }
+              ].map((m, i) => (
+                <div
+                  key={i}
+                  onClick={m.action}
+                  className={`bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex flex-col items-center justify-center ${m.action ? "cursor-pointer hover:bg-indigo-50 hover:border-indigo-200" : ""}`}
+                >
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">{m.label}</p>
+                  <p className={`text-xs md:text-sm font-black whitespace-nowrap ${m.action ? "text-indigo-600" : "text-slate-800"}`}>{m.val}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </nav>
 
       {/* ── MAIN CONTENT ── */}
@@ -482,6 +484,15 @@ export default function App() {
             currentUser={currentUser}
           />
         )}
+        {viewMode === "Settings" && profile && (
+          <SettingsView
+            currentProfile={profile}
+            onInviteUser={inviteUser}
+            onUpdateRole={updateUserRole}
+            onDeactivateUser={deactivateUser}
+            getAllUsers={getAllUsers}
+          />
+        )}
       </main>
 
       {/* ── MODALS ── */}
@@ -495,7 +506,6 @@ export default function App() {
           copywriters={allCopywriters}
         />
       )}
-
       {ideaToPromote && (
         <PromoteIdeaModal
           idea={ideaToPromote}
@@ -503,7 +513,6 @@ export default function App() {
           onCancel={() => setIdeaToPromote(null)}
         />
       )}
-
       {selectedAd && (
         <AdDetailModal
           selectedAd={selectedAd}
@@ -515,7 +524,6 @@ export default function App() {
           onDelete={handleDeleteAd}
         />
       )}
-
       {isSpendModalOpen && (
         <SpendModal
           rankedSpend={rankedSpend}
