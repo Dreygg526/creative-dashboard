@@ -217,12 +217,16 @@ export default function App() {
   );
 
   if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
-  );
+  <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
+);
 
-  if (!user) return (
-    <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
-  );
+if (!user) return (
+  <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
+);
+
+if (!profile) return (
+  <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading profile...</div>
+);
 
  if (!supabase) return (
   <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
