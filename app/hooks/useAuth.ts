@@ -21,10 +21,13 @@ export function useAuth(supabase: any) {
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle(); // use maybeSingle instead of single — won't error if not found
 
-      if (error || !data) {
-        const { data: newProfile } = await supabase
+      if (data) {
+        setProfile(data);
+      } else {
+        // No profile found — create one
+        const { data: newProfile, error: insertError } = await supabase
           .from("profiles")
           .insert([{
             id: userId,
@@ -34,10 +37,10 @@ export function useAuth(supabase: any) {
             is_active: true
           }])
           .select()
-          .single();
+          .maybeSingle();
+
         if (newProfile) setProfile(newProfile);
-      } else {
-        setProfile(data);
+        if (insertError) console.error("Insert profile error:", insertError);
       }
     } catch (err) {
       console.error("fetchProfile error:", err);
@@ -57,7 +60,6 @@ export function useAuth(supabase: any) {
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-
         if (!mounted) return;
 
         if (session?.user) {
@@ -79,14 +81,12 @@ export function useAuth(supabase: any) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: any) => {
         if (!mounted) return;
-
         if (event === "SIGNED_OUT") {
           setUser(null);
           setProfile(null);
           setAuthLoading(false);
           return;
         }
-
         if (session?.user) {
           setUser(session.user);
           await fetchProfile(session.user.id, session.user.email);
@@ -98,7 +98,6 @@ export function useAuth(supabase: any) {
       }
     );
 
-    // Safety timeout — never stay stuck
     const timeout = setTimeout(() => {
       if (mounted) setAuthLoading(false);
     }, 5000);
