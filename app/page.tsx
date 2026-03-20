@@ -224,9 +224,9 @@ export default function App() {
     <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
   );
 
-  if (loading || !supabase) return (
-    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
-  );
+ if (!supabase) return (
+  <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
+);
 
   // Nav items based on role
   const navItems: ViewMode[] = isManager

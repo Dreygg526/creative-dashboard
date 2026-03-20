@@ -24,7 +24,6 @@ export function useAuth(supabase: any) {
         .single();
 
       if (error || !data) {
-        // Profile doesn't exist yet — create a default one
         const { data: newProfile } = await supabase
           .from("profiles")
           .insert([{
@@ -42,43 +41,74 @@ export function useAuth(supabase: any) {
       }
     } catch (err) {
       console.error("fetchProfile error:", err);
+    } finally {
+      setAuthLoading(false);
     }
   }, [supabase]);
 
   useEffect(() => {
-    if (!supabase) return;
-
-    // Safety timeout — never stay stuck loading
-const timeout = setTimeout(() => {
-  setAuthLoading(false);
-}, 3000);
-
-supabase.auth.getSession().then(({ data: { session } }: any) => {
-  clearTimeout(timeout);
-  setUser(session?.user ?? null);
-  if (session?.user) {
-    fetchProfile(session.user.id, session.user.email).finally(() => {
+    if (!supabase) {
       setAuthLoading(false);
-    });
-  } else {
-    setAuthLoading(false);
-  }
-});
+      return;
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: string, session: any) => {
-        setUser(session?.user ?? null);
+    let mounted = true;
+
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
         if (session?.user) {
+          setUser(session.user);
           await fetchProfile(session.user.id, session.user.email);
         } else {
+          setUser(null);
           setProfile(null);
+          setAuthLoading(false);
         }
-        setAuthLoading(false);
+      } catch (err) {
+        console.error("initAuth error:", err);
+        if (mounted) setAuthLoading(false);
+      }
+    };
+
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: string, session: any) => {
+        if (!mounted) return;
+
+        if (event === "SIGNED_OUT") {
+          setUser(null);
+          setProfile(null);
+          setAuthLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id, session.user.email);
+        } else {
+          setUser(null);
+          setProfile(null);
+          setAuthLoading(false);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+    // Safety timeout — never stay stuck
+    const timeout = setTimeout(() => {
+      if (mounted) setAuthLoading(false);
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
+  }, [supabase, fetchProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
