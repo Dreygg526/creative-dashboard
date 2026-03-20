@@ -518,17 +518,20 @@ export default function App() {
           onCancel={() => setIdeaToPromote(null)}
         />
       )}
-      {selectedAd && (
-        <AdDetailModal
-          selectedAd={selectedAd}
-          ads={ads}
-          manualLogNote={manualLogNote}
-          setManualLogNote={setManualLogNote}
-          setSelectedAd={setSelectedAd}
-          onUpdate={handleUpdateAd}
-          onDelete={handleDeleteAd}
-        />
-      )}
+     {selectedAd && (
+  <AdDetailModal
+    selectedAd={selectedAd}
+    ads={ads}
+    manualLogNote={manualLogNote}
+    setManualLogNote={setManualLogNote}
+    setSelectedAd={setSelectedAd}
+    onUpdate={handleUpdateAd}
+    onDelete={handleDeleteAd}
+    currentRole={currentRole}
+    currentUser={currentUser}
+    allEditors={allEditors}
+  />
+)}
       {isSpendModalOpen && (
         <SpendModal
           rankedSpend={rankedSpend}
