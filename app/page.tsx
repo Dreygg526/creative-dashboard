@@ -9,7 +9,6 @@ import { useLearnings } from "./hooks/useLearnings";
 import { useNotifications } from "./hooks/useNotifications";
 import { useAudio } from "./hooks/useAudio";
 import { useKPIs } from "./hooks/useKPIs";
-import { useMembers } from "./hooks/useMembers";
 import { useAuth } from "./hooks/useAuth";
 
 // Components
@@ -105,21 +104,19 @@ export default function App() {
   } = useNotifications(supabase, currentUser, ads, setSelectedAd);
 
   const {
-    members, fetchMembers,
-    editors, copywriters
-  } = useMembers(supabase);
-
-  const {
     volWk, hitRate, avgRevs, inTesting,
     conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
     weeklyChartData, teamOutput, pipelineVelocityData
   } = useKPIs(ads);
 
-  // Fetch all profiles for Members view
+  const loadAllProfiles = async () => {
+    const data = await getAllUsers();
+    setAllProfiles(data);
+  };
+
+  // Fetch all profiles for Members view + dropdowns
   useEffect(() => {
-    if (supabase && user) {
-      getAllUsers().then(setAllProfiles);
-    }
+    if (supabase && user) loadAllProfiles();
   }, [supabase, user, profile]);
 
   useEffect(() => {
@@ -127,7 +124,6 @@ export default function App() {
     fetchAds();
     fetchIdeas();
     fetchLearnings();
-    fetchMembers();
 
     const adsChannel = supabase.channel("ads-main")
       .on("postgres_changes", { event: "*", schema: "public", table: "ads" }, () => fetchAds())
@@ -138,13 +134,8 @@ export default function App() {
     const learningsChannel = supabase.channel("learnings-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "learnings" }, () => fetchLearnings())
       .subscribe();
-    const membersChannel = supabase.channel("members-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "members" }, () => fetchMembers())
-      .subscribe();
     const profilesChannel = supabase.channel("profiles-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-        getAllUsers().then(setAllProfiles);
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => loadAllProfiles())
       .subscribe();
     const notifChannel = supabase.channel("notif-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
@@ -159,7 +150,6 @@ export default function App() {
       supabase.removeChannel(adsChannel);
       supabase.removeChannel(ideasChannel);
       supabase.removeChannel(learningsChannel);
-      supabase.removeChannel(membersChannel);
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(notifChannel);
     };
@@ -207,21 +197,27 @@ export default function App() {
     return result;
   }, [ads]);
 
+  // Build dropdowns from profiles table only
   const allEditors = useMemo(() => {
-    const fromMembers = editors;
-    const fromAds = ads.map(a => a.assigned_editor).filter(Boolean) as string[];
-    return Array.from(new Set([...fromMembers, ...fromAds])).sort();
-  }, [editors, ads]);
+    return allProfiles
+      .filter(p => p.role === "Editor" && p.is_active)
+      .map(p => p.full_name)
+      .sort();
+  }, [allProfiles]);
 
   const allCopywriters = useMemo(() => {
-    const fromMembers = copywriters;
-    const fromAds = ads.map(a => a.assigned_copywriter).filter(Boolean) as string[];
-    return Array.from(new Set([...fromMembers, ...fromAds])).sort();
-  }, [copywriters, ads]);
+    return allProfiles
+      .filter(p => p.role === "Copywriter" && p.is_active)
+      .map(p => p.full_name)
+      .sort();
+  }, [allProfiles]);
 
   const allDesigners = useMemo(() => {
-    return members.filter(m => m.role === "Graphic Designer").map(m => m.name).sort();
-  }, [members]);
+    return allProfiles
+      .filter(p => p.role === "Graphic Designer" && p.is_active)
+      .map(p => p.full_name)
+      .sort();
+  }, [allProfiles]);
 
   // ── LOADING / AUTH STATES ──
   if (libError) return (
@@ -240,7 +236,6 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
   );
 
-  // Nav items based on role
   const navItems: ViewMode[] = isManager
     ? ["Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members"]
     : ["MyQueue", "Ideas", "Learnings"];
