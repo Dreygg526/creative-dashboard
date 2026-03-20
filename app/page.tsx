@@ -45,6 +45,16 @@ export default function App() {
   const currentUser = profile?.full_name || profile?.email || "User";
   const currentRole = profile?.role || "Editor";
 
+  // Role flags
+  const isFounder = currentRole === "Founder";
+  const isStrategist = currentRole === "Strategist";
+  const isManager = isFounder || isStrategist;
+  const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
+  const isVA = currentRole === "VA";
+  const isContentCoord = currentRole === "Content Coordinator";
+  const canManageIdeas = isManager;
+  const canCreateAd = isManager;
+
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window === "undefined") return "Pipeline";
     return (localStorage.getItem("creative_ops_view") as ViewMode) || "Pipeline";
@@ -114,7 +124,6 @@ export default function App() {
     setAllProfiles(data);
   };
 
-  // Fetch all profiles for Members view + dropdowns
   useEffect(() => {
     if (supabase && user) loadAllProfiles();
   }, [supabase, user, profile]);
@@ -157,16 +166,11 @@ export default function App() {
 
   useEffect(() => { if (supabase && user) fetchNotifications(); }, [currentUser, supabase, user]);
 
-  const canManageIdeas = currentRole === "Founder" || currentRole === "Strategist";
-  const isFounder = currentRole === "Founder";
-  const isManager = currentRole === "Founder" || currentRole === "Strategist";
-
   const myQueue = useMemo(() => {
     const queue = ads.filter(ad => {
-      if (currentRole === "VA") return ad.status === "Pending Upload";
-      if (currentRole === "Strategist") return ["Ad Revision", "Testing"].includes(ad.status);
-      if (currentRole === "Content Coordinator") return ["Brief Approved", "Content Revision Required"].includes(ad.status);
-      if (ad.assigned_copywriter === currentUser) return ["Writing Brief", "Brief Revision Required"].includes(ad.status);
+      if (isVA) return ad.status === "Pending Upload";
+      if (isStrategist) return ["Ad Revision", "Testing"].includes(ad.status);
+      if (isContentCoord) return ["Preparing Content", "Content Revision Required"].includes(ad.status);
       if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Content Revision Required", "Ad Revision"].includes(ad.status);
       return false;
     });
@@ -197,27 +201,30 @@ export default function App() {
     return result;
   }, [ads]);
 
-  // Build dropdowns from profiles table only
   const allEditors = useMemo(() => {
     return allProfiles
       .filter(p => p.role === "Editor" && p.is_active)
-      .map(p => p.full_name)
+      .map((p: any) => p.full_name)
       .sort();
   }, [allProfiles]);
 
   const allCopywriters = useMemo(() => {
     return allProfiles
       .filter(p => p.role === "Copywriter" && p.is_active)
-      .map(p => p.full_name)
+      .map((p: any) => p.full_name)
       .sort();
   }, [allProfiles]);
 
-  const allDesigners = useMemo(() => {
-    return allProfiles
-      .filter(p => p.role === "Graphic Designer" && p.is_active)
-      .map(p => p.full_name)
-      .sort();
-  }, [allProfiles]);
+  // Nav items based on role
+  const navItems: ViewMode[] = isFounder
+    ? ["Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members"]
+    : isStrategist
+    ? ["Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
+    : isVA
+    ? ["MyQueue"]
+    : isContentCoord
+    ? ["MyQueue", "Ideas", "Learnings"]
+    : ["MyQueue", "Ideas", "Learnings"]; // Editor / Graphic Designer
 
   // ── LOADING / AUTH STATES ──
   if (libError) return (
@@ -235,10 +242,6 @@ export default function App() {
   if (!supabase) return (
     <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
   );
-
-  const navItems: ViewMode[] = isManager
-    ? ["Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members"]
-    : ["MyQueue", "Ideas", "Learnings"];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans text-[13px] flex flex-col">
@@ -277,7 +280,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                {isManager && (
+                {canCreateAd && (
                   <button onClick={() => setIsNewAdOpen(true)} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium text-xs">
                     + New
                   </button>
@@ -301,7 +304,7 @@ export default function App() {
                     )}
                   </button>
                 ))}
-                {isManager && (
+                {isFounder && (
                   <button
                     onClick={() => handleSetViewMode("Manager")}
                     className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Manager" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
@@ -346,12 +349,14 @@ export default function App() {
                       <p className="text-xs font-black text-slate-700">{currentUser}</p>
                       <p className="text-[10px] text-slate-400">{profile?.email}</p>
                     </div>
-                    <button
-                      onClick={() => { handleSetViewMode("Settings"); setIsUserDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-50 text-slate-600 transition-colors"
-                    >
-                      ⚙️ Settings
-                    </button>
+                    {isFounder && (
+                      <button
+                        onClick={() => { handleSetViewMode("Settings"); setIsUserDropdownOpen(false); }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-50 text-slate-600 transition-colors"
+                      >
+                        ⚙️ Settings
+                      </button>
+                    )}
                     <button
                       onClick={() => { signOut(); setIsUserDropdownOpen(false); }}
                       className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-rose-50 text-rose-500 transition-colors"
@@ -383,7 +388,7 @@ export default function App() {
                 )}
               </div>
 
-              {isManager && (
+              {canCreateAd && (
                 <button
                   onClick={() => setIsNewAdOpen(true)}
                   className="hidden lg:block bg-indigo-600 text-white px-5 py-2 rounded-lg font-black hover:bg-indigo-700 text-sm shadow-sm transition-all"
@@ -395,7 +400,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── KPI BAR ── */}
+        {/* ── KPI BAR — Founder & Strategist only ── */}
         {isManager && (
           <div className="bg-slate-50/50 p-2 overflow-x-auto no-scrollbar border-b border-slate-100">
             <div className="max-w-[1800px] mx-auto grid grid-cols-4 md:grid-cols-8 gap-2 min-w-[800px]">
@@ -425,16 +430,16 @@ export default function App() {
 
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {viewMode === "Pipeline" && (
+        {viewMode === "Pipeline" && (isFounder || isStrategist) && (
           <PipelineView ads={ads} activeStage={activeStage} setActiveStage={setActiveStage} setSelectedAd={setSelectedAd} />
         )}
         {viewMode === "MyQueue" && (
           <MyQueueView currentUser={currentUser} myQueue={myQueue} setSelectedAd={setSelectedAd} />
         )}
-        {viewMode === "Manager" && (
+        {viewMode === "Manager" && isFounder && (
           <ManagerView workloads={workloads} setSelectedAd={setSelectedAd} />
         )}
-        {viewMode === "Reports" && (
+        {viewMode === "Reports" && isManager && (
           <ReportsView
             weeklyChartData={weeklyChartData}
             avgDaysToUpload={avgDaysToUpload}
@@ -483,13 +488,13 @@ export default function App() {
             setExpandedLearning={setExpandedLearning}
           />
         )}
-        {viewMode === "Members" && (
+        {viewMode === "Members" && isFounder && (
           <MembersView
             profiles={allProfiles}
             currentUser={currentUser}
           />
         )}
-        {viewMode === "Settings" && profile && (
+        {viewMode === "Settings" && isFounder && profile && (
           <SettingsView
             currentProfile={profile}
             onInviteUser={inviteUser}
@@ -501,7 +506,7 @@ export default function App() {
       </main>
 
       {/* ── MODALS ── */}
-      {isNewAdOpen && (
+      {isNewAdOpen && canCreateAd && (
         <NewAdModal
           newAd={newAd}
           setNewAd={setNewAd}
@@ -518,20 +523,20 @@ export default function App() {
           onCancel={() => setIdeaToPromote(null)}
         />
       )}
-     {selectedAd && (
-  <AdDetailModal
-    selectedAd={selectedAd}
-    ads={ads}
-    manualLogNote={manualLogNote}
-    setManualLogNote={setManualLogNote}
-    setSelectedAd={setSelectedAd}
-    onUpdate={handleUpdateAd}
-    onDelete={handleDeleteAd}
-    currentRole={currentRole}
-    currentUser={currentUser}
-    allEditors={allEditors}
-  />
-)}
+      {selectedAd && (
+        <AdDetailModal
+          selectedAd={selectedAd}
+          ads={ads}
+          manualLogNote={manualLogNote}
+          setManualLogNote={setManualLogNote}
+          setSelectedAd={setSelectedAd}
+          onUpdate={handleUpdateAd}
+          onDelete={handleDeleteAd}
+          currentRole={currentRole}
+          currentUser={currentUser}
+          allEditors={allEditors}
+        />
+      )}
       {isSpendModalOpen && (
         <SpendModal
           rankedSpend={rankedSpend}
