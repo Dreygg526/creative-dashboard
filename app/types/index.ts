@@ -56,6 +56,7 @@ export interface LearningEntry {
   insight: string;
   logged_by: string;
   created_at: string;
+  is_reviewed: boolean;
 }
 
 export interface NewLearningForm {

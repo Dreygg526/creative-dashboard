@@ -5,7 +5,7 @@ import { getLearningResultStyle } from "../../utils/helpers";
 interface Props {
   learnings: LearningEntry[];
   filteredLearnings: LearningEntry[];
-  learningCounts: { total: number; winner: number; loser: number; inconclusive: number };
+  learningCounts: { total: number; winner: number; loser: number; inconclusive: number; reviewed: number };
   learningsFilter: string;
   setLearningsFilter: (f: string) => void;
   isLearningFormOpen: boolean;
@@ -18,7 +18,10 @@ interface Props {
   isSubmittingLearning: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onDelete: (id: string) => void;
+  onMarkReviewed: (id: string) => void;
+  onUnmarkReviewed: (id: string) => void;
   currentUser: string;
+  currentRole: string;
   expandedLearning: string | null;
   setExpandedLearning: (id: string | null) => void;
 }
@@ -29,10 +32,12 @@ export default function LearningsView({
   newLearning, setNewLearning,
   adSearchQuery, setAdSearchQuery,
   filteredAdSearch, isSubmittingLearning,
-  onSubmit, onDelete, currentUser,
+  onSubmit, onDelete, onMarkReviewed, onUnmarkReviewed,
+  currentUser, currentRole,
   expandedLearning, setExpandedLearning
 }: Props) {
-  const canManage = currentUser === "Founder" || currentUser === "Strategist";
+  const isFounder = currentRole === "Founder";
+  const canManage = currentRole === "Founder" || currentRole === "Strategist";
 
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[1000px] mx-auto w-full">
@@ -54,7 +59,7 @@ export default function LearningsView({
       </div>
 
       {/* Stats */}
-      <div className="flex gap-3 mb-8">
+      <div className="flex gap-3 mb-8 flex-wrap">
         <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 text-center shadow-sm flex-1">
           <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">Total</p>
           <p className="text-xl font-black text-slate-800">{learningCounts.total}</p>
@@ -71,6 +76,12 @@ export default function LearningsView({
           <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">Inconclusive</p>
           <p className="text-xl font-black text-slate-600">{learningCounts.inconclusive}</p>
         </div>
+        {isFounder && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 text-center shadow-sm flex-1">
+            <p className="text-[8px] font-black uppercase text-indigo-400 tracking-widest mb-1">Reviewed</p>
+            <p className="text-xl font-black text-indigo-600">{learningCounts.reviewed}</p>
+          </div>
+        )}
       </div>
 
       {/* Log Form */}
@@ -226,8 +237,11 @@ export default function LearningsView({
               <div
                 key={learning.id}
                 className={`bg-white border-2 rounded-[20px] p-5 transition-all hover:shadow-md ${
-                  style.badge.includes("emerald") ? "border-emerald-100" :
-                  style.badge.includes("rose") ? "border-rose-100" : "border-slate-100"
+                  learning.is_reviewed
+                    ? "border-indigo-200 bg-indigo-50/30"
+                    : style.badge.includes("emerald") ? "border-emerald-100"
+                    : style.badge.includes("rose") ? "border-rose-100"
+                    : "border-slate-100"
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -236,6 +250,11 @@ export default function LearningsView({
                       <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${style.badge}`}>
                         {style.icon} {learning.result}
                       </span>
+                      {learning.is_reviewed && (
+                        <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-600 border border-indigo-200">
+                          ✓ Reviewed
+                        </span>
+                      )}
                       {learning.ad_name && (
                         <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
                           {learning.ad_name}
@@ -274,14 +293,30 @@ export default function LearningsView({
                       )}
                     </div>
                   </div>
-                  {canManage && (
-                    <button
-                      onClick={() => onDelete(learning.id)}
-                      className="text-[10px] font-black text-slate-300 hover:text-rose-500 px-3 py-2 rounded-xl hover:bg-rose-50 transition-all uppercase tracking-widest shrink-0"
-                    >
-                      Delete
-                    </button>
-                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex flex-col gap-2 shrink-0">
+                    {isFounder && (
+                      <button
+                        onClick={() => learning.is_reviewed ? onUnmarkReviewed(learning.id) : onMarkReviewed(learning.id)}
+                        className={`text-[10px] font-black px-3 py-2 rounded-xl uppercase tracking-widest transition-all ${
+                          learning.is_reviewed
+                            ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+                            : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-indigo-500"
+                        }`}
+                      >
+                        {learning.is_reviewed ? "✓ Reviewed" : "Mark Reviewed"}
+                      </button>
+                    )}
+                    {canManage && (
+                      <button
+                        onClick={() => onDelete(learning.id)}
+                        className="text-[10px] font-black text-slate-300 hover:text-rose-500 px-3 py-2 rounded-xl hover:bg-rose-50 transition-all uppercase tracking-widest"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

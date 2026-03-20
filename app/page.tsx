@@ -94,16 +94,17 @@ export default function App() {
   } = useIdeas(supabase, currentUser);
 
   const {
-    learnings, fetchLearnings,
-    learningsFilter, setLearningsFilter,
-    isLearningFormOpen, setIsLearningFormOpen,
-    newLearning, setNewLearning,
-    adSearchQuery, setAdSearchQuery,
-    isSubmittingLearning,
-    expandedLearning, setExpandedLearning,
-    handleSubmitLearning, handleDeleteLearning,
-    filteredAdSearch, filteredLearnings, learningCounts
-  } = useLearnings(supabase, currentUser, ads);
+  learnings, fetchLearnings,
+  learningsFilter, setLearningsFilter,
+  isLearningFormOpen, setIsLearningFormOpen,
+  newLearning, setNewLearning,
+  adSearchQuery, setAdSearchQuery,
+  isSubmittingLearning,
+  expandedLearning, setExpandedLearning,
+  handleSubmitLearning, handleDeleteLearning,
+  handleMarkReviewed, handleUnmarkReviewed,
+  filteredAdSearch, filteredLearnings, learningCounts
+} = useLearnings(supabase, currentUser, ads);
 
   const {
     notifications, fetchNotifications,
@@ -474,27 +475,30 @@ export default function App() {
           />
         )}
         {viewMode === "Learnings" && (
-          <LearningsView
-            learnings={learnings}
-            filteredLearnings={filteredLearnings}
-            learningCounts={learningCounts}
-            learningsFilter={learningsFilter}
-            setLearningsFilter={setLearningsFilter}
-            isLearningFormOpen={isLearningFormOpen}
-            setIsLearningFormOpen={setIsLearningFormOpen}
-            newLearning={newLearning}
-            setNewLearning={setNewLearning}
-            adSearchQuery={adSearchQuery}
-            setAdSearchQuery={setAdSearchQuery}
-            filteredAdSearch={filteredAdSearch}
-            isSubmittingLearning={isSubmittingLearning}
-            onSubmit={handleSubmitLearning}
-            onDelete={handleDeleteLearning}
-            currentUser={currentUser}
-            expandedLearning={expandedLearning}
-            setExpandedLearning={setExpandedLearning}
-          />
-        )}
+  <LearningsView
+    learnings={learnings}
+    filteredLearnings={filteredLearnings}
+    learningCounts={learningCounts}
+    learningsFilter={learningsFilter}
+    setLearningsFilter={setLearningsFilter}
+    isLearningFormOpen={isLearningFormOpen}
+    setIsLearningFormOpen={setIsLearningFormOpen}
+    newLearning={newLearning}
+    setNewLearning={setNewLearning}
+    adSearchQuery={adSearchQuery}
+    setAdSearchQuery={setAdSearchQuery}
+    filteredAdSearch={filteredAdSearch}
+    isSubmittingLearning={isSubmittingLearning}
+    onSubmit={handleSubmitLearning}
+    onDelete={handleDeleteLearning}
+    onMarkReviewed={handleMarkReviewed}
+    onUnmarkReviewed={handleUnmarkReviewed}
+    currentUser={currentUser}
+    currentRole={currentRole}
+    expandedLearning={expandedLearning}
+    setExpandedLearning={setExpandedLearning}
+  />
+)}
         {viewMode === "Members" && isFounder && (
           <MembersView
             profiles={allProfiles}

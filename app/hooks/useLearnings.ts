@@ -30,6 +30,7 @@ export function useLearnings(supabase: any, currentUser: string, ads: Ad[]) {
       result: newLearning.result,
       insight: newLearning.insight.trim(),
       logged_by: currentUser,
+      is_reviewed: false,
     }]);
     if (!error) {
       setIsLearningFormOpen(false);
@@ -42,11 +43,19 @@ export function useLearnings(supabase: any, currentUser: string, ads: Ad[]) {
 
   const handleDeleteLearning = async (id: string) => {
     if (!supabase) return;
-    if (currentUser !== "Founder" && currentUser !== "Strategist") {
-      alert("Only Founders and Strategists can delete learnings.");
-      return;
-    }
     await supabase.from("learnings").delete().eq("id", id);
+    fetchLearnings();
+  };
+
+  const handleMarkReviewed = async (id: string) => {
+    if (!supabase) return;
+    await supabase.from("learnings").update({ is_reviewed: true }).eq("id", id);
+    fetchLearnings();
+  };
+
+  const handleUnmarkReviewed = async (id: string) => {
+    if (!supabase) return;
+    await supabase.from("learnings").update({ is_reviewed: false }).eq("id", id);
     fetchLearnings();
   };
 
@@ -71,6 +80,7 @@ export function useLearnings(supabase: any, currentUser: string, ads: Ad[]) {
     winner: learnings.filter(l => l.result === "Winner").length,
     loser: learnings.filter(l => l.result === "Loser").length,
     inconclusive: learnings.filter(l => l.result === "Inconclusive").length,
+    reviewed: learnings.filter(l => l.is_reviewed).length,
   }), [learnings]);
 
   return {
@@ -82,6 +92,7 @@ export function useLearnings(supabase: any, currentUser: string, ads: Ad[]) {
     isSubmittingLearning,
     expandedLearning, setExpandedLearning,
     handleSubmitLearning, handleDeleteLearning,
+    handleMarkReviewed, handleUnmarkReviewed,
     filteredAdSearch, filteredLearnings, learningCounts
   };
 }
