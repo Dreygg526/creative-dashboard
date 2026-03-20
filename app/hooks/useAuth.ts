@@ -9,43 +9,53 @@ export interface UserProfile {
   is_active: boolean;
 }
 
+const PROFILE_CACHE_KEY = "creative_ops_profile";
+
 export function useAuth(supabase: any) {
+  // Load cached profile immediately so UI never flashes
+  const getCachedProfile = (): UserProfile | null => {
+    if (typeof window === "undefined") return null;
+    try {
+      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+      return cached ? JSON.parse(cached) : null;
+    } catch { return null; }
+  };
+
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-const fetchProfile = useCallback(async (userId: string) => {
-  if (!supabase) return;
-  
-  // Try up to 3 times with delay between attempts
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  const [profile, setProfile] = useState<UserProfile | null>(getCachedProfile);
+  const [authLoading, setAuthLoading] = useState(!getCachedProfile());
+
+  const saveProfileToCache = (p: UserProfile) => {
+    try {
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(p));
+    } catch {}
+  };
+
+  const clearProfileCache = () => {
+    try {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+    } catch {}
+  };
+
+  const fetchProfile = useCallback(async (userId: string) => {
+    if (!supabase) return;
     try {
       const { data } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .maybeSingle();
+        .limit(1);
 
-      if (data) {
-        setProfile(data);
-        setAuthLoading(false);
-        return; // Success — stop retrying
-      }
-
-      // No data yet — wait before retry
-      if (attempt < 3) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      if (data && data.length > 0) {
+        setProfile(data[0]);
+        saveProfileToCache(data[0]);
       }
     } catch (err) {
-      console.error(`fetchProfile attempt ${attempt} error:`, err);
-      if (attempt < 3) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-      }
+      console.error("fetchProfile error:", err);
+    } finally {
+      setAuthLoading(false);
     }
-  }
-
-  // All retries failed — still set loading false so app doesn't get stuck
-  setAuthLoading(false);
-}, [supabase]);
+  }, [supabase]);
 
   useEffect(() => {
     if (!supabase) {
@@ -59,12 +69,14 @@ const fetchProfile = useCallback(async (userId: string) => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
+
         if (session?.user) {
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
           setUser(null);
           setProfile(null);
+          clearProfileCache();
           setAuthLoading(false);
         }
       } catch (err) {
@@ -78,19 +90,24 @@ const fetchProfile = useCallback(async (userId: string) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: any) => {
         if (!mounted) return;
+
         if (event === "SIGNED_OUT") {
           setUser(null);
           setProfile(null);
+          clearProfileCache();
           setAuthLoading(false);
           return;
         }
+
         if (event === "INITIAL_SESSION") return;
+
         if (session?.user) {
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
           setUser(null);
           setProfile(null);
+          clearProfileCache();
           setAuthLoading(false);
         }
       }
@@ -116,6 +133,7 @@ const fetchProfile = useCallback(async (userId: string) => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    clearProfileCache();
   };
 
   const resetPassword = async (email: string) => {
@@ -164,7 +182,8 @@ const fetchProfile = useCallback(async (userId: string) => {
 
   return {
     user, profile, authLoading,
-    signIn, signOut, resetPassword,
+    signIn, setProfile,
+    signOut, resetPassword,
     inviteUser, getAllUsers,
     updateUserRole, deactivateUser
   };
