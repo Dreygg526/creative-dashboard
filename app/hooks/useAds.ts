@@ -143,13 +143,32 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
           if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
 
-          // Send notification
           let targetUser = "";
-          if (selectedAd.status === "Brief Revision Required") targetUser = selectedAd.assigned_copywriter;
-          else if (["Brief Approved", "Content Revision Required"].includes(selectedAd.status)) targetUser = "Content Coordinator";
-          else if (["Editor Assigned", "In Progress"].includes(selectedAd.status)) targetUser = selectedAd.assigned_editor;
-          else if (["Ad Revision", "Testing", "Completed"].includes(selectedAd.status)) targetUser = "Strategist";
-          else if (selectedAd.status === "Pending Upload") targetUser = "VA";
+if (selectedAd.status === "Brief Revision Required") {
+  targetUser = selectedAd.assigned_copywriter || "";
+} else if (["Brief Approved", "Content Revision Required"].includes(selectedAd.status)) {
+  targetUser = selectedAd.assigned_copywriter || "";
+} else if (["Editor Assigned", "In Progress"].includes(selectedAd.status)) {
+  targetUser = selectedAd.assigned_editor || "";
+} else if (["Ad Revision", "Testing", "Completed"].includes(selectedAd.status)) {
+  // Find the strategist from profiles
+  const { data: strategists } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("role", "Strategist")
+    .eq("is_active", true)
+    .limit(1);
+  targetUser = strategists?.[0]?.full_name || "";
+} else if (selectedAd.status === "Pending Upload") {
+  // Find the VA from profiles
+  const { data: vas } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("role", "VA")
+    .eq("is_active", true)
+    .limit(1);
+  targetUser = vas?.[0]?.full_name || "";
+}
 
           if (targetUser?.trim()) {
             await supabase.from("notifications").insert([{
