@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useMemo, useState } from "react";
+import DashboardView from "./components/views/DashboardView";
 
 // Hooks
 import { useSupabaseClient } from "./hooks/useSupabaseClient";
@@ -30,7 +31,7 @@ import SettingsView from "./components/views/SettingsView";
 import { PRIORITY_ORDER } from "./constants";
 import { IdeaEntry } from "./types";
 
-type ViewMode = "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings";
+type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings";
 
 export default function App() {
   const { supabase, libError } = useSupabaseClient();
@@ -56,9 +57,9 @@ export default function App() {
   const canCreateAd = isManager;
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window === "undefined") return "Pipeline";
-    return (localStorage.getItem("creative_ops_view") as ViewMode) || "Pipeline";
-  });
+  if (typeof window === "undefined") return "Dashboard";
+  return (localStorage.getItem("creative_ops_view") as ViewMode) || "Dashboard";
+});
 
   const handleSetViewMode = (v: ViewMode) => {
     setViewMode(v);
@@ -218,14 +219,14 @@ export default function App() {
 
   // Nav items based on role
   const navItems: ViewMode[] = isFounder
-    ? ["Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members"]
-    : isStrategist
-    ? ["Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
-    : isVA
-    ? ["MyQueue"]
-    : isContentCoord
-    ? ["MyQueue", "Ideas", "Learnings"]
-    : ["MyQueue", "Ideas", "Learnings"]; // Editor / Graphic Designer
+  ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members"]
+  : isStrategist
+  ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
+  : isVA
+  ? ["Dashboard"]
+  : isContentCoord
+  ? ["Dashboard", "MyQueue", "Ideas", "Learnings"]
+  : ["Dashboard", "MyQueue", "Ideas", "Learnings"];
 
   // ── LOADING / AUTH STATES ──
   if (libError) return (
@@ -431,6 +432,17 @@ export default function App() {
 
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col overflow-hidden">
+        {viewMode === "Dashboard" && (
+  <DashboardView
+    ads={ads}
+    currentUser={currentUser}
+    currentRole={currentRole}
+    onSelectAd={setSelectedAd}
+    onNewAd={() => setIsNewAdOpen(true)}
+    onNavigate={handleSetViewMode}
+    allProfiles={allProfiles}
+  />
+)}
         {viewMode === "Pipeline" && (isFounder || isStrategist) && (
   <PipelineView
     ads={ads}
