@@ -9,53 +9,65 @@ export interface UserProfile {
   is_active: boolean;
 }
 
-const PROFILE_CACHE_KEY = "creative_ops_profile";
+const PROFILE_KEY = "creative_ops_profile";
+
+function loadCachedProfile(): UserProfile | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as UserProfile;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedProfile(p: UserProfile) {
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+  } catch {}
+}
+
+function clearCachedProfile() {
+  try {
+    localStorage.removeItem(PROFILE_KEY);
+  } catch {}
+}
 
 export function useAuth(supabase: any) {
-  // Load cached profile immediately so UI never flashes
-  const getCachedProfile = (): UserProfile | null => {
-    if (typeof window === "undefined") return null;
-    try {
-      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
-      return cached ? JSON.parse(cached) : null;
-    } catch { return null; }
-  };
-
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(getCachedProfile);
-  const [authLoading, setAuthLoading] = useState(!getCachedProfile());
+  const [profile, setProfileState] = useState<UserProfile | null>(loadCachedProfile);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const saveProfileToCache = (p: UserProfile) => {
-    try {
-      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(p));
-    } catch {}
-  };
-
-  const clearProfileCache = () => {
-    try {
-      localStorage.removeItem(PROFILE_CACHE_KEY);
-    } catch {}
-  };
+  const setProfile = useCallback((p: UserProfile | null) => {
+    setProfileState(p);
+    if (p) saveCachedProfile(p);
+    else clearCachedProfile();
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string) => {
     if (!supabase) return;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .limit(1);
 
+      if (error) {
+        console.error("fetchProfile error:", error);
+        return;
+      }
+
       if (data && data.length > 0) {
         setProfile(data[0]);
-        saveProfileToCache(data[0]);
       }
     } catch (err) {
-      console.error("fetchProfile error:", err);
+      console.error("fetchProfile catch:", err);
     } finally {
       setAuthLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, setProfile]);
 
   useEffect(() => {
     if (!supabase) {
@@ -72,11 +84,19 @@ export function useAuth(supabase: any) {
 
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          // If we already have cached profile for this user, use it immediately
+          const cached = loadCachedProfile();
+          if (cached && cached.id === session.user.id) {
+            setProfileState(cached);
+            setAuthLoading(false);
+            // Still fetch in background to update
+            fetchProfile(session.user.id);
+          } else {
+            await fetchProfile(session.user.id);
+          }
         } else {
           setUser(null);
           setProfile(null);
-          clearProfileCache();
           setAuthLoading(false);
         }
       } catch (err) {
@@ -94,20 +114,25 @@ export function useAuth(supabase: any) {
         if (event === "SIGNED_OUT") {
           setUser(null);
           setProfile(null);
-          clearProfileCache();
           setAuthLoading(false);
           return;
         }
 
         if (event === "INITIAL_SESSION") return;
+        if (event === "TOKEN_REFRESHED") return;
 
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          const cached = loadCachedProfile();
+          if (cached && cached.id === session.user.id) {
+            setProfileState(cached);
+            setAuthLoading(false);
+          } else {
+            await fetchProfile(session.user.id);
+          }
         } else {
           setUser(null);
           setProfile(null);
-          clearProfileCache();
           setAuthLoading(false);
         }
       }
@@ -122,7 +147,7 @@ export function useAuth(supabase: any) {
       clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, setProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -133,7 +158,6 @@ export function useAuth(supabase: any) {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
-    clearProfileCache();
   };
 
   const resetPassword = async (email: string) => {
@@ -182,9 +206,9 @@ export function useAuth(supabase: any) {
 
   return {
     user, profile, authLoading,
-    signIn, setProfile,
-    signOut, resetPassword,
+    signIn, signOut, resetPassword,
     inviteUser, getAllUsers,
-    updateUserRole, deactivateUser
+    updateUserRole, deactivateUser,
+    setProfile
   };
 }
