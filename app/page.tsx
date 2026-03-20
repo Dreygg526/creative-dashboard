@@ -43,8 +43,8 @@ export default function App() {
     updateUserRole, deactivateUser
   } = useAuth(supabase);
 
-  const currentUser = profile?.full_name || profile?.email || "User";
-  const currentRole = profile?.role || "Editor";
+  const currentUser = profile?.full_name || profile?.email || "";
+  const currentRole = profile?.role || "";
 
   const [viewMode, setViewMode] = useState<ViewMode>("Pipeline");
   const [activeStage, setActiveStage] = useState("Idea");
