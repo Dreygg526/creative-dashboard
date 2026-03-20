@@ -13,22 +13,39 @@ export function useAuth(supabase: any) {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-
-  const fetchProfile = useCallback(async (userId: string) => {
-    if (!supabase) return;
+const fetchProfile = useCallback(async (userId: string) => {
+  if (!supabase) return;
+  
+  // Try up to 3 times with delay between attempts
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const { data } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .maybeSingle();
-      if (data) setProfile(data);
+
+      if (data) {
+        setProfile(data);
+        setAuthLoading(false);
+        return; // Success — stop retrying
+      }
+
+      // No data yet — wait before retry
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
     } catch (err) {
-      console.error("fetchProfile error:", err);
-    } finally {
-      setAuthLoading(false);
+      console.error(`fetchProfile attempt ${attempt} error:`, err);
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
     }
-  }, [supabase]);
+  }
+
+  // All retries failed — still set loading false so app doesn't get stuck
+  setAuthLoading(false);
+}, [supabase]);
 
   useEffect(() => {
     if (!supabase) {
