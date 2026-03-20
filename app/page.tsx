@@ -431,8 +431,15 @@ export default function App() {
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {viewMode === "Pipeline" && (isFounder || isStrategist) && (
-          <PipelineView ads={ads} activeStage={activeStage} setActiveStage={setActiveStage} setSelectedAd={setSelectedAd} />
-        )}
+  <PipelineView
+    ads={ads}
+    activeStage={activeStage}
+    setActiveStage={setActiveStage}
+    setSelectedAd={setSelectedAd}
+    currentRole={currentRole}
+    currentUser={currentUser}
+  />
+)}
         {viewMode === "MyQueue" && (
           <MyQueueView currentUser={currentUser} myQueue={myQueue} setSelectedAd={setSelectedAd} />
         )}

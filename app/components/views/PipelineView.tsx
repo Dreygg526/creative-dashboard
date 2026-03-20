@@ -7,10 +7,25 @@ interface Props {
   activeStage: string;
   setActiveStage: (s: string) => void;
   setSelectedAd: (ad: Ad) => void;
+  currentRole: string;
+  currentUser: string;
 }
 
-export default function PipelineView({ ads, activeStage, setActiveStage, setSelectedAd }: Props) {
+export default function PipelineView({ ads, activeStage, setActiveStage, setSelectedAd, currentRole, currentUser }: Props) {
   const filteredAds = ads.filter(ad => ad.status === activeStage);
+
+  const isFounder = currentRole === "Founder";
+  const isStrategist = currentRole === "Strategist";
+
+  const canClickAd = (ad: Ad) => {
+    if (isFounder) return true;
+    if (isStrategist) {
+      // Strategist can only open ads assigned to them or in their stages
+      return ad.assigned_copywriter === currentUser ||
+        ["Ad Revision", "Testing", "Writing Brief", "Brief Revision Required"].includes(ad.status);
+    }
+    return false;
+  };
 
   return (
     <>
@@ -43,24 +58,45 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
               const testingDaysLeft = getDaysLeftInTesting(ad.live_date);
               const isTestingLocked = ad.status === "Testing" && testingDaysLeft > 0;
               const isStale = daysInStage >= 5 && ad.status !== "Testing" && ad.status !== "Completed" && ad.status !== "Killed";
+              const clickable = canClickAd(ad);
 
               return (
-                <div key={ad.id} onClick={() => setSelectedAd(ad)} className={`p-6 rounded-[24px] border-2 shadow-sm cursor-pointer transition-all hover:scale-[1.01] hover:shadow-lg relative overflow-hidden ${getCardColor(ad.status)}`}>
-                  <div className={`absolute top-0 right-0 px-3 py-1 text-[9px] font-black uppercase rounded-bl-xl ${getPriorityBadge(ad.priority)}`}>{ad.priority}</div>
-                  <p className="font-black text-lg mb-3 text-slate-800 leading-snug">{ad.concept_name}</p>
+                <div
+                  key={ad.id}
+                  onClick={() => clickable && setSelectedAd(ad)}
+                  className={`p-6 rounded-[24px] border-2 shadow-sm transition-all relative overflow-hidden ${getCardColor(ad.status)} ${clickable ? "cursor-pointer hover:scale-[1.01] hover:shadow-lg" : "cursor-default opacity-75"}`}
+                >
+                  {/* Read-only badge for non-clickable cards */}
+                  {!clickable && (
+                    <div className="absolute top-2 left-2 text-[8px] font-black uppercase px-2 py-0.5 bg-slate-200 text-slate-500 rounded-full tracking-widest">
+                      Read Only
+                    </div>
+                  )}
+
+                  <div className={`absolute top-0 right-0 px-3 py-1 text-[9px] font-black uppercase rounded-bl-xl ${getPriorityBadge(ad.priority)}`}>
+                    {ad.priority}
+                  </div>
+
+                  <p className="font-black text-lg mb-3 text-slate-800 leading-snug mt-2">{ad.concept_name}</p>
                   <div className="flex flex-wrap gap-2 mb-4">
                     <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">{ad.ad_type}</span>
                     <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">{ad.ad_format}</span>
                   </div>
+
                   {isTestingLocked && (
                     <div className="mb-4 bg-indigo-600 text-white px-3 py-1.5 rounded-xl flex items-center gap-2 w-fit">
                       <span className="text-xs">⏱️</span>
                       <span className="text-[10px] font-black uppercase tracking-widest">Unlocks in {testingDaysLeft} Days</span>
                     </div>
                   )}
+
                   <div className="mt-6 pt-4 border-t border-slate-900/5 flex justify-between items-center text-[10px] font-bold uppercase">
-                    <span className={`${isStale ? "text-rose-600 animate-pulse font-black" : "text-slate-400"}`}>⏱️ {daysInStage} Days In Stage</span>
-                    {ad.status === "Ad Revision" && <span className="text-rose-600 font-black">Round {ad.revision_count || 1}/2</span>}
+                    <span className={`${isStale ? "text-rose-600 animate-pulse font-black" : "text-slate-400"}`}>
+                      ⏱️ {daysInStage} Days In Stage
+                    </span>
+                    {ad.status === "Ad Revision" && (
+                      <span className="text-rose-600 font-black">Round {ad.revision_count || 1}/2</span>
+                    )}
                   </div>
                 </div>
               );
