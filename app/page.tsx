@@ -216,6 +216,35 @@ export default function App() {
       .sort();
   }, [allProfiles]);
 
+  // Bulk action handlers
+  const handleBulkReassign = async (adIds: string[], editor: string) => {
+    for (const id of adIds) {
+      await supabase.from("ads").update({ assigned_editor: editor }).eq("id", id);
+    }
+    fetchAds();
+  };
+
+  const handleBulkPriority = async (adIds: string[], priority: string) => {
+    for (const id of adIds) {
+      await supabase.from("ads").update({ priority }).eq("id", id);
+    }
+    fetchAds();
+  };
+
+  const handleBulkKill = async (adIds: string[]) => {
+    for (const id of adIds) {
+      await supabase.from("ads").update({ status: "Killed" }).eq("id", id);
+    }
+    fetchAds();
+  };
+
+  const handleBulkMove = async (adIds: string[], status: string) => {
+    for (const id of adIds) {
+      await supabase.from("ads").update({ status }).eq("id", id);
+    }
+    fetchAds();
+  };
+
   const navItems: ViewMode[] = isFounder
     ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
     : isStrategist
@@ -446,6 +475,11 @@ export default function App() {
             setSelectedAd={setSelectedAd}
             currentRole={currentRole}
             currentUser={currentUser}
+            allEditors={allEditors}
+            onBulkReassign={handleBulkReassign}
+            onBulkPriority={handleBulkPriority}
+            onBulkKill={handleBulkKill}
+            onBulkMove={handleBulkMove}
           />
         )}
         {viewMode === "MyQueue" && (
@@ -559,6 +593,7 @@ export default function App() {
           currentRole={currentRole}
           currentUser={currentUser}
           allEditors={allEditors}
+          supabase={supabase}
         />
       )}
       {isSpendModalOpen && (

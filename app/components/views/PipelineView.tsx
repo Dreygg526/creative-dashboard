@@ -11,6 +11,11 @@ interface Props {
   setSelectedAd: (ad: Ad) => void;
   currentRole: string;
   currentUser: string;
+  allEditors?: string[];
+  onBulkReassign?: (adIds: string[], editor: string) => void;
+  onBulkPriority?: (adIds: string[], priority: string) => void;
+  onBulkKill?: (adIds: string[]) => void;
+  onBulkMove?: (adIds: string[], status: string) => void;
 }
 
 function isOverdue(dateStr?: string) {
@@ -20,11 +25,14 @@ function isOverdue(dateStr?: string) {
 
 function formatDueDate(dateStr?: string) {
   if (!dateStr) return null;
-  const date = new Date(dateStr);
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export default function PipelineView({ ads, activeStage, setActiveStage, setSelectedAd, currentRole, currentUser }: Props) {
+export default function PipelineView({
+  ads, activeStage, setActiveStage, setSelectedAd,
+  currentRole, currentUser, allEditors = [],
+  onBulkReassign, onBulkPriority, onBulkKill, onBulkMove
+}: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
 
@@ -34,11 +42,16 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterAdType, setFilterAdType] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState("");
+  const [bulkEditor, setBulkEditor] = useState("");
+  const [bulkPriority, setBulkPriority] = useState("High");
+  const [bulkStatus, setBulkStatus] = useState("");
 
   const editors = useMemo(() => {
     const all = ads.map(a => a.assigned_editor).filter(Boolean) as string[];
-    return Array.from(new Set(all)).sort();
-  }, [ads]);
+    return Array.from(new Set([...all, ...allEditors])).sort();
+  }, [ads, allEditors]);
 
   const formats = useMemo(() => {
     const all = ads.map(a => a.ad_format).filter(Boolean) as string[];
@@ -79,6 +92,52 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
     return false;
   };
 
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredAds.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAds.map(a => a.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setBulkAction("");
+  };
+
+  const executeBulkAction = () => {
+    const ids = Array.from(selectedIds);
+    if (bulkAction === "reassign" && bulkEditor) {
+      onBulkReassign?.(ids, bulkEditor);
+    } else if (bulkAction === "priority") {
+      onBulkPriority?.(ids, bulkPriority);
+    } else if (bulkAction === "kill") {
+      if (confirm(`Kill ${ids.length} ads? This cannot be undone.`)) {
+        onBulkKill?.(ids);
+      }
+    } else if (bulkAction === "move" && bulkStatus) {
+      onBulkMove?.(ids, bulkStatus);
+    }
+    clearSelection();
+  };
+
+  const nextStages = useMemo(() => {
+    const stages = [
+      "Idea", "Writing Brief", "Brief Revision Required", "Brief Approved",
+      "Preparing Content", "Content Revision Required", "Content Ready",
+      "Editor Assigned", "In Progress", "Ad Revision",
+      "Pending Upload", "Testing", "Completed", "Killed"
+    ];
+    return stages.filter(s => s !== activeStage);
+  }, [activeStage]);
+
   return (
     <>
       {/* Stage tabs */}
@@ -89,7 +148,7 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
           return (
             <button
               key={stage}
-              onClick={() => setActiveStage(stage)}
+              onClick={() => { setActiveStage(stage); setSelectedIds(new Set()); }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tight transition-all
                 ${activeStage === stage
                   ? "bg-slate-800 text-white shadow-md"
@@ -139,9 +198,7 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
               </svg>
               Filters
-              {hasActiveFilters && (
-                <span className="bg-white text-indigo-600 text-[9px] font-black px-1.5 py-0.5 rounded-full">ON</span>
-              )}
+              {hasActiveFilters && <span className="bg-white text-indigo-600 text-[9px] font-black px-1.5 py-0.5 rounded-full">ON</span>}
             </button>
             {hasActiveFilters && (
               <button onClick={clearFilters} className="text-[10px] font-black text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest">
@@ -189,13 +246,32 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
       </div>
 
       {/* Cards */}
-      <div className="flex-1 p-4 md:p-8 overflow-y-auto max-w-[1200px] mx-auto w-full">
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto max-w-[1200px] mx-auto w-full pb-32">
+
         {["Completed", "Killed"].includes(activeStage) && (
           <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <span className="text-xl">📦</span>
-            <p className="text-sm font-bold text-slate-500">
-              These ads are archived. View the full Archive section for search and filters.
-            </p>
+            <p className="text-sm font-bold text-slate-500">These ads are archived. View the full Archive section for search and filters.</p>
+          </div>
+        )}
+
+        {/* Select all row */}
+        {isFounder && filteredAds.length > 0 && (
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === filteredAds.length && filteredAds.length > 0}
+              onChange={toggleSelectAll}
+              className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+            />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select All"}
+            </span>
+            {selectedIds.size > 0 && (
+              <button onClick={clearSelection} className="text-[10px] font-black text-rose-400 hover:text-rose-600 uppercase tracking-widest">
+                Clear
+              </button>
+            )}
           </div>
         )}
 
@@ -212,9 +288,7 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
               {hasActiveFilters ? "No ads match your filters" : `No ads currently in ${activeStage}`}
             </p>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="mt-3 text-sm font-black text-indigo-500 hover:text-indigo-700">
-                Clear filters
-              </button>
+              <button onClick={clearFilters} className="mt-3 text-sm font-black text-indigo-500 hover:text-indigo-700">Clear filters</button>
             )}
           </div>
         ) : (
@@ -227,22 +301,39 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
               const clickable = canClickAd(ad);
               const overdue = isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status);
               const dueDate = formatDueDate(ad.due_date);
+              const isSelected = selectedIds.has(ad.id);
 
               return (
                 <div
                   key={ad.id}
-                  onClick={() => clickable && setSelectedAd(ad)}
                   className={`p-6 rounded-[24px] border-2 shadow-sm transition-all relative overflow-hidden ${
-                    overdue ? "border-rose-300 bg-rose-50/30" : getCardColor(ad.status)
+                    isSelected ? "border-indigo-400 ring-2 ring-indigo-200" :
+                    overdue ? "border-rose-300 bg-rose-50/30" :
+                    getCardColor(ad.status)
                   } ${clickable ? "cursor-pointer hover:scale-[1.01] hover:shadow-lg" : "cursor-default opacity-75"}`}
                 >
+                  {/* Checkbox — Founder only */}
+                  {isFounder && (
+                    <div
+                      className="absolute top-3 left-3 z-10"
+                      onClick={e => { e.stopPropagation(); toggleSelect(ad.id); }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(ad.id)}
+                        className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
+
                   {!clickable && (
-                    <div className="absolute top-2 left-2 text-[8px] font-black uppercase px-2 py-0.5 bg-slate-200 text-slate-500 rounded-full tracking-widest">
+                    <div className="absolute top-2 left-8 text-[8px] font-black uppercase px-2 py-0.5 bg-slate-200 text-slate-500 rounded-full tracking-widest">
                       Read Only
                     </div>
                   )}
 
-                  {/* Overdue banner */}
                   {overdue && (
                     <div className="absolute top-0 left-0 right-0 bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest text-center py-1">
                       ⚠️ Overdue — Due {dueDate}
@@ -253,39 +344,44 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
                     {ad.priority}
                   </div>
 
-                  <p className={`font-black text-lg mb-3 text-slate-800 leading-snug ${overdue ? "mt-6" : "mt-2"}`}>
-                    {ad.concept_name}
-                  </p>
+                  <div
+                    onClick={() => clickable && !isSelected && setSelectedAd(ad)}
+                    className="w-full"
+                  >
+                    <p className={`font-black text-lg mb-3 text-slate-800 leading-snug ${overdue ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
+                      {ad.concept_name}
+                    </p>
 
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">{ad.ad_type}</span>
-                    <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">{ad.ad_format}</span>
-                    {ad.assigned_editor && (
-                      <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
-                        ✂️ {ad.assigned_editor}
-                      </span>
-                    )}
-                    {dueDate && !overdue && (
-                      <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
-                        📅 {dueDate}
-                      </span>
-                    )}
-                  </div>
-
-                  {isTestingLocked && (
-                    <div className="mb-4 bg-indigo-600 text-white px-3 py-1.5 rounded-xl flex items-center gap-2 w-fit">
-                      <span className="text-xs">⏱️</span>
-                      <span className="text-[10px] font-black uppercase tracking-widest">Unlocks in {testingDaysLeft} Days</span>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">{ad.ad_type}</span>
+                      <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">{ad.ad_format}</span>
+                      {ad.assigned_editor && (
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
+                          ✂️ {ad.assigned_editor}
+                        </span>
+                      )}
+                      {dueDate && !overdue && (
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
+                          📅 {dueDate}
+                        </span>
+                      )}
                     </div>
-                  )}
 
-                  <div className="mt-6 pt-4 border-t border-slate-900/5 flex justify-between items-center text-[10px] font-bold uppercase">
-                    <span className={`${isStale ? "text-rose-600 animate-pulse font-black" : "text-slate-400"}`}>
-                      ⏱️ {daysInStage} Days In Stage
-                    </span>
-                    {ad.status === "Ad Revision" && (
-                      <span className="text-rose-600 font-black">Round {ad.revision_count || 1}/2</span>
+                    {isTestingLocked && (
+                      <div className="mb-4 bg-indigo-600 text-white px-3 py-1.5 rounded-xl flex items-center gap-2 w-fit">
+                        <span className="text-xs">⏱️</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Unlocks in {testingDaysLeft} Days</span>
+                      </div>
                     )}
+
+                    <div className="mt-6 pt-4 border-t border-slate-900/5 flex justify-between items-center text-[10px] font-bold uppercase">
+                      <span className={`${isStale ? "text-rose-600 animate-pulse font-black" : "text-slate-400"}`}>
+                        ⏱️ {daysInStage} Days In Stage
+                      </span>
+                      {ad.status === "Ad Revision" && (
+                        <span className="text-rose-600 font-black">Round {ad.revision_count || 1}/2</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -293,6 +389,90 @@ export default function PipelineView({ ads, activeStage, setActiveStage, setSele
           </div>
         )}
       </div>
+
+      {/* Bulk Action Toolbar */}
+      {isFounder && selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-slate-900 text-white p-4 z-50 shadow-2xl">
+          <div className="max-w-[1200px] mx-auto flex flex-wrap items-center gap-3">
+            <span className="text-sm font-black text-indigo-400">
+              {selectedIds.size} ad{selectedIds.size > 1 ? "s" : ""} selected
+            </span>
+
+            <div className="flex flex-wrap items-center gap-2 flex-1">
+              {/* Action selector */}
+              <select
+                className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400"
+                value={bulkAction}
+                onChange={e => setBulkAction(e.target.value)}
+              >
+                <option value="">Select Action...</option>
+                <option value="reassign">Reassign Editor</option>
+                <option value="priority">Change Priority</option>
+                <option value="move">Move Stage</option>
+                <option value="kill">Kill Ads</option>
+              </select>
+
+              {/* Reassign editor */}
+              {bulkAction === "reassign" && (
+                <select
+                  className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400"
+                  value={bulkEditor}
+                  onChange={e => setBulkEditor(e.target.value)}
+                >
+                  <option value="">Select Editor...</option>
+                  {editors.map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
+              )}
+
+              {/* Change priority */}
+              {bulkAction === "priority" && (
+                <select
+                  className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400"
+                  value={bulkPriority}
+                  onChange={e => setBulkPriority(e.target.value)}
+                >
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              )}
+
+              {/* Move stage */}
+              {bulkAction === "move" && (
+                <select
+                  className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400"
+                  value={bulkStatus}
+                  onChange={e => setBulkStatus(e.target.value)}
+                >
+                  <option value="">Select Stage...</option>
+                  {nextStages.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              )}
+
+              {/* Execute button */}
+              {bulkAction && (
+                <button
+                  onClick={executeBulkAction}
+                  className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+                    bulkAction === "kill"
+                      ? "bg-rose-600 hover:bg-rose-700 text-white"
+                      : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                  }`}
+                >
+                  {bulkAction === "kill" ? "🗑 Kill Selected" :
+                   bulkAction === "reassign" ? "Reassign" :
+                   bulkAction === "priority" ? "Update Priority" :
+                   "Move Stage"}
+                </button>
+              )}
+            </div>
+
+            <button onClick={clearSelection} className="text-slate-400 hover:text-white font-black text-xs uppercase tracking-widest transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
