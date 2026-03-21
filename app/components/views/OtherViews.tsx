@@ -130,6 +130,7 @@ export function ReportsView({
     });
   }, [ads]);
 
+  // Format diversity
   const totalAds = ads.length || 1;
   const videoCount = ads.filter(a => a.ad_format === "Video Ad").length;
   const staticCount = ads.filter(a => a.ad_format === "Static Ad").length;
@@ -138,8 +139,32 @@ export function ReportsView({
   const staticPct = Math.round((staticCount / totalAds) * 100);
   const nativePct = Math.round((nativeCount / totalAds) * 100);
 
+  // New vs Iterations
   const [newCount, iterCount] = conceptsVsIterations.split(" / ").map(Number);
   const totalNI = (newCount + iterCount) || 1;
+
+  // By Ad Type (New Concept vs Iteration — all time)
+  const adTypeData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    ads.forEach(ad => {
+      const type = ad.ad_type || "Unknown";
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    const total = ads.length || 1;
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) => ({
+        type,
+        count,
+        pct: Math.round((count / total) * 100),
+      }));
+  }, [ads]);
+
+  const adTypeColors: Record<string, string> = {
+    "New Concept": "bg-indigo-500",
+    "Iteration": "bg-emerald-400",
+    "Unknown": "bg-slate-300",
+  };
 
   const totalSpend = ads.reduce((sum, ad) => sum + Number(ad.ad_spend || 0), 0);
 
@@ -195,16 +220,13 @@ export function ReportsView({
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-2">
                   <div className="w-full flex flex-col items-center" style={{ height: "100px" }}>
-                    {/* Spacer + tooltip wrapper */}
                     <div className="flex-1 w-full flex items-end relative group">
-                      {/* Tooltip */}
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
                         <div className="bg-slate-800 text-white text-[10px] font-black px-3 py-1.5 rounded-xl whitespace-nowrap shadow-lg">
                           {d.label}: {d.count} ad{d.count !== 1 ? "s" : ""}
                         </div>
                         <div className="w-2 h-2 bg-slate-800 rotate-45 mx-auto -mt-1" />
                       </div>
-                      {/* Bar */}
                       <div
                         className={`w-full rounded-t-xl transition-all cursor-pointer ${isThisWeek ? "bg-indigo-600 hover:bg-indigo-700" : "bg-indigo-200 hover:bg-indigo-300"}`}
                         style={{ height: `${Math.max(heightPct, 5)}%` }}
@@ -248,7 +270,7 @@ export function ReportsView({
         </div>
       </div>
 
-      {/* Row 2: Team Output + Creative Diversity */}
+      {/* Row 2: Team Output + By Ad Type */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
         {/* Output by Team Member */}
@@ -291,37 +313,96 @@ export function ReportsView({
           )}
         </div>
 
-        {/* Creative Diversity */}
+        {/* By Ad Type — NEW CHART */}
         <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="font-black text-slate-800">Creative Diversity</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Format Split — All Time</p>
+              <h3 className="font-black text-slate-800">By Ad Type</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All Time — New Concept vs Iteration</p>
             </div>
-            <span className="text-2xl">🎨</span>
+            <span className="text-2xl">🏷️</span>
           </div>
-          <div className="space-y-5">
-            {[
-              { label: "Video", count: videoCount, pct: videoPct, color: "bg-indigo-500" },
-              { label: "Static", count: staticCount, pct: staticPct, color: "bg-emerald-400" },
-              { label: "Native", count: nativeCount, pct: nativePct, color: "bg-amber-400" },
-            ].map(f => (
-              <div key={f.label}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-black text-slate-700">{f.label}</span>
-                  <span className="text-sm font-black text-slate-500">{f.pct}%</span>
+          {adTypeData.length === 0 ? (
+            <div className="text-center py-8 text-slate-300 font-bold">No ads yet</div>
+          ) : (
+            <div className="space-y-5">
+              {adTypeData.map(({ type, count, pct }) => (
+                <div key={type}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${adTypeColors[type] || "bg-slate-300"}`} />
+                      <span className="text-sm font-black text-slate-700">{type}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold text-slate-400">{count} ads</span>
+                      <span className="text-sm font-black text-slate-600">{pct}%</span>
+                    </div>
+                  </div>
+                  <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${adTypeColors[type] || "bg-slate-300"} rounded-full transition-all`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className={`h-full ${f.color} rounded-full transition-all`} style={{ width: `${f.pct}%` }} />
+              ))}
+
+              {/* Visual donut-style summary */}
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="h-4 bg-slate-100 rounded-full overflow-hidden flex">
+                  {adTypeData.map(({ type, pct }) => (
+                    <div
+                      key={type}
+                      className={`h-full ${adTypeColors[type] || "bg-slate-300"} transition-all`}
+                      style={{ width: `${pct}%` }}
+                      title={`${type}: ${pct}%`}
+                    />
+                  ))}
                 </div>
-                <p className="text-[9px] font-bold text-slate-400 mt-1">{f.count} ads</p>
+                <div className="flex gap-4 mt-3 flex-wrap">
+                  {adTypeData.map(({ type, pct }) => (
+                    <div key={type} className="flex items-center gap-1.5">
+                      <div className={`w-2.5 h-2.5 rounded-full ${adTypeColors[type] || "bg-slate-300"}`} />
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{type} {pct}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Row 3: Pipeline Speed */}
+      {/* Row 3: Creative Diversity */}
+      <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="font-black text-slate-800">Creative Diversity</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Format Split — All Time</p>
+          </div>
+          <span className="text-2xl">🎨</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { label: "Video", count: videoCount, pct: videoPct, color: "bg-indigo-500" },
+            { label: "Static", count: staticCount, pct: staticPct, color: "bg-emerald-400" },
+            { label: "Native", count: nativeCount, pct: nativePct, color: "bg-amber-400" },
+          ].map(f => (
+            <div key={f.label} className="bg-slate-50 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-black text-slate-700">{f.label} Ad</span>
+                <span className="text-xl font-black text-slate-800">{f.pct}%</span>
+              </div>
+              <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden mb-2">
+                <div className={`h-full ${f.color} rounded-full transition-all`} style={{ width: `${f.pct}%` }} />
+              </div>
+              <p className="text-[9px] font-bold text-slate-400">{f.count} ads total</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Row 4: Pipeline Speed */}
       <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm mb-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -350,7 +431,7 @@ export function ReportsView({
         <p className="text-[9px] font-bold text-slate-400 mt-3">Stages with 5+ day average are flagged red</p>
       </div>
 
-      {/* Row 4: Ad Spend Rankings */}
+      {/* Row 5: Ad Spend Rankings */}
       {rankedSpend.length > 0 && (
         <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">

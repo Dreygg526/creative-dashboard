@@ -20,6 +20,16 @@ function daysSince(date: string) {
   return Math.floor((new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24));
 }
 
+function isOverdue(dateStr?: string) {
+  if (!dateStr) return false;
+  return new Date(dateStr) < new Date();
+}
+
+function formatDueDate(dateStr?: string) {
+  if (!dateStr) return null;
+  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function PriorityDot({ priority }: { priority: string }) {
   const colors: Record<string, string> = {
     High: "bg-rose-500",
@@ -37,22 +47,39 @@ function AdCard({ ad, onClick, showDays = true, extra }: {
 }) {
   const days = daysSince(ad.stage_updated_at || ad.created_at);
   const isStale = days >= 5;
+  const overdue = isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status);
+  const dueDate = formatDueDate(ad.due_date);
+
   return (
     <div
       onClick={onClick}
-      className="bg-white border-2 border-slate-100 rounded-[18px] p-4 cursor-pointer hover:border-indigo-200 hover:shadow-md transition-all"
+      className={`bg-white border-2 rounded-[18px] p-4 cursor-pointer hover:shadow-md transition-all ${
+        overdue ? "border-rose-300 bg-rose-50/20 hover:border-rose-400" : "border-slate-100 hover:border-indigo-200"
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <PriorityDot priority={ad.priority} />
             <p className="font-black text-slate-800 text-sm truncate">{ad.concept_name}</p>
+            {overdue && (
+              <span className="text-[8px] font-black uppercase px-1.5 py-0.5 bg-rose-100 text-rose-600 rounded-md shrink-0 animate-pulse">
+                Overdue
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap gap-1.5 mb-2">
             <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">{ad.ad_format}</span>
             <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">{ad.status}</span>
             {ad.priority === "High" && (
               <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-rose-100 text-rose-600 rounded-md">🔥 High</span>
+            )}
+            {dueDate && (
+              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                overdue ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-500"
+              }`}>
+                📅 {dueDate}
+              </span>
             )}
           </div>
           {extra}
@@ -100,6 +127,16 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles }: Props) {
     return days >= 5 && !["Completed", "Killed", "Testing"].includes(ad.status);
   }).sort((a, b) => daysSince(b.stage_updated_at || b.created_at) - daysSince(a.stage_updated_at || a.created_at));
 
+  // Also include ads with overdue due_date
+  const dueDateOverdue = ads.filter(ad =>
+    isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status)
+  );
+
+  const allOverdue = Array.from(new Set([...overdueAds, ...dueDateOverdue].map(a => a.id)))
+    .map(id => ads.find(a => a.id === id)!)
+    .filter(Boolean)
+    .sort((a, b) => daysSince(b.stage_updated_at || b.created_at) - daysSince(a.stage_updated_at || a.created_at));
+
   const activeAds = ads.filter(a => !["Completed", "Killed"].includes(a.status));
 
   const teamWorkload = useMemo(() => {
@@ -144,27 +181,40 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles }: Props) {
       </div>
 
       {/* Overdue / Stale Ads */}
-      {overdueAds.length > 0 && (
+      {allOverdue.length > 0 && (
         <div className="bg-rose-50 border-2 border-rose-100 rounded-[24px] p-6 mb-8">
           <p className="text-[10px] font-black uppercase tracking-widest text-rose-500 mb-4">
-            ⚠️ Stuck Ads ({overdueAds.length}) — 5+ days in same stage
+            ⚠️ Needs Attention ({allOverdue.length}) — Overdue or stuck 5+ days
           </p>
           <div className="space-y-3">
-            {overdueAds.slice(0, 5).map(ad => (
-              <div
-                key={ad.id}
-                onClick={() => onSelectAd(ad)}
-                className="bg-white rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:shadow-md transition-all"
-              >
-                <div>
-                  <p className="font-black text-slate-800 text-sm">{ad.concept_name}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">{ad.status}</p>
+            {allOverdue.slice(0, 5).map(ad => {
+              const dueDateOverdueFlag = isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status);
+              const stuckFlag = daysSince(ad.stage_updated_at || ad.created_at) >= 5;
+              return (
+                <div
+                  key={ad.id}
+                  onClick={() => onSelectAd(ad)}
+                  className="bg-white rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:shadow-md transition-all"
+                >
+                  <div>
+                    <p className="font-black text-slate-800 text-sm">{ad.concept_name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">{ad.status}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {dueDateOverdueFlag && (
+                      <span className="text-[10px] font-black bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl">
+                        📅 Due {formatDueDate(ad.due_date)}
+                      </span>
+                    )}
+                    {stuckFlag && (
+                      <span className="text-[10px] font-black bg-amber-100 text-amber-600 px-3 py-1.5 rounded-xl">
+                        {daysSince(ad.stage_updated_at || ad.created_at)}d stuck
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <span className="text-[10px] font-black bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl">
-                  {daysSince(ad.stage_updated_at || ad.created_at)}d stuck
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -198,7 +248,10 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles }: Props) {
                       className="flex items-center justify-between text-[10px] bg-slate-50 rounded-lg px-3 py-2 cursor-pointer hover:bg-indigo-50 transition-colors"
                     >
                       <span className="font-bold text-slate-600 truncate">{ad.concept_name}</span>
-                      <span className="font-black text-slate-400 ml-2 shrink-0">{ad.status}</span>
+                      <div className="flex items-center gap-2 ml-2 shrink-0">
+                        {isOverdue(ad.due_date) && <span className="text-rose-500">⚠️</span>}
+                        <span className="font-black text-slate-400">{ad.status}</span>
+                      </div>
                     </div>
                   ))}
                   {person.ads.length > 3 && (
@@ -312,6 +365,10 @@ function EditorDashboard({ ads, currentUser, onSelectAd }: Props) {
     ? (myAds.reduce((sum, ad) => sum + (ad.revision_count || 0), 0) / myAds.length).toFixed(1)
     : "0.0";
 
+  const overdueCount = myAds.filter(ad =>
+    isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status)
+  ).length;
+
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[900px] mx-auto w-full">
       <div className="mb-6">
@@ -319,22 +376,29 @@ function EditorDashboard({ ads, currentUser, onSelectAd }: Props) {
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Editor view</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-8">
-        {[
-          { label: "Completed This Month", val: completedThisMonth },
-          { label: "Avg Revision Rounds", val: avgRevs },
-        ].map((s, i) => (
-          <div key={i} className="bg-white border-2 border-slate-100 rounded-2xl p-4 text-center">
-            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">{s.label}</p>
-            <p className="text-xl font-black text-slate-800">{s.val}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 text-center">
+          <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">Completed This Month</p>
+          <p className="text-xl font-black text-slate-800">{completedThisMonth}</p>
+        </div>
+        <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 text-center">
+          <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">Avg Revision Rounds</p>
+          <p className="text-xl font-black text-slate-800">{avgRevs}</p>
+        </div>
+        <div className={`border-2 rounded-2xl p-4 text-center ${overdueCount > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-slate-100"}`}>
+          <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${overdueCount > 0 ? "text-rose-400" : "text-slate-400"}`}>Overdue</p>
+          <p className={`text-xl font-black ${overdueCount > 0 ? "text-rose-600" : "text-slate-300"}`}>{overdueCount}</p>
+        </div>
       </div>
 
       <Section title="Currently Editing" count={currentlyEditing.length} color="bg-indigo-100 text-indigo-700" empty="Nothing in progress">
         {currentlyEditing.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
-            extra={<p className="text-[9px] font-bold text-slate-400">{daysSince(ad.stage_updated_at || ad.created_at)} days in this stage</p>}
+            extra={
+              <p className="text-[9px] font-bold text-slate-400">
+                {daysSince(ad.stage_updated_at || ad.created_at)} days in this stage
+              </p>
+            }
           />
         ))}
       </Section>

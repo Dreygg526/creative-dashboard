@@ -68,7 +68,6 @@ export default function App() {
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [activeStage, setActiveStage] = useState("Idea");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [isSpendModalOpen, setIsSpendModalOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   const currentUserRef = useRef(currentUser);
@@ -115,10 +114,10 @@ export default function App() {
   } = useNotifications(supabase, currentUser, ads, setSelectedAd);
 
   const {
-  hitRate, inTesting,
-  conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
-  weeklyChartData, teamOutput, pipelineVelocityData
-} = useKPIs(ads);
+    hitRate, inTesting,
+    conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
+    weeklyChartData, teamOutput, pipelineVelocityData
+  } = useKPIs(ads);
 
   const loadAllProfiles = async () => {
     const data = await getAllUsers();
@@ -212,6 +211,13 @@ export default function App() {
   const allCopywriters = useMemo(() => {
     return allProfiles
       .filter(p => p.role === "Copywriter" && p.is_active)
+      .map((p: any) => p.full_name)
+      .sort();
+  }, [allProfiles]);
+
+  const allStrategists = useMemo(() => {
+    return allProfiles
+      .filter(p => p.role === "Strategist" && p.is_active)
       .map((p: any) => p.full_name)
       .sort();
   }, [allProfiles]);
@@ -425,8 +431,6 @@ export default function App() {
             </div>
           </div>
         </div>
-
-        
       </nav>
 
       {/* ── MAIN CONTENT ── */}
@@ -451,6 +455,7 @@ export default function App() {
             currentRole={currentRole}
             currentUser={currentUser}
             allEditors={allEditors}
+            allStrategists={allStrategists}
             onBulkReassign={handleBulkReassign}
             onBulkPriority={handleBulkPriority}
             onBulkKill={handleBulkKill}
@@ -464,19 +469,19 @@ export default function App() {
           <ManagerView workloads={workloads} setSelectedAd={setSelectedAd} />
         )}
         {viewMode === "Reports" && isManager && (
-  <ReportsView
-    ads={ads}
-    weeklyChartData={weeklyChartData}
-    avgDaysToUpload={avgDaysToUpload}
-    pipelineVelocityData={pipelineVelocityData}
-    teamOutput={teamOutput}
-    hitRate={hitRate}
-    inTesting={inTesting}
-    conceptsVsIterations={conceptsVsIterations}
-    creativeDiversity={creativeDiversity}
-    rankedSpend={rankedSpend}
-  />
-)}
+          <ReportsView
+            ads={ads}
+            weeklyChartData={weeklyChartData}
+            avgDaysToUpload={avgDaysToUpload}
+            pipelineVelocityData={pipelineVelocityData}
+            teamOutput={teamOutput}
+            hitRate={hitRate}
+            inTesting={inTesting}
+            conceptsVsIterations={conceptsVsIterations}
+            creativeDiversity={creativeDiversity}
+            rankedSpend={rankedSpend}
+          />
+        )}
         {viewMode === "Ideas" && (
           <IdeasView
             currentUser={currentUser}
@@ -544,7 +549,7 @@ export default function App() {
         )}
       </main>
 
-      {/* ── MODALS ── */}
+     {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
         <NewAdModal
           newAd={newAd}
@@ -575,12 +580,6 @@ export default function App() {
           currentUser={currentUser}
           allEditors={allEditors}
           supabase={supabase}
-        />
-      )}
-      {isSpendModalOpen && (
-        <SpendModal
-          rankedSpend={rankedSpend}
-          onClose={() => setIsSpendModalOpen(false)}
         />
       )}
     </div>

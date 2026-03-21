@@ -81,18 +81,27 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       const statusChanged = originalAd.status !== selectedAd.status;
 
       if (statusChanged && !isFounder) {
+        // Testing lock check
         const daysLeft = getDaysLeftInTesting(originalAd.live_date);
         if (originalAd.status === "Testing" && daysLeft > 0) {
           alert(`Cannot move from Testing yet. ${daysLeft} days remaining.`);
           return;
         }
 
+        // Valid transition check
         const validTransitions = ALLOWED_TRANSITIONS[originalAd.status] || [];
         if (!validTransitions.includes(selectedAd.status)) {
           alert(`Invalid stage move: ${originalAd.status} → ${selectedAd.status}`);
           return;
         }
 
+        // Revision limit enforcement — backend guard
+        if (selectedAd.status === "Ad Revision" && (originalAd.revision_count || 0) >= 2) {
+          alert("Maximum revision rounds reached. This ad cannot be sent back again.");
+          return;
+        }
+
+        // Role-based stage permission checks
         if (isStrategist) {
           const strategistStages = ["Ad Revision", "Testing", "Completed", "Killed", "Writing Brief", "Brief Revision Required", "Brief Approved"];
           if (!strategistStages.includes(selectedAd.status)) {

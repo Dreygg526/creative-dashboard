@@ -113,8 +113,12 @@ export default function AdDetailModal({
 }: Props) {
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
   const isLocked = selectedAd.status === "Testing" && daysLeft > 0;
-  const revisionLimitReached = selectedAd.status === "Ad Revision" && (selectedAd.revision_count || 0) >= 2;
-  const originalAdStatus = ads.find(a => a.id === selectedAd.id)?.status || selectedAd.status;
+
+  // Use original ad data for revision check — not the in-progress edited state
+  const originalAd = ads.find(a => a.id === selectedAd.id);
+  const originalAdStatus = originalAd?.status || selectedAd.status;
+  const revisionLimitReached = originalAdStatus === "Ad Revision" && (originalAd?.revision_count || 0) >= 2;
+
   const overdue = isOverdue(selectedAd.due_date) && !["Completed", "Killed"].includes(selectedAd.status);
 
   const isFounder = currentRole === "Founder";
@@ -173,6 +177,13 @@ export default function AdDetailModal({
                   Due: {new Date(selectedAd.due_date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               )}
+              {revisionLimitReached && (
+                <div className="mt-3 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                  <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">
+                    ⛔ Max revisions reached — Send Back is no longer available
+                  </p>
+                </div>
+              )}
             </div>
             <form onSubmit={onUpdate} className="space-y-4">
               {isLocked && (
@@ -185,8 +196,18 @@ export default function AdDetailModal({
                 </div>
               )}
               <div>
-                <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Move Stage</label>
-                <select disabled={!stageMovable} className={`w-full border-2 p-3 rounded-2xl text-sm font-black transition-all ${!stageMovable ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "border-slate-100 bg-slate-50 text-slate-800 focus:border-indigo-500"}`} value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
+                <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">
+                  Move Stage
+                  {revisionLimitReached && (
+                    <span className="ml-2 text-rose-400 normal-case font-bold">— Ad Revision unavailable after Round 2</span>
+                  )}
+                </label>
+                <select
+                  disabled={!stageMovable}
+                  className={`w-full border-2 p-3 rounded-2xl text-sm font-black transition-all ${!stageMovable ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "border-slate-100 bg-slate-50 text-slate-800 focus:border-indigo-500"}`}
+                  value={selectedAd.status}
+                  onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}
+                >
                   <option value={originalAdStatus}>{originalAdStatus} (Current)</option>
                   {stageMovable && allowedTransitions.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -298,6 +319,11 @@ export default function AdDetailModal({
               <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
               <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${getPriorityBadge(selectedAd.priority)}`}>{selectedAd.priority} Priority</span>
               {overdue && <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-rose-100 text-rose-600 border border-rose-200 animate-pulse">⚠️ Overdue</span>}
+              {originalAdStatus === "Ad Revision" && (originalAd?.revision_count || 0) > 0 && (
+                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${revisionLimitReached ? "bg-rose-100 text-rose-600 border border-rose-200" : "bg-amber-100 text-amber-600 border border-amber-200"}`}>
+                  Round {originalAd?.revision_count}/2
+                </span>
+              )}
             </div>
           </div>
 
@@ -334,7 +360,6 @@ export default function AdDetailModal({
               </div>
             </div>
 
-            {/* Editor + Result */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
@@ -358,7 +383,6 @@ export default function AdDetailModal({
               </div>
             </div>
 
-            {/* Ad Spend + Review Link */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Spend ($)</label>
@@ -378,7 +402,6 @@ export default function AdDetailModal({
               </div>
             </div>
 
-            {/* Due Date */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Due Date</label>

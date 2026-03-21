@@ -12,6 +12,7 @@ interface Props {
   currentRole: string;
   currentUser: string;
   allEditors?: string[];
+  allStrategists?: string[];
   onBulkReassign?: (adIds: string[], editor: string) => void;
   onBulkPriority?: (adIds: string[], priority: string) => void;
   onBulkKill?: (adIds: string[]) => void;
@@ -30,7 +31,7 @@ function formatDueDate(dateStr?: string) {
 
 export default function PipelineView({
   ads, activeStage, setActiveStage, setSelectedAd,
-  currentRole, currentUser, allEditors = [],
+  currentRole, currentUser, allEditors = [], allStrategists = [],
   onBulkReassign, onBulkPriority, onBulkKill, onBulkMove
 }: Props) {
   const isFounder = currentRole === "Founder";
@@ -38,6 +39,8 @@ export default function PipelineView({
 
   const [search, setSearch] = useState("");
   const [filterEditor, setFilterEditor] = useState("All");
+  const [filterStrategist, setFilterStrategist] = useState("All");
+  const [filterProduct, setFilterProduct] = useState("All");
   const [filterFormat, setFilterFormat] = useState("All");
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterAdType, setFilterAdType] = useState("All");
@@ -53,16 +56,28 @@ export default function PipelineView({
     return Array.from(new Set([...all, ...allEditors])).sort();
   }, [ads, allEditors]);
 
+  const strategists = useMemo(() => {
+    const all = ads.map(a => a.assigned_copywriter).filter(Boolean) as string[];
+    return Array.from(new Set([...all, ...allStrategists])).sort();
+  }, [ads, allStrategists]);
+
   const formats = useMemo(() => {
     const all = ads.map(a => a.ad_format).filter(Boolean) as string[];
     return Array.from(new Set(all)).sort();
   }, [ads]);
 
-  const hasActiveFilters = search || filterEditor !== "All" || filterFormat !== "All" || filterPriority !== "All" || filterAdType !== "All";
+  const products = useMemo(() => {
+    const all = ads.map(a => a.product).filter(Boolean) as string[];
+    return Array.from(new Set(all)).sort();
+  }, [ads]);
+
+  const hasActiveFilters = !!(search || filterEditor !== "All" || filterStrategist !== "All" || filterProduct !== "All" || filterFormat !== "All" || filterPriority !== "All" || filterAdType !== "All");
 
   const clearFilters = () => {
     setSearch("");
     setFilterEditor("All");
+    setFilterStrategist("All");
+    setFilterProduct("All");
     setFilterFormat("All");
     setFilterPriority("All");
     setFilterAdType("All");
@@ -74,14 +89,17 @@ export default function PipelineView({
       if (search.trim() &&
         !ad.concept_name.toLowerCase().includes(search.toLowerCase()) &&
         !(ad.product || "").toLowerCase().includes(search.toLowerCase()) &&
-        !(ad.assigned_editor || "").toLowerCase().includes(search.toLowerCase())) return false;
+        !(ad.assigned_editor || "").toLowerCase().includes(search.toLowerCase()) &&
+        !(ad.assigned_copywriter || "").toLowerCase().includes(search.toLowerCase())) return false;
       if (filterEditor !== "All" && ad.assigned_editor !== filterEditor) return false;
+      if (filterStrategist !== "All" && ad.assigned_copywriter !== filterStrategist) return false;
+      if (filterProduct !== "All" && ad.product !== filterProduct) return false;
       if (filterFormat !== "All" && ad.ad_format !== filterFormat) return false;
       if (filterPriority !== "All" && ad.priority !== filterPriority) return false;
       if (filterAdType !== "All" && ad.ad_type !== filterAdType) return false;
       return true;
     });
-  }, [ads, activeStage, search, filterEditor, filterFormat, filterPriority, filterAdType]);
+  }, [ads, activeStage, search, filterEditor, filterStrategist, filterProduct, filterFormat, filterPriority, filterAdType]);
 
   const canClickAd = (ad: Ad) => {
     if (isFounder) return true;
@@ -180,7 +198,7 @@ export default function PipelineView({
               </svg>
               <input
                 type="text"
-                placeholder="Search ads by name, product, editor..."
+                placeholder="Search by name, product, editor, strategist..."
                 className="w-full pl-9 pr-4 py-2.5 border-2 border-slate-100 bg-slate-50 rounded-xl text-sm font-medium outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 text-slate-900"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -208,12 +226,26 @@ export default function PipelineView({
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Editor</label>
                 <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterEditor} onChange={e => setFilterEditor(e.target.value)}>
                   <option value="All">All Editors</option>
                   {editors.map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Strategist</label>
+                <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterStrategist} onChange={e => setFilterStrategist(e.target.value)}>
+                  <option value="All">All Strategists</option>
+                  {strategists.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Product</label>
+                <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterProduct} onChange={e => setFilterProduct(e.target.value)}>
+                  <option value="All">All Products</option>
+                  {products.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
@@ -255,7 +287,6 @@ export default function PipelineView({
           </div>
         )}
 
-        {/* Select all row */}
         {isFounder && filteredAds.length > 0 && (
           <div className="flex items-center gap-3 mb-4">
             <input
@@ -312,7 +343,6 @@ export default function PipelineView({
                     getCardColor(ad.status)
                   } ${clickable ? "cursor-pointer hover:scale-[1.01] hover:shadow-lg" : "cursor-default opacity-75"}`}
                 >
-                  {/* Checkbox — Founder only */}
                   {isFounder && (
                     <div
                       className="absolute top-3 left-3 z-10"
@@ -360,6 +390,11 @@ export default function PipelineView({
                           ✂️ {ad.assigned_editor}
                         </span>
                       )}
+                      {ad.assigned_copywriter && (
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
+                          ✍️ {ad.assigned_copywriter}
+                        </span>
+                      )}
                       {dueDate && !overdue && (
                         <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
                           📅 {dueDate}
@@ -397,79 +432,40 @@ export default function PipelineView({
             <span className="text-sm font-black text-indigo-400">
               {selectedIds.size} ad{selectedIds.size > 1 ? "s" : ""} selected
             </span>
-
             <div className="flex flex-wrap items-center gap-2 flex-1">
-              {/* Action selector */}
-              <select
-                className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400"
-                value={bulkAction}
-                onChange={e => setBulkAction(e.target.value)}
-              >
+              <select className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400" value={bulkAction} onChange={e => setBulkAction(e.target.value)}>
                 <option value="">Select Action...</option>
                 <option value="reassign">Reassign Editor</option>
                 <option value="priority">Change Priority</option>
                 <option value="move">Move Stage</option>
                 <option value="kill">Kill Ads</option>
               </select>
-
-              {/* Reassign editor */}
               {bulkAction === "reassign" && (
-                <select
-                  className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400"
-                  value={bulkEditor}
-                  onChange={e => setBulkEditor(e.target.value)}
-                >
+                <select className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400" value={bulkEditor} onChange={e => setBulkEditor(e.target.value)}>
                   <option value="">Select Editor...</option>
                   {editors.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               )}
-
-              {/* Change priority */}
               {bulkAction === "priority" && (
-                <select
-                  className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400"
-                  value={bulkPriority}
-                  onChange={e => setBulkPriority(e.target.value)}
-                >
+                <select className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400" value={bulkPriority} onChange={e => setBulkPriority(e.target.value)}>
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
                   <option value="Low">Low</option>
                 </select>
               )}
-
-              {/* Move stage */}
               {bulkAction === "move" && (
-                <select
-                  className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400"
-                  value={bulkStatus}
-                  onChange={e => setBulkStatus(e.target.value)}
-                >
+                <select className="border-2 border-slate-600 bg-slate-800 text-white p-2.5 rounded-xl text-xs font-black outline-none focus:border-indigo-400" value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}>
                   <option value="">Select Stage...</option>
                   {nextStages.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               )}
-
-              {/* Execute button */}
               {bulkAction && (
-                <button
-                  onClick={executeBulkAction}
-                  className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
-                    bulkAction === "kill"
-                      ? "bg-rose-600 hover:bg-rose-700 text-white"
-                      : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                  }`}
-                >
-                  {bulkAction === "kill" ? "🗑 Kill Selected" :
-                   bulkAction === "reassign" ? "Reassign" :
-                   bulkAction === "priority" ? "Update Priority" :
-                   "Move Stage"}
+                <button onClick={executeBulkAction} className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${bulkAction === "kill" ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}>
+                  {bulkAction === "kill" ? "🗑 Kill Selected" : bulkAction === "reassign" ? "Reassign" : bulkAction === "priority" ? "Update Priority" : "Move Stage"}
                 </button>
               )}
             </div>
-
-            <button onClick={clearSelection} className="text-slate-400 hover:text-white font-black text-xs uppercase tracking-widest transition-colors">
-              Cancel
-            </button>
+            <button onClick={clearSelection} className="text-slate-400 hover:text-white font-black text-xs uppercase tracking-widest transition-colors">Cancel</button>
           </div>
         </div>
       )}
