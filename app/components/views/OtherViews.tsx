@@ -113,7 +113,6 @@ export function ReportsView({
 
   const maxWeeklyCount = Math.max(...weeklyChartData.map(d => d.count), 1);
 
-  // Pipeline speed per stage
   const pipelineSpeed = useMemo(() => {
     const stages = [
       "Idea", "Writing Brief", "Brief Approved",
@@ -131,7 +130,6 @@ export function ReportsView({
     });
   }, [ads]);
 
-  // Format diversity
   const totalAds = ads.length || 1;
   const videoCount = ads.filter(a => a.ad_format === "Video Ad").length;
   const staticCount = ads.filter(a => a.ad_format === "Static Ad").length;
@@ -140,11 +138,9 @@ export function ReportsView({
   const staticPct = Math.round((staticCount / totalAds) * 100);
   const nativePct = Math.round((nativeCount / totalAds) * 100);
 
-  // New vs Iterations this week
   const [newCount, iterCount] = conceptsVsIterations.split(" / ").map(Number);
   const totalNI = (newCount + iterCount) || 1;
 
-  // Total ad spend
   const totalSpend = ads.reduce((sum, ad) => sum + Number(ad.ad_spend || 0), 0);
 
   return (
@@ -175,9 +171,7 @@ export function ReportsView({
         </div>
         <div className="bg-white border-2 border-slate-100 rounded-[20px] p-5 shadow-sm">
           <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Ad Spend</p>
-          <p className="text-3xl font-black text-amber-600">
-            ${totalSpend.toLocaleString()}
-          </p>
+          <p className="text-3xl font-black text-amber-600">${totalSpend.toLocaleString()}</p>
           <p className="text-[10px] font-bold text-slate-400 mt-1">all time</p>
         </div>
       </div>
@@ -200,12 +194,22 @@ export function ReportsView({
               const isThisWeek = i === weeklyChartData.length - 1;
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-black text-slate-600">{d.count}</span>
-                  <div className="w-full relative group" style={{ height: "100px" }}>
-                    <div
-                      className={`absolute bottom-0 w-full rounded-t-xl transition-all ${isThisWeek ? "bg-indigo-600" : "bg-indigo-200"} hover:opacity-80`}
-                      style={{ height: `${Math.max(heightPct, 5)}%` }}
-                    />
+                  <div className="w-full flex flex-col items-center" style={{ height: "100px" }}>
+                    {/* Spacer + tooltip wrapper */}
+                    <div className="flex-1 w-full flex items-end relative group">
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                        <div className="bg-slate-800 text-white text-[10px] font-black px-3 py-1.5 rounded-xl whitespace-nowrap shadow-lg">
+                          {d.label}: {d.count} ad{d.count !== 1 ? "s" : ""}
+                        </div>
+                        <div className="w-2 h-2 bg-slate-800 rotate-45 mx-auto -mt-1" />
+                      </div>
+                      {/* Bar */}
+                      <div
+                        className={`w-full rounded-t-xl transition-all cursor-pointer ${isThisWeek ? "bg-indigo-600 hover:bg-indigo-700" : "bg-indigo-200 hover:bg-indigo-300"}`}
+                        style={{ height: `${Math.max(heightPct, 5)}%` }}
+                      />
+                    </div>
                   </div>
                   <span className="text-[9px] font-black text-slate-400 uppercase text-center leading-tight">{d.label}</span>
                 </div>
@@ -233,16 +237,9 @@ export function ReportsView({
               <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Iterations</p>
             </div>
           </div>
-          {/* Progress bar */}
           <div className="h-3 bg-slate-100 rounded-full overflow-hidden flex">
-            <div
-              className="h-full bg-indigo-500 transition-all"
-              style={{ width: `${(newCount / totalNI) * 100}%` }}
-            />
-            <div
-              className="h-full bg-emerald-400 transition-all"
-              style={{ width: `${(iterCount / totalNI) * 100}%` }}
-            />
+            <div className="h-full bg-indigo-500 transition-all" style={{ width: `${(newCount / totalNI) * 100}%` }} />
+            <div className="h-full bg-emerald-400 transition-all" style={{ width: `${(iterCount / totalNI) * 100}%` }} />
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-[9px] font-black text-indigo-400">New {Math.round((newCount / totalNI) * 100)}%</span>
@@ -315,10 +312,7 @@ export function ReportsView({
                   <span className="text-sm font-black text-slate-500">{f.pct}%</span>
                 </div>
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${f.color} rounded-full transition-all`}
-                    style={{ width: `${f.pct}%` }}
-                  />
+                  <div className={`h-full ${f.color} rounded-full transition-all`} style={{ width: `${f.pct}%` }} />
                 </div>
                 <p className="text-[9px] font-bold text-slate-400 mt-1">{f.count} ads</p>
               </div>
@@ -342,7 +336,7 @@ export function ReportsView({
             return (
               <div
                 key={i}
-                className={`rounded-2xl p-4 text-center border-2 ${isStale ? "border-rose-200 bg-rose-50" : "border-slate-100 bg-slate-50"}`}
+                className={`rounded-2xl p-4 text-center border-2 transition-all hover:shadow-md ${isStale ? "border-rose-200 bg-rose-50" : "border-slate-100 bg-slate-50"}`}
               >
                 <p className={`text-2xl font-black mb-1 ${isStale ? "text-rose-600" : "text-slate-800"}`}>
                   {s.avgDays}d

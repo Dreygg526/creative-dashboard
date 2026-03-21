@@ -45,12 +45,7 @@ function CommentsSection({ adId, adName, assignedEditor, assignedCopywriter, cur
   }, [adId]);
 
   return (
-    <div className="mt-6 pt-6 border-t-2 border-slate-100">
-      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">
-        Comments ({comments.length})
-      </h3>
-
-      {/* Comments list */}
+    <div className="mt-2">
       <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
         {comments.length === 0 ? (
           <p className="text-[11px] text-slate-300 font-bold italic text-center py-4">
@@ -85,8 +80,6 @@ function CommentsSection({ adId, adName, assignedEditor, assignedCopywriter, cur
           ))
         )}
       </div>
-
-      {/* New comment input */}
       <div className="flex gap-2">
         <input
           type="text"
@@ -341,6 +334,7 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Editor + Result */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
@@ -364,21 +358,37 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Ad Spend + Review Link */}
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Spend ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-bold text-slate-900"
+                  placeholder="0.00"
+                  value={selectedAd.ad_spend || ""}
+                  onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })}
+                />
+              </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Review Link (Frame.io)</label>
                 <input type="url" className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-bold text-slate-900" placeholder="Optional" value={selectedAd.review_link || ""} onChange={e => setSelectedAd({ ...selectedAd, review_link: e.target.value })} />
               </div>
+            </div>
+
+            {/* Due Date */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Due Date</label>
                 <input type="date" className={`w-full border-2 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-bold text-slate-900 ${overdue ? "border-rose-300 bg-rose-50" : "border-slate-100"}`} value={formatDate(selectedAd.due_date)} onChange={e => setSelectedAd({ ...selectedAd, due_date: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
                 {overdue && <p className="text-[9px] font-black text-rose-500 mt-1">⚠️ This ad is overdue!</p>}
               </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</label>
-              <textarea rows={2} className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-medium resize-none text-slate-900" placeholder="Optional notes..." value={selectedAd.notes || ""} onChange={e => setSelectedAd({ ...selectedAd, notes: e.target.value })} />
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</label>
+                <textarea rows={1} className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-medium resize-none text-slate-900" placeholder="Optional notes..." value={selectedAd.notes || ""} onChange={e => setSelectedAd({ ...selectedAd, notes: e.target.value })} />
+              </div>
             </div>
 
             <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
@@ -396,20 +406,13 @@ export default function AdDetailModal({
           </form>
         </div>
 
-        {/* Right panel — tabs for Time Log and Comments */}
+        {/* Right panel — tabs */}
         <div className="w-full md:w-80 bg-slate-50 border-l border-slate-100 p-6 flex flex-col max-h-full">
-          {/* Tab switcher */}
           <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
-            <button
-              onClick={() => setActiveTab("log")}
-              className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "log" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}
-            >
+            <button onClick={() => setActiveTab("log")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "log" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>
               Time Log
             </button>
-            <button
-              onClick={() => setActiveTab("comments")}
-              className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "comments" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}
-            >
+            <button onClick={() => setActiveTab("comments")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "comments" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>
               Comments
             </button>
           </div>
