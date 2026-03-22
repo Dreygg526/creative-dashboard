@@ -114,7 +114,6 @@ export default function AdDetailModal({
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
   const isLocked = selectedAd.status === "Testing" && daysLeft > 0;
 
-  // Use original ad data for revision check — not the in-progress edited state
   const originalAd = ads.find(a => a.id === selectedAd.id);
   const originalAdStatus = originalAd?.status || selectedAd.status;
   const revisionLimitReached = originalAdStatus === "Ad Revision" && (originalAd?.revision_count || 0) >= 2;
@@ -344,6 +343,7 @@ export default function AdDetailModal({
               </div>
             )}
 
+            {/* Stage + Content Source */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Move Stage</label>
@@ -360,6 +360,28 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Ad Type + Priority */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Type</label>
+                <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.ad_type || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_type: e.target.value })}>
+                  <option value="New Concept">New Concept</option>
+                  <option value="Iteration">Iteration</option>
+                  <option value="Ideation">Ideation</option>
+                  <option value="Imitation">Imitation</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Priority</label>
+                <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.priority || "Medium"} onChange={e => setSelectedAd({ ...selectedAd, priority: e.target.value })}>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Editor + Result */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
@@ -383,6 +405,7 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Ad Spend + Review Link */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Spend ($)</label>
@@ -402,6 +425,7 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Due Date + Notes */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Due Date</label>
@@ -414,6 +438,7 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Internal Note */}
             <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
               <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Internal Note (Appends to Log)</label>
               <textarea rows={2} className="w-full border-2 border-white p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-white font-medium shadow-sm" placeholder="Explain action taken..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />

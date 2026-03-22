@@ -39,6 +39,8 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
               >
                 <option>New Concept</option>
                 <option>Iteration</option>
+                <option>Ideation</option>
+                <option>Imitation</option>
               </select>
             </div>
 
