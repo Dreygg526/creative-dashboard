@@ -17,6 +17,7 @@ interface Props {
   onBulkPriority?: (adIds: string[], priority: string) => void;
   onBulkKill?: (adIds: string[]) => void;
   onBulkMove?: (adIds: string[], status: string) => void;
+  onBulkDelete?: (adIds: string[]) => void;
 }
 
 function isOverdue(dateStr?: string) {
@@ -40,10 +41,11 @@ function getDaysUntilDeletion(killedAt?: string): number | null {
 export default function PipelineView({
   ads, activeStage, setActiveStage, setSelectedAd,
   currentRole, currentUser, allEditors = [], allStrategists = [],
-  onBulkReassign, onBulkPriority, onBulkKill, onBulkMove
+  onBulkReassign, onBulkPriority, onBulkKill, onBulkMove, onBulkDelete
 }: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
+  const isOnKilledTab = activeStage === "Killed";
 
   const [search, setSearch] = useState("");
   const [filterEditor, setFilterEditor] = useState("All");
@@ -154,6 +156,14 @@ export default function PipelineView({
     clearSelection();
   };
 
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds);
+    if (confirm(`Permanently delete ${ids.length} ad${ids.length > 1 ? "s" : ""}? This cannot be undone.`)) {
+      onBulkDelete?.(ids);
+      clearSelection();
+    }
+  };
+
   const nextStages = useMemo(() => {
     const stages = [
       "Idea", "Writing Brief", "Brief Revision Required", "Brief Approved",
@@ -174,7 +184,7 @@ export default function PipelineView({
           return (
             <button
               key={stage}
-              onClick={() => { setActiveStage(stage); setSelectedIds(new Set()); }}
+              onClick={() => { setActiveStage(stage); setSelectedIds(new Set()); clearSelection(); }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tight transition-all
                 ${activeStage === stage
                   ? "bg-slate-800 text-white shadow-md"
@@ -298,7 +308,7 @@ export default function PipelineView({
         {activeStage === "Killed" && (
           <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <span className="text-xl">💀</span>
-            <p className="text-sm font-bold text-rose-600">Killed ads are permanently deleted after 30 days. Founders can delete them early from the ad detail view.</p>
+            <p className="text-sm font-bold text-rose-600">Killed ads are permanently deleted after 30 days. Select ads and click Delete to remove them early.</p>
           </div>
         )}
 
@@ -316,6 +326,14 @@ export default function PipelineView({
             {selectedIds.size > 0 && (
               <button onClick={clearSelection} className="text-[10px] font-black text-rose-400 hover:text-rose-600 uppercase tracking-widest">
                 Clear
+              </button>
+            )}
+            {isOnKilledTab && selectedIds.size > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="ml-2 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl transition-all"
+              >
+                🗑 Delete {selectedIds.size} Ad{selectedIds.size > 1 ? "s" : ""} Now
               </button>
             )}
           </div>
@@ -387,7 +405,9 @@ export default function PipelineView({
                   )}
 
                   {ad.status === "Killed" && daysUntilDeletion !== null && (
-                    <div className="absolute top-0 left-0 right-0 bg-slate-700 text-white text-[9px] font-black uppercase tracking-widest text-center py-1">
+                    <div className={`absolute top-0 left-0 right-0 text-white text-[9px] font-black uppercase tracking-widest text-center py-1 ${
+                      daysUntilDeletion <= 5 ? "bg-rose-600" : "bg-slate-700"
+                    }`}>
                       💀 Deletes in {daysUntilDeletion} day{daysUntilDeletion !== 1 ? "s" : ""}
                     </div>
                   )}
@@ -424,7 +444,6 @@ export default function PipelineView({
                       )}
                     </div>
 
-                    {/* Due date */}
                     {ad.due_date && !overdue && (
                       <div className="flex items-center gap-1.5 mb-3">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -433,7 +452,6 @@ export default function PipelineView({
                       </div>
                     )}
 
-                    {/* Testing countdown */}
                     {ad.status === "Testing" && testingDaysLeft !== null && (
                       <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 ${
                         testingDaysLeft <= 2 ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-700"
@@ -442,21 +460,18 @@ export default function PipelineView({
                       </div>
                     )}
 
-                    {/* Stale badge */}
                     {isStale && (
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 bg-amber-100 text-amber-700">
                         ⏳ {daysInStage}d in this stage
                       </div>
                     )}
 
-                    {/* Revision count */}
                     {(ad.revision_count ?? 0) > 0 && (
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 bg-slate-100 text-slate-500 ml-2">
                         🔄 {ad.revision_count} revision{(ad.revision_count ?? 0) !== 1 ? "s" : ""}
                       </div>
                     )}
 
-                    {/* Review link */}
                     {ad.review_link && (
                       <div className="mt-2">
                         <a
@@ -477,8 +492,8 @@ export default function PipelineView({
           </div>
         )}
 
-        {/* Bulk Actions Bar */}
-        {isFounder && selectedIds.size > 0 && (
+        {/* Bulk Actions Bar — not shown on Killed tab (delete button is inline above) */}
+        {isFounder && selectedIds.size > 0 && !isOnKilledTab && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-4 z-50 border border-slate-700">
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">
               {selectedIds.size} selected
@@ -495,52 +510,29 @@ export default function PipelineView({
               <option value="move">Move Stage</option>
               <option value="kill">Kill Ads</option>
             </select>
-
             {bulkAction === "reassign" && (
-              <select
-                value={bulkEditor}
-                onChange={e => setBulkEditor(e.target.value)}
-                className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400"
-              >
+              <select value={bulkEditor} onChange={e => setBulkEditor(e.target.value)} className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400">
                 <option value="">Select editor...</option>
                 {editors.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
             )}
-
             {bulkAction === "priority" && (
-              <select
-                value={bulkPriority}
-                onChange={e => setBulkPriority(e.target.value)}
-                className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400"
-              >
+              <select value={bulkPriority} onChange={e => setBulkPriority(e.target.value)} className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400">
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
                 <option value="Low">Low</option>
               </select>
             )}
-
             {bulkAction === "move" && (
-              <select
-                value={bulkStatus}
-                onChange={e => setBulkStatus(e.target.value)}
-                className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400"
-              >
+              <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400">
                 <option value="">Select stage...</option>
                 {nextStages.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             )}
-
-            <button
-              onClick={executeBulkAction}
-              disabled={!bulkAction}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all"
-            >
+            <button onClick={executeBulkAction} disabled={!bulkAction} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all">
               Apply
             </button>
-            <button
-              onClick={clearSelection}
-              className="text-slate-400 hover:text-white text-xs font-black uppercase tracking-widest transition-colors"
-            >
+            <button onClick={clearSelection} className="text-slate-400 hover:text-white text-xs font-black uppercase tracking-widest transition-colors">
               Cancel
             </button>
           </div>

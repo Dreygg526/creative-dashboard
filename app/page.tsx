@@ -239,7 +239,10 @@ export default function App() {
 
   const handleBulkKill = async (adIds: string[]) => {
     for (const id of adIds) {
-      await supabase.from("ads").update({ status: "Killed" }).eq("id", id);
+      await supabase.from("ads").update({
+        status: "Killed",
+        killed_at: new Date().toISOString()
+      }).eq("id", id);
     }
     fetchAds();
   };
@@ -247,6 +250,13 @@ export default function App() {
   const handleBulkMove = async (adIds: string[], status: string) => {
     for (const id of adIds) {
       await supabase.from("ads").update({ status }).eq("id", id);
+    }
+    fetchAds();
+  };
+
+  const handleBulkDelete = async (adIds: string[]) => {
+    for (const id of adIds) {
+      await supabase.from("ads").delete().eq("id", id);
     }
     fetchAds();
   };
@@ -460,6 +470,7 @@ export default function App() {
             onBulkPriority={handleBulkPriority}
             onBulkKill={handleBulkKill}
             onBulkMove={handleBulkMove}
+            onBulkDelete={handleBulkDelete}
           />
         )}
         {viewMode === "MyQueue" && (
@@ -549,7 +560,7 @@ export default function App() {
         )}
       </main>
 
-     {/* ── MODALS ── */}
+      {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
         <NewAdModal
           newAd={newAd}
