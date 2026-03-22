@@ -12,6 +12,8 @@ interface Props {
   onNewAd?: () => void;
   onNavigate?: (view: DashboardViewMode) => void;
   allProfiles?: any[];
+  activeSessions?: Record<string, { sessionId: string; elapsedSeconds: number; startedAt: string }>;
+  formatTimer?: (seconds: number) => string;
 }
 
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
@@ -39,22 +41,27 @@ function PriorityDot({ priority }: { priority: string }) {
   return <span className={`inline-block w-2 h-2 rounded-full ${colors[priority] || "bg-slate-300"}`} />;
 }
 
-function AdCard({ ad, onClick, showDays = true, extra }: {
+function AdCard({ ad, onClick, showDays = true, extra, session, formatTimer }: {
   ad: Ad;
   onClick: () => void;
   showDays?: boolean;
   extra?: React.ReactNode;
+  session?: { elapsedSeconds: number } | null;
+  formatTimer?: (seconds: number) => string;
 }) {
   const days = daysSince(ad.stage_updated_at || ad.created_at);
   const isStale = days >= 5;
   const overdue = isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status);
   const dueDate = formatDueDate(ad.due_date);
+  const isActive = !!session;
 
   return (
     <div
       onClick={onClick}
       className={`bg-white border-2 rounded-[18px] p-4 cursor-pointer hover:shadow-md transition-all ${
-        overdue ? "border-rose-300 bg-rose-50/20 hover:border-rose-400" : "border-slate-100 hover:border-indigo-200"
+        isActive ? "border-indigo-300 bg-indigo-50/20 hover:border-indigo-400" :
+        overdue ? "border-rose-300 bg-rose-50/20 hover:border-rose-400" :
+        "border-slate-100 hover:border-indigo-200"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -82,6 +89,14 @@ function AdCard({ ad, onClick, showDays = true, extra }: {
               </span>
             )}
           </div>
+          {/* Active timer on card */}
+          {isActive && formatTimer && session && (
+            <div className="mt-1 inline-flex items-center gap-2 bg-indigo-600 text-white px-2.5 py-1 rounded-lg">
+              <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Active</span>
+              <span className="font-black text-xs font-mono">{formatTimer(session.elapsedSeconds)}</span>
+            </div>
+          )}
           {extra}
         </div>
         {showDays && (
@@ -121,13 +136,12 @@ function Section({ title, count, color, children, empty }: {
 }
 
 // ── FOUNDER DASHBOARD ──
-function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles }: Props) {
+function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSessions, formatTimer }: Props) {
   const overdueAds = ads.filter(ad => {
     const days = daysSince(ad.stage_updated_at || ad.created_at);
     return days >= 5 && !["Completed", "Killed", "Testing"].includes(ad.status);
   }).sort((a, b) => daysSince(b.stage_updated_at || b.created_at) - daysSince(a.stage_updated_at || a.created_at));
 
-  // Also include ads with overdue due_date
   const dueDateOverdue = ads.filter(ad =>
     isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status)
   );
@@ -155,6 +169,14 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles }: Props) {
       .sort((a, b) => b.ads.length - a.ads.length);
   }, [allProfiles, activeAds]);
 
+  const activeSessionsByAd = activeSessions || {};
+  const activePeople = new Set(
+    Object.keys(activeSessionsByAd).map(adId => {
+      const ad = ads.find(a => a.id === adId);
+      return ad?.assigned_editor || ad?.assigned_copywriter || "";
+    }).filter(Boolean)
+  );
+
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[1200px] mx-auto w-full">
       <div className="mb-8">
@@ -179,6 +201,39 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles }: Props) {
           </button>
         ))}
       </div>
+
+      {/* Active sessions banner */}
+      {Object.keys(activeSessionsByAd).length > 0 && (
+        <div className="bg-indigo-50 border-2 border-indigo-100 rounded-[24px] p-5 mb-8">
+          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-3">
+            👁️ Live Sessions ({Object.keys(activeSessionsByAd).length})
+          </p>
+          <div className="space-y-2">
+            {Object.entries(activeSessionsByAd).map(([adId, session]) => {
+              const ad = ads.find(a => a.id === adId);
+              if (!ad) return null;
+              return (
+                <div
+                  key={adId}
+                  onClick={() => onSelectAd(ad)}
+                  className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:shadow-md transition-all"
+                >
+                  <div>
+                    <p className="font-black text-slate-800 text-sm">{ad.concept_name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">{ad.status}</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-xl">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    <span className="font-black text-sm font-mono tracking-widest">
+                      {formatTimer ? formatTimer(session.elapsedSeconds) : "00:00:00"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Overdue / Stale Ads */}
       {allOverdue.length > 0 && (
@@ -223,47 +278,76 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles }: Props) {
       <div className="mb-8">
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Team Workload</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {teamWorkload.map(person => (
-            <div key={person.id} className="bg-white border-2 border-slate-100 rounded-[20px] p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-xs">
-                    {person.full_name?.charAt(0)?.toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-black text-slate-800 text-sm">{person.full_name}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase">{person.role}</p>
-                  </div>
-                </div>
-                <span className={`text-[10px] font-black px-3 py-1 rounded-full ${person.ads.length === 0 ? "bg-slate-100 text-slate-400" : person.ads.length >= 4 ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-600"}`}>
-                  {person.ads.length} active
-                </span>
-              </div>
-              {person.ads.length > 0 && (
-                <div className="space-y-1.5">
-                  {person.ads.slice(0, 3).map((ad: Ad) => (
-                    <div
-                      key={ad.id}
-                      onClick={() => onSelectAd(ad)}
-                      className="flex items-center justify-between text-[10px] bg-slate-50 rounded-lg px-3 py-2 cursor-pointer hover:bg-indigo-50 transition-colors"
-                    >
-                      <span className="font-bold text-slate-600 truncate">{ad.concept_name}</span>
-                      <div className="flex items-center gap-2 ml-2 shrink-0">
-                        {isOverdue(ad.due_date) && <span className="text-rose-500">⚠️</span>}
-                        <span className="font-black text-slate-400">{ad.status}</span>
+          {teamWorkload.map(person => {
+            const isPersonActive = activePeople.has(person.full_name);
+            return (
+              <div key={person.id} className={`border-2 rounded-[20px] p-5 transition-all ${
+                isPersonActive ? "bg-indigo-50/30 border-indigo-200" : "bg-white border-slate-100"
+              }`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-xs">
+                        {person.full_name?.charAt(0)?.toUpperCase()}
                       </div>
+                      {isPersonActive && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+                      )}
                     </div>
-                  ))}
-                  {person.ads.length > 3 && (
-                    <p className="text-[9px] font-black text-slate-400 text-center pt-1">+{person.ads.length - 3} more</p>
-                  )}
+                    <div>
+                      <p className="font-black text-slate-800 text-sm">{person.full_name}</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">{person.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isPersonActive && (
+                      <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        🟢 Online
+                      </span>
+                    )}
+                    <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
+                      person.ads.length === 0 ? "bg-slate-100 text-slate-400" :
+                      person.ads.length >= 4 ? "bg-rose-100 text-rose-600" :
+                      "bg-emerald-100 text-emerald-600"
+                    }`}>
+                      {person.ads.length} active
+                    </span>
+                  </div>
                 </div>
-              )}
-              {person.ads.length === 0 && (
-                <p className="text-[10px] font-bold text-slate-300 text-center py-2">No active ads</p>
-              )}
-            </div>
-          ))}
+                {person.ads.length > 0 && (
+                  <div className="space-y-1.5">
+                    {person.ads.slice(0, 3).map((ad: Ad) => {
+                      const adSession = activeSessionsByAd[ad.id];
+                      return (
+                        <div
+                          key={ad.id}
+                          onClick={() => onSelectAd(ad)}
+                          className="flex items-center justify-between text-[10px] bg-slate-50 rounded-lg px-3 py-2 cursor-pointer hover:bg-indigo-50 transition-colors"
+                        >
+                          <span className="font-bold text-slate-600 truncate">{ad.concept_name}</span>
+                          <div className="flex items-center gap-2 ml-2 shrink-0">
+                            {isOverdue(ad.due_date) && <span className="text-rose-500">⚠️</span>}
+                            {adSession && formatTimer && (
+                              <span className="font-black text-indigo-600 font-mono text-[9px]">
+                                ⏱️ {formatTimer(adSession.elapsedSeconds)}
+                              </span>
+                            )}
+                            <span className="font-black text-slate-400">{ad.status}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {person.ads.length > 3 && (
+                      <p className="text-[9px] font-black text-slate-400 text-center pt-1">+{person.ads.length - 3} more</p>
+                    )}
+                  </div>
+                )}
+                {person.ads.length === 0 && (
+                  <p className="text-[10px] font-bold text-slate-300 text-center py-2">No active ads</p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -271,7 +355,7 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles }: Props) {
 }
 
 // ── STRATEGIST DASHBOARD ──
-function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate }: Props) {
+function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate, activeSessions, formatTimer }: Props) {
   const myAds = ads.filter(ad => ad.assigned_copywriter === currentUser || ad.assigned_editor === currentUser);
 
   const needsBrief = myAds.filter(ad => ["Idea", "Writing Brief"].includes(ad.status))
@@ -327,14 +411,26 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
       </div>
 
       <Section title="Needs Brief" count={needsBrief.length} color="bg-amber-100 text-amber-700" empty="No briefs needed right now">
-        {needsBrief.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} />)}
+        {needsBrief.map(ad => (
+          <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+            session={activeSessions?.[ad.id]}
+            formatTimer={formatTimer}
+          />
+        ))}
       </Section>
       <Section title="Awaiting My Review" count={awaitingReview.length} color="bg-indigo-100 text-indigo-700" empty="Nothing waiting for review">
-        {awaitingReview.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} />)}
+        {awaitingReview.map(ad => (
+          <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+            session={activeSessions?.[ad.id]}
+            formatTimer={formatTimer}
+          />
+        ))}
       </Section>
       <Section title="Revision Requested" count={revisionRequested.length} color="bg-rose-100 text-rose-700" empty="No revisions requested">
         {revisionRequested.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+            session={activeSessions?.[ad.id]}
+            formatTimer={formatTimer}
             extra={ad.status === "Ad Revision" ? (
               <p className="text-[9px] font-black text-rose-500">Round {ad.revision_count || 1}/2</p>
             ) : undefined}
@@ -346,7 +442,7 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
 }
 
 // ── EDITOR DASHBOARD ──
-function EditorDashboard({ ads, currentUser, onSelectAd }: Props) {
+function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatTimer }: Props) {
   const myAds = ads.filter(ad => ad.assigned_editor === currentUser);
 
   const currentlyEditing = myAds.filter(ad => ad.status === "In Progress")
@@ -369,6 +465,10 @@ function EditorDashboard({ ads, currentUser, onSelectAd }: Props) {
     isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status)
   ).length;
 
+  const activeSessionCount = Object.keys(activeSessions || {}).filter(adId =>
+    myAds.some(ad => ad.id === adId)
+  ).length;
+
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[900px] mx-auto w-full">
       <div className="mb-6">
@@ -376,7 +476,7 @@ function EditorDashboard({ ads, currentUser, onSelectAd }: Props) {
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Editor view</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-4 gap-3 mb-8">
         <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 text-center">
           <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">Completed This Month</p>
           <p className="text-xl font-black text-slate-800">{completedThisMonth}</p>
@@ -389,11 +489,17 @@ function EditorDashboard({ ads, currentUser, onSelectAd }: Props) {
           <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${overdueCount > 0 ? "text-rose-400" : "text-slate-400"}`}>Overdue</p>
           <p className={`text-xl font-black ${overdueCount > 0 ? "text-rose-600" : "text-slate-300"}`}>{overdueCount}</p>
         </div>
+        <div className={`border-2 rounded-2xl p-4 text-center ${activeSessionCount > 0 ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-100"}`}>
+          <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${activeSessionCount > 0 ? "text-indigo-400" : "text-slate-400"}`}>Active Sessions</p>
+          <p className={`text-xl font-black ${activeSessionCount > 0 ? "text-indigo-600" : "text-slate-300"}`}>{activeSessionCount}</p>
+        </div>
       </div>
 
       <Section title="Currently Editing" count={currentlyEditing.length} color="bg-indigo-100 text-indigo-700" empty="Nothing in progress">
         {currentlyEditing.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+            session={activeSessions?.[ad.id]}
+            formatTimer={formatTimer}
             extra={
               <p className="text-[9px] font-bold text-slate-400">
                 {daysSince(ad.stage_updated_at || ad.created_at)} days in this stage
@@ -403,11 +509,18 @@ function EditorDashboard({ ads, currentUser, onSelectAd }: Props) {
         ))}
       </Section>
       <Section title="Waiting For Me" count={waitingForMe.length} color="bg-amber-100 text-amber-700" empty="Nothing waiting">
-        {waitingForMe.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} />)}
+        {waitingForMe.map(ad => (
+          <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+            session={activeSessions?.[ad.id]}
+            formatTimer={formatTimer}
+          />
+        ))}
       </Section>
       <Section title="Revision Required" count={revisionRequired.length} color="bg-rose-100 text-rose-700" empty="No revisions needed">
         {revisionRequired.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+            session={activeSessions?.[ad.id]}
+            formatTimer={formatTimer}
             extra={<p className="text-[9px] font-black text-rose-500">Round {ad.revision_count || 1}/2</p>}
           />
         ))}
@@ -417,7 +530,7 @@ function EditorDashboard({ ads, currentUser, onSelectAd }: Props) {
 }
 
 // ── VA DASHBOARD ──
-function VADashboard({ ads, onSelectAd }: Props) {
+function VADashboard({ ads, onSelectAd, activeSessions, formatTimer }: Props) {
   const pendingAds = ads
     .filter(ad => ad.status === "Pending Upload")
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -439,46 +552,59 @@ function VADashboard({ ads, onSelectAd }: Props) {
         </div>
       ) : (
         <div className="space-y-4">
-          {pendingAds.map(ad => (
-            <div
-              key={ad.id}
-              className="bg-white border-2 border-slate-100 rounded-[20px] p-5 hover:border-indigo-200 hover:shadow-md transition-all"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <p className="font-black text-slate-800 mb-1">{ad.concept_name}</p>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">{ad.ad_format}</span>
-                    {ad.assigned_editor && (
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md">
-                        Editor: {ad.assigned_editor}
+          {pendingAds.map(ad => {
+            const session = activeSessions?.[ad.id];
+            return (
+              <div
+                key={ad.id}
+                className={`border-2 rounded-[20px] p-5 hover:shadow-md transition-all ${
+                  session ? "bg-indigo-50/30 border-indigo-200" : "bg-white border-slate-100 hover:border-indigo-200"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="font-black text-slate-800 mb-1">{ad.concept_name}</p>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">{ad.ad_format}</span>
+                      {ad.assigned_editor && (
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md">
+                          Editor: {ad.assigned_editor}
+                        </span>
+                      )}
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-600 rounded-md">
+                        {daysSince(ad.created_at)}d old
                       </span>
+                    </div>
+                    {ad.review_link && (
+                      <a
+                        href={ad.review_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        View Review File ↗
+                      </a>
                     )}
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-600 rounded-md">
-                      {daysSince(ad.created_at)}d old
-                    </span>
+                    {/* Active timer */}
+                    {session && formatTimer && (
+                      <div className="mt-2 inline-flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-xl">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Session Active</span>
+                        <span className="font-black text-sm font-mono">{formatTimer(session.elapsedSeconds)}</span>
+                      </div>
+                    )}
                   </div>
-                  {ad.review_link && (
-                    <a
-                      href={ad.review_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      View Review File ↗
-                    </a>
-                  )}
+                  <button
+                    onClick={() => onSelectAd(ad)}
+                    className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm shrink-0"
+                  >
+                    Mark Uploaded
+                  </button>
                 </div>
-                <button
-                  onClick={() => onSelectAd(ad)}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm shrink-0"
-                >
-                  Mark Uploaded
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -486,7 +612,7 @@ function VADashboard({ ads, onSelectAd }: Props) {
 }
 
 // ── CONTENT COORDINATOR DASHBOARD ──
-function ContentCoordDashboard({ ads, onSelectAd }: Props) {
+function ContentCoordDashboard({ ads, onSelectAd, activeSessions, formatTimer }: Props) {
   const myAds = ads
     .filter(ad => ["Preparing Content", "Content Revision Required"].includes(ad.status))
     .sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
@@ -508,6 +634,8 @@ function ContentCoordDashboard({ ads, onSelectAd }: Props) {
         <div className="space-y-4">
           {myAds.map(ad => (
             <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+              session={activeSessions?.[ad.id]}
+              formatTimer={formatTimer}
               extra={
                 ad.status === "Content Revision Required"
                   ? <p className="text-[9px] font-black text-rose-500 mt-1">Revision needed</p>

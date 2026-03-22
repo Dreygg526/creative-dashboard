@@ -9,15 +9,28 @@ interface MyQueueProps {
   currentUser: string;
   myQueue: Ad[];
   setSelectedAd: (ad: Ad) => void;
+  activeSessions?: Record<string, { sessionId: string; elapsedSeconds: number; startedAt: string }>;
+  formatTimer?: (seconds: number) => string;
 }
 
-export function MyQueueView({ currentUser, myQueue, setSelectedAd }: MyQueueProps) {
+export function MyQueueView({ currentUser, myQueue, setSelectedAd, activeSessions, formatTimer }: MyQueueProps) {
   return (
     <div className="flex-1 p-6 md:p-12 overflow-y-auto max-w-[900px] mx-auto w-full">
       <div className="mb-8">
         <h2 className="text-3xl font-black text-slate-800 mb-2">My Task Queue</h2>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Tasks assigned to {currentUser}</p>
       </div>
+
+      {/* Active sessions summary */}
+      {activeSessions && Object.keys(activeSessions).length > 0 && (
+        <div className="bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-4 mb-6 flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+          <p className="text-[11px] font-black text-indigo-700 uppercase tracking-widest">
+            {Object.keys(activeSessions).length} active session{Object.keys(activeSessions).length > 1 ? "s" : ""} running
+          </p>
+        </div>
+      )}
+
       {myQueue.length === 0 ? (
         <div className="bg-white border-2 border-dashed border-slate-200 rounded-[32px] p-20 flex flex-col items-center justify-center text-slate-400">
           <span className="text-5xl mb-4">🎉</span>
@@ -29,14 +42,34 @@ export function MyQueueView({ currentUser, myQueue, setSelectedAd }: MyQueueProp
           {myQueue.map(ad => {
             const daysInStage = Math.floor((new Date().getTime() - new Date(ad.stage_updated_at || ad.created_at).getTime()) / (1000 * 3600 * 24));
             const isStale = daysInStage >= 5 && ad.status !== "Testing" && ad.status !== "Completed";
+            const session = activeSessions?.[ad.id];
+            const isActive = !!session;
+
             return (
-              <div key={ad.id} onClick={() => setSelectedAd(ad)} className="p-6 rounded-[24px] border-2 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all">
-                <div className="flex items-center gap-4">
-                  <div className={`w-3 h-12 rounded-full ${getPriorityBadge(ad.priority)}`}></div>
-                  <div>
+              <div
+                key={ad.id}
+                onClick={() => setSelectedAd(ad)}
+                className={`p-6 rounded-[24px] border-2 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer hover:shadow-md transition-all ${
+                  isActive ? "border-indigo-300 bg-indigo-50/30 hover:border-indigo-400" : "hover:border-indigo-300"
+                }`}
+              >
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className={`w-3 h-12 rounded-full shrink-0 ${getPriorityBadge(ad.priority)}`}></div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-black uppercase text-indigo-600 mb-1">{ad.status}</p>
-                    <h3 className="text-xl font-black text-slate-800">{ad.concept_name}</h3>
+                    <h3 className="text-xl font-black text-slate-800 truncate">{ad.concept_name}</h3>
                     <p className="text-slate-400 font-bold">{ad.product} • {ad.ad_format}</p>
+
+                    {/* Active timer */}
+                    {isActive && formatTimer && (
+                      <div className="mt-2 inline-flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-xl">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Session Active</span>
+                        <span className="font-black text-sm font-mono tracking-widest">
+                          {formatTimer(session.elapsedSeconds)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-4 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
@@ -44,7 +77,11 @@ export function MyQueueView({ currentUser, myQueue, setSelectedAd }: MyQueueProp
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">In Stage</p>
                     <p className={`text-sm font-black ${isStale ? "text-rose-500" : "text-slate-800"}`}>{daysInStage} Days</p>
                   </div>
-                  <button className="bg-slate-800 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest">Open Ad</button>
+                  <button className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+                    isActive ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-800 text-white hover:bg-slate-700"
+                  }`}>
+                    {isActive ? "⏱️ Open" : "Open Ad"}
+                  </button>
                 </div>
               </div>
             );
@@ -130,7 +167,6 @@ export function ReportsView({
     });
   }, [ads]);
 
-  // Format diversity
   const totalAds = ads.length || 1;
   const videoCount = ads.filter(a => a.ad_format === "Video Ad").length;
   const staticCount = ads.filter(a => a.ad_format === "Static Ad").length;
@@ -139,11 +175,9 @@ export function ReportsView({
   const staticPct = Math.round((staticCount / totalAds) * 100);
   const nativePct = Math.round((nativeCount / totalAds) * 100);
 
-  // New vs Iterations
   const [newCount, iterCount] = conceptsVsIterations.split(" / ").map(Number);
   const totalNI = (newCount + iterCount) || 1;
 
-  // By Ad Type (New Concept vs Iteration — all time)
   const adTypeData = useMemo(() => {
     const counts: Record<string, number> = {};
     ads.forEach(ad => {
@@ -161,25 +195,23 @@ export function ReportsView({
   }, [ads]);
 
   const adTypeColors: Record<string, string> = {
-  "New Concept": "bg-indigo-500",
-  "Iteration": "bg-emerald-400",
-  "Ideation": "bg-amber-400",
-  "Imitation": "bg-rose-400",
-  "Unknown": "bg-slate-300",
-};
+    "New Concept": "bg-indigo-500",
+    "Iteration": "bg-emerald-400",
+    "Ideation": "bg-amber-400",
+    "Imitation": "bg-rose-400",
+    "Unknown": "bg-slate-300",
+  };
 
   const totalSpend = ads.reduce((sum, ad) => sum + Number(ad.ad_spend || 0), 0);
 
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[1300px] mx-auto w-full">
 
-      {/* Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-black text-slate-800 mb-1">Creative Output Report</h2>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">All charts pull live from the database</p>
       </div>
 
-      {/* Top stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white border-2 border-slate-100 rounded-[20px] p-5 shadow-sm">
           <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Volume This Week</p>
@@ -205,8 +237,6 @@ export function ReportsView({
 
       {/* Row 1: Output chart + New vs Iterations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-
-        {/* Output Over Time */}
         <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -242,7 +272,6 @@ export function ReportsView({
           </div>
         </div>
 
-        {/* New Concepts vs Iterations */}
         <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -274,8 +303,6 @@ export function ReportsView({
 
       {/* Row 2: Team Output + By Ad Type */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-
-        {/* Output by Team Member */}
         <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -303,10 +330,7 @@ export function ReportsView({
                       <span className="text-sm font-black text-slate-500">{total}</span>
                     </div>
                     <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-500 rounded-full transition-all"
-                        style={{ width: `${(total / maxTotal) * 100}%` }}
-                      />
+                      <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(total / maxTotal) * 100}%` }} />
                     </div>
                   </div>
                 );
@@ -315,12 +339,11 @@ export function ReportsView({
           )}
         </div>
 
-        {/* By Ad Type — NEW CHART */}
         <div className="bg-white border-2 border-slate-100 rounded-[24px] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="font-black text-slate-800">By Ad Type</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All Time — New Concept vs Iteration</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All Time</p>
             </div>
             <span className="text-2xl">🏷️</span>
           </div>
@@ -341,24 +364,14 @@ export function ReportsView({
                     </div>
                   </div>
                   <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${adTypeColors[type] || "bg-slate-300"} rounded-full transition-all`}
-                      style={{ width: `${pct}%` }}
-                    />
+                    <div className={`h-full ${adTypeColors[type] || "bg-slate-300"} rounded-full transition-all`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               ))}
-
-              {/* Visual donut-style summary */}
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <div className="h-4 bg-slate-100 rounded-full overflow-hidden flex">
                   {adTypeData.map(({ type, pct }) => (
-                    <div
-                      key={type}
-                      className={`h-full ${adTypeColors[type] || "bg-slate-300"} transition-all`}
-                      style={{ width: `${pct}%` }}
-                      title={`${type}: ${pct}%`}
-                    />
+                    <div key={type} className={`h-full ${adTypeColors[type] || "bg-slate-300"} transition-all`} style={{ width: `${pct}%` }} title={`${type}: ${pct}%`} />
                   ))}
                 </div>
                 <div className="flex gap-4 mt-3 flex-wrap">
@@ -417,13 +430,8 @@ export function ReportsView({
           {pipelineSpeed.map((s, i) => {
             const isStale = s.avgDays >= 5;
             return (
-              <div
-                key={i}
-                className={`rounded-2xl p-4 text-center border-2 transition-all hover:shadow-md ${isStale ? "border-rose-200 bg-rose-50" : "border-slate-100 bg-slate-50"}`}
-              >
-                <p className={`text-2xl font-black mb-1 ${isStale ? "text-rose-600" : "text-slate-800"}`}>
-                  {s.avgDays}d
-                </p>
+              <div key={i} className={`rounded-2xl p-4 text-center border-2 transition-all hover:shadow-md ${isStale ? "border-rose-200 bg-rose-50" : "border-slate-100 bg-slate-50"}`}>
+                <p className={`text-2xl font-black mb-1 ${isStale ? "text-rose-600" : "text-slate-800"}`}>{s.avgDays}d</p>
                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-tight">{s.stage}</p>
                 <p className={`text-[8px] font-bold mt-1 ${isStale ? "text-rose-400" : "text-slate-300"}`}>{s.count} ads</p>
               </div>
@@ -456,10 +464,7 @@ export function ReportsView({
                     <span className="text-sm font-black text-slate-700 truncate">{name}</span>
                   </div>
                   <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-400 rounded-full transition-all"
-                      style={{ width: `${(spend / maxSpend) * 100}%` }}
-                    />
+                    <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${(spend / maxSpend) * 100}%` }} />
                   </div>
                   <span className="text-sm font-black text-slate-700 w-24 text-right">${spend.toLocaleString()}</span>
                 </div>

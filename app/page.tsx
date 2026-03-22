@@ -11,6 +11,7 @@ import { useNotifications } from "./hooks/useNotifications";
 import { useAudio } from "./hooks/useAudio";
 import { useKPIs } from "./hooks/useKPIs";
 import { useAuth } from "./hooks/useAuth";
+import { useAdSessions, formatTimer } from "./hooks/useAdSessions";
 
 // Components
 import NotificationDropdown from "./components/NotificationDropdown";
@@ -118,6 +119,15 @@ export default function App() {
     conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
     weeklyChartData, teamOutput, pipelineVelocityData
   } = useKPIs(ads);
+
+  const {
+    activeSessions,
+    startSession,
+    finishSession,
+    getSessionForAd,
+    fetchSessionsForAd,
+    fetchAllSessions,
+  } = useAdSessions(supabase, currentUser, currentRole);
 
   const loadAllProfiles = async () => {
     const data = await getAllUsers();
@@ -261,6 +271,12 @@ export default function App() {
     fetchAds();
   };
 
+  // Unified select ad handler — starts session automatically
+  const handleSelectAd = (ad: any) => {
+    setSelectedAd(ad);
+    if (ad) startSession(ad.id);
+  };
+
   const navItems: ViewMode[] = isFounder
     ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
     : isStrategist
@@ -302,6 +318,20 @@ export default function App() {
                 <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-800">Creative Ops</h1>
                 <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
               </div>
+
+              {/* Active session indicator in nav */}
+              {Object.keys(activeSessions).length > 0 && (
+                <div className="hidden lg:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                    {Object.keys(activeSessions).length} Active Session{Object.keys(activeSessions).length > 1 ? "s" : ""}
+                  </span>
+                  <span className="text-[11px] font-black text-indigo-800 font-mono">
+                    {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-center gap-3 lg:hidden">
                 <div className="relative">
                   <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="text-xl p-2 relative">
@@ -450,10 +480,12 @@ export default function App() {
             ads={ads}
             currentUser={currentUser}
             currentRole={currentRole}
-            onSelectAd={setSelectedAd}
+            onSelectAd={handleSelectAd}
             onNewAd={() => setIsNewAdOpen(true)}
             onNavigate={handleSetViewMode}
             allProfiles={allProfiles}
+            activeSessions={activeSessions}
+            formatTimer={formatTimer}
           />
         )}
         {viewMode === "Pipeline" && (isFounder || isStrategist) && (
@@ -461,7 +493,7 @@ export default function App() {
             ads={ads}
             activeStage={activeStage}
             setActiveStage={setActiveStage}
-            setSelectedAd={setSelectedAd}
+            setSelectedAd={handleSelectAd}
             currentRole={currentRole}
             currentUser={currentUser}
             allEditors={allEditors}
@@ -471,13 +503,21 @@ export default function App() {
             onBulkKill={handleBulkKill}
             onBulkMove={handleBulkMove}
             onBulkDelete={handleBulkDelete}
+            activeSessions={activeSessions}
+            formatTimer={formatTimer}
           />
         )}
         {viewMode === "MyQueue" && (
-          <MyQueueView currentUser={currentUser} myQueue={myQueue} setSelectedAd={setSelectedAd} />
+          <MyQueueView
+            currentUser={currentUser}
+            myQueue={myQueue}
+            setSelectedAd={handleSelectAd}
+            activeSessions={activeSessions}
+            formatTimer={formatTimer}
+          />
         )}
         {viewMode === "Manager" && isFounder && (
-          <ManagerView workloads={workloads} setSelectedAd={setSelectedAd} />
+          <ManagerView workloads={workloads} setSelectedAd={handleSelectAd} />
         )}
         {viewMode === "Reports" && isManager && (
           <ReportsView
@@ -546,7 +586,7 @@ export default function App() {
         {viewMode === "Archive" && isFounder && (
           <ArchiveView
             ads={ads}
-            onSelectAd={setSelectedAd}
+            onSelectAd={handleSelectAd}
           />
         )}
         {viewMode === "Settings" && isFounder && profile && (
@@ -591,6 +631,11 @@ export default function App() {
           currentUser={currentUser}
           allEditors={allEditors}
           supabase={supabase}
+          activeSession={getSessionForAd(selectedAd.id)}
+          onFinishSession={() => finishSession(selectedAd.id)}
+          fetchSessionsForAd={fetchSessionsForAd}
+          fetchAllSessions={fetchAllSessions}
+          formatTimer={formatTimer}
         />
       )}
     </div>

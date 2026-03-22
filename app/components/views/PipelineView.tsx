@@ -18,6 +18,8 @@ interface Props {
   onBulkKill?: (adIds: string[]) => void;
   onBulkMove?: (adIds: string[], status: string) => void;
   onBulkDelete?: (adIds: string[]) => void;
+  activeSessions?: Record<string, { sessionId: string; elapsedSeconds: number; startedAt: string }>;
+  formatTimer?: (seconds: number) => string;
 }
 
 function isOverdue(dateStr?: string) {

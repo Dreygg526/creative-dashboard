@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Ad, TimeLogEntry } from "../../types";
 import { ALLOWED_TRANSITIONS } from "../../constants";
 import { getPriorityBadge, getDaysLeftInTesting } from "../../utils/helpers";
@@ -16,14 +16,11 @@ interface Props {
   currentUser: string;
   allEditors?: string[];
   supabase: any;
-}
-
-interface TimeTrackEntry {
-  user: string;
-  role: string;
-  opened_at: string;
-  closed_at?: string;
-  duration_minutes?: number;
+  activeSession?: { sessionId: string; elapsedSeconds: number; startedAt: string } | null;
+  onFinishSession?: () => void;
+  fetchSessionsForAd?: (adId: string) => Promise<any[]>;
+  fetchAllSessions?: () => Promise<any[]>;
+  formatTimer?: (seconds: number) => string;
 }
 
 function formatDate(dateStr?: string) {
@@ -36,13 +33,14 @@ function isOverdue(dateStr?: string) {
   return new Date(dateStr) < new Date();
 }
 
-function formatDuration(minutes?: number) {
-  if (!minutes) return "—";
-  if (minutes < 1) return "< 1 min";
-  if (minutes < 60) return `${Math.round(minutes)} min`;
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+function fmtDuration(seconds: number) {
+  if (!seconds) return "—";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
 }
 
 function CommentsSection({ adId, adName, assignedEditor, assignedCopywriter, currentUser, currentRole, supabase }: {
@@ -123,33 +121,35 @@ function CommentsSection({ adId, adName, assignedEditor, assignedCopywriter, cur
   );
 }
 
-function MonitoringTab({ ad, supabase }: { ad: Ad; supabase: any }) {
-  const tracking: TimeTrackEntry[] = (() => {
-    try { return JSON.parse((ad as any).time_tracking || "[]"); } catch { return []; }
-  })();
+function MonitoringTab({ adId, fetchSessionsForAd }: {
+  adId: string;
+  fetchSessionsForAd?: (adId: string) => Promise<any[]>;
+}) {
+  const [sessions, setSessions] = useState<any[]>([]);
 
-  const sorted = [...tracking].sort((a, b) =>
-    new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime()
-  );
+  useEffect(() => {
+    if (fetchSessionsForAd) {
+      fetchSessionsForAd(adId).then(setSessions);
+    }
+  }, [adId]);
 
-  // Group by user for summary
-  const summary: Record<string, { sessions: number; totalMinutes: number; lastSeen: string }> = {};
-  tracking.forEach(t => {
-    if (!summary[t.user]) summary[t.user] = { sessions: 0, totalMinutes: 0, lastSeen: t.opened_at };
-    summary[t.user].sessions += 1;
-    summary[t.user].totalMinutes += t.duration_minutes || 0;
-    if (new Date(t.opened_at) > new Date(summary[t.user].lastSeen)) {
-      summary[t.user].lastSeen = t.opened_at;
+  const summary: Record<string, { sessions: number; totalSeconds: number; lastSeen: string }> = {};
+  sessions.forEach(s => {
+    if (!summary[s.user_name]) summary[s.user_name] = { sessions: 0, totalSeconds: 0, lastSeen: s.started_at };
+    summary[s.user_name].sessions += 1;
+    summary[s.user_name].totalSeconds += s.total_seconds || 0;
+    if (new Date(s.started_at) > new Date(summary[s.user_name].lastSeen)) {
+      summary[s.user_name].lastSeen = s.started_at;
     }
   });
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {tracking.length === 0 ? (
+      {sessions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 text-slate-300">
           <div className="text-4xl mb-2">👁️</div>
-          <p className="text-[11px] font-bold text-center">No activity tracked yet</p>
-          <p className="text-[10px] text-center mt-1">Sessions are logged automatically when team members open this ad</p>
+          <p className="text-[11px] font-bold text-center">No sessions recorded yet</p>
+          <p className="text-[10px] text-center mt-1 px-2">Sessions start automatically when team members open this ad</p>
         </div>
       ) : (
         <>
@@ -166,7 +166,7 @@ function MonitoringTab({ ad, supabase }: { ad: Ad; supabase: any }) {
                       </div>
                       <span className="text-[11px] font-black text-slate-700">{user}</span>
                     </div>
-                    <span className="text-[10px] font-black text-indigo-600">{formatDuration(data.totalMinutes)}</span>
+                    <span className="text-[10px] font-black text-indigo-600">{fmtDuration(data.totalSeconds)}</span>
                   </div>
                   <div className="flex items-center justify-between pl-7">
                     <span className="text-[9px] text-slate-400">{data.sessions} session{data.sessions !== 1 ? "s" : ""}</span>
@@ -182,23 +182,28 @@ function MonitoringTab({ ad, supabase }: { ad: Ad; supabase: any }) {
           {/* Session log */}
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Session Log</p>
           <div className="space-y-2">
-            {sorted.map((entry, idx) => (
+            {sessions.map((s, idx) => (
               <div key={idx} className="relative pl-4 border-l-2 border-slate-100">
                 <div className="absolute w-2 h-2 bg-slate-300 rounded-full -left-[5px] top-1" />
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-700">{entry.user}</span>
-                  <span className="text-[9px] font-bold text-slate-400">{entry.role}</span>
+                  <span className="text-[10px] font-black text-slate-700">{s.user_name}</span>
+                  <span className="text-[9px] font-bold text-slate-400">{s.user_role}</span>
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
                   <span className="text-[9px] text-slate-400">
-                    {new Date(entry.opened_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(entry.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(s.started_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
-                    entry.closed_at ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
+                    s.is_active ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"
                   }`}>
-                    {entry.closed_at ? formatDuration(entry.duration_minutes) : "Active now"}
+                    {s.is_active ? "Active" : fmtDuration(s.total_seconds)}
                   </span>
                 </div>
+                {s.finished_at && (
+                  <p className="text-[9px] text-slate-300 mt-0.5">
+                    Finished: {new Date(s.finished_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -211,7 +216,8 @@ function MonitoringTab({ ad, supabase }: { ad: Ad; supabase: any }) {
 export default function AdDetailModal({
   selectedAd, ads, manualLogNote, setManualLogNote,
   setSelectedAd, onUpdate, onDelete,
-  currentRole, currentUser, allEditors = [], supabase
+  currentRole, currentUser, allEditors = [], supabase,
+  activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer
 }: Props) {
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
   const isLocked = selectedAd.status === "Testing" && daysLeft > 0;
@@ -220,59 +226,13 @@ export default function AdDetailModal({
   const originalAdStatus = originalAd?.status || selectedAd.status;
   const revisionLimitReached = originalAdStatus === "Ad Revision" && (originalAd?.revision_count || 0) >= 2;
   const overdue = isOverdue(selectedAd.due_date) && !["Completed", "Killed"].includes(selectedAd.status);
+  const showResult = ["Testing", "Completed"].includes(originalAdStatus);
 
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
   const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
-  const isTrackable = isEditor || isStrategist || isContentCoord || isVA;
-
-  // Show result only for Testing or Completed
-  const showResult = ["Testing", "Completed"].includes(originalAdStatus);
-
-  // Auto-track session open
-  const sessionStartRef = useRef<string>(new Date().toISOString());
-
-  useEffect(() => {
-    if (!isTrackable || !supabase) return;
-    sessionStartRef.current = new Date().toISOString();
-
-    return () => {
-      // On unmount, log the session
-      const closedAt = new Date().toISOString();
-      const openedAt = sessionStartRef.current;
-      const durationMinutes = (new Date(closedAt).getTime() - new Date(openedAt).getTime()) / 60000;
-
-      // Only log if spent more than 10 seconds
-      if (durationMinutes < 0.17) return;
-
-      const newEntry: TimeTrackEntry = {
-        user: currentUser,
-        role: currentRole,
-        opened_at: openedAt,
-        closed_at: closedAt,
-        duration_minutes: Math.round(durationMinutes * 10) / 10,
-      };
-
-      // Fire and forget
-      (async () => {
-        const { data } = await supabase
-          .from("ads")
-          .select("time_tracking")
-          .eq("id", selectedAd.id)
-          .single();
-
-        let existing: TimeTrackEntry[] = [];
-        try { existing = JSON.parse(data?.time_tracking || "[]"); } catch { existing = []; }
-
-        await supabase
-          .from("ads")
-          .update({ time_tracking: JSON.stringify([...existing, newEntry]) })
-          .eq("id", selectedAd.id);
-      })();
-    };
-  }, []);
 
   const getAllowedTransitions = () => {
     if (isFounder) {
@@ -306,6 +266,30 @@ export default function AdDetailModal({
 
   const [activeTab, setActiveTab] = useState<"log" | "comments" | "monitoring">("log");
 
+  // ── TIMER BLOCK (reusable) ──
+  const TimerBlock = () => (
+    activeSession ? (
+      <div className="bg-indigo-600 rounded-2xl p-4 flex items-center justify-between mb-2">
+        <div>
+          <p className="text-[9px] font-black text-indigo-200 uppercase tracking-widest mb-1">⏱️ Session Active</p>
+          <p className="text-2xl font-black text-white font-mono tracking-widest">
+            {formatTimer ? formatTimer(activeSession.elapsedSeconds) : "00:00:00"}
+          </p>
+          <p className="text-[9px] text-indigo-300 mt-1">
+            Started {new Date(activeSession.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onFinishSession}
+          className="bg-white text-indigo-600 font-black text-xs uppercase tracking-widest px-4 py-3 rounded-xl hover:bg-indigo-50 transition-all shadow-sm"
+        >
+          ✅ Finish
+        </button>
+      </div>
+    ) : null
+  );
+
   // ── EDITOR VIEW ──
   if (isEditor) {
     return (
@@ -333,6 +317,7 @@ export default function AdDetailModal({
               )}
             </div>
             <form onSubmit={onUpdate} className="space-y-4">
+              <TimerBlock />
               {isLocked && (
                 <div className="bg-rose-50 border-2 border-rose-100 p-5 rounded-3xl flex items-start gap-3">
                   <span className="text-2xl">🔒</span>
@@ -403,6 +388,7 @@ export default function AdDetailModal({
             <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
           </div>
           <form onSubmit={onUpdate} className="space-y-4">
+            <TimerBlock />
             <div>
               <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Move Stage</label>
               <select className="w-full border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-black text-slate-900" value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
@@ -434,6 +420,7 @@ export default function AdDetailModal({
             <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
           </div>
           <form onSubmit={onUpdate} className="space-y-4">
+            <TimerBlock />
             <div>
               <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Move Stage</label>
               <select disabled={!stageMovable} className={`w-full border-2 p-3 rounded-2xl text-sm font-black ${!stageMovable ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "border-slate-100 bg-slate-50 text-slate-900"}`} value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
@@ -475,6 +462,8 @@ export default function AdDetailModal({
           </div>
 
           <form onSubmit={onUpdate} className="space-y-5">
+            <TimerBlock />
+
             {isLocked && !isFounder && (
               <div className="bg-rose-50 border-2 border-rose-100 p-5 rounded-3xl flex items-start gap-3 animate-pulse">
                 <span className="text-2xl">🔒</span>
@@ -491,7 +480,6 @@ export default function AdDetailModal({
               </div>
             )}
 
-            {/* Stage + Content Source */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Move Stage</label>
@@ -508,7 +496,6 @@ export default function AdDetailModal({
               </div>
             </div>
 
-            {/* Ad Type + Priority */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Type</label>
@@ -529,7 +516,6 @@ export default function AdDetailModal({
               </div>
             </div>
 
-            {/* Editor + Result (Result only for Testing/Completed) */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
@@ -555,19 +541,10 @@ export default function AdDetailModal({
               )}
             </div>
 
-            {/* Ad Spend + Review Link */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Spend ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-bold text-slate-900"
-                  placeholder="0.00"
-                  value={selectedAd.ad_spend || ""}
-                  onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })}
-                />
+                <input type="number" min="0" step="0.01" className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-bold text-slate-900" placeholder="0.00" value={selectedAd.ad_spend || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })} />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Review Link (Frame.io)</label>
@@ -575,7 +552,6 @@ export default function AdDetailModal({
               </div>
             </div>
 
-            {/* Due Date + Notes */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Due Date</label>
@@ -588,7 +564,6 @@ export default function AdDetailModal({
               </div>
             </div>
 
-            {/* Internal Note */}
             <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
               <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Internal Note (Appends to Log)</label>
               <textarea rows={2} className="w-full border-2 border-white p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-white font-medium shadow-sm" placeholder="Explain action taken..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />
@@ -604,7 +579,7 @@ export default function AdDetailModal({
           </form>
         </div>
 
-        {/* Right panel — tabs */}
+        {/* Right panel */}
         <div className="w-full md:w-80 bg-slate-50 border-l border-slate-100 p-6 flex flex-col max-h-full">
           <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
             <button onClick={() => setActiveTab("log")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "log" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>
@@ -615,7 +590,7 @@ export default function AdDetailModal({
             </button>
             {isFounder && (
               <button onClick={() => setActiveTab("monitoring")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "monitoring" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>
-                👁️ Monitor
+                👁️
               </button>
             )}
           </div>
@@ -649,7 +624,10 @@ export default function AdDetailModal({
           )}
 
           {activeTab === "monitoring" && isFounder && (
-            <MonitoringTab ad={selectedAd} supabase={supabase} />
+            <MonitoringTab
+              adId={selectedAd.id}
+              fetchSessionsForAd={fetchSessionsForAd}
+            />
           )}
         </div>
       </div>
