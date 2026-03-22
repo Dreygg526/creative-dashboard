@@ -28,6 +28,7 @@ export interface Ad {
   review_link?: string;
   due_date?: string;
   killed_at?: string;
+  time_tracking?: string;
   created_at: string;
 }
 
