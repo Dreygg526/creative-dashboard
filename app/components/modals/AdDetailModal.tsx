@@ -200,10 +200,13 @@ function MonitoringTab({ adId, fetchSessionsForAd }: {
                   </span>
                 </div>
                 {s.finished_at && (
-                  <p className="text-[9px] text-slate-300 mt-0.5">
-                    Finished: {new Date(s.finished_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                )}
+  <div className="mt-1 flex items-center gap-1.5">
+    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Finished Time:</span>
+    <span className="text-[9px] font-black text-emerald-600">
+      {new Date(s.finished_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(s.finished_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    </span>
+  </div>
+)}
               </div>
             ))}
           </div>
@@ -589,10 +592,10 @@ export default function AdDetailModal({
               Comments
             </button>
             {isFounder && (
-              <button onClick={() => setActiveTab("monitoring")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "monitoring" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>
-                👁️
-              </button>
-            )}
+  <button onClick={() => setActiveTab("monitoring")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "monitoring" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>
+    Time Session
+  </button>
+)}
           </div>
 
           {activeTab === "log" && (

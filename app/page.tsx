@@ -273,9 +273,9 @@ export default function App() {
 
   // Unified select ad handler — starts session automatically
   const handleSelectAd = (ad: any) => {
-    setSelectedAd(ad);
-    if (ad) startSession(ad.id);
-  };
+  setSelectedAd(ad);
+  if (ad && !isFounder) startSession(ad.id);
+};
 
   const navItems: ViewMode[] = isFounder
     ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
