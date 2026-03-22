@@ -43,7 +43,8 @@ function getDaysUntilDeletion(killedAt?: string): number | null {
 export default function PipelineView({
   ads, activeStage, setActiveStage, setSelectedAd,
   currentRole, currentUser, allEditors = [], allStrategists = [],
-  onBulkReassign, onBulkPriority, onBulkKill, onBulkMove, onBulkDelete
+  onBulkReassign, onBulkPriority, onBulkKill, onBulkMove, onBulkDelete,
+  activeSessions, formatTimer
 }: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
