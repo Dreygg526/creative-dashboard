@@ -161,10 +161,12 @@ export function ReportsView({
   }, [ads]);
 
   const adTypeColors: Record<string, string> = {
-    "New Concept": "bg-indigo-500",
-    "Iteration": "bg-emerald-400",
-    "Unknown": "bg-slate-300",
-  };
+  "New Concept": "bg-indigo-500",
+  "Iteration": "bg-emerald-400",
+  "Ideation": "bg-amber-400",
+  "Imitation": "bg-rose-400",
+  "Unknown": "bg-slate-300",
+};
 
   const totalSpend = ads.reduce((sum, ad) => sum + Number(ad.ad_spend || 0), 0);
 
