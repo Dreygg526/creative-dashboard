@@ -151,8 +151,12 @@ export default function PipelineView({
         onBulkKill?.(ids);
       }
     } else if (bulkAction === "move" && bulkStatus) {
-      onBulkMove?.(ids, bulkStatus);
-    }
+  onBulkMove?.(ids, bulkStatus);
+} else if (bulkAction === "delete") {
+  if (confirm(`Permanently delete ${ids.length} ad${ids.length > 1 ? "s" : ""}? This cannot be undone.`)) {
+    onBulkDelete?.(ids);
+  }
+}
     clearSelection();
   };
 
@@ -328,14 +332,7 @@ export default function PipelineView({
                 Clear
               </button>
             )}
-            {isOnKilledTab && selectedIds.size > 0 && (
-              <button
-                onClick={handleBulkDelete}
-                className="ml-2 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl transition-all"
-              >
-                🗑 Delete {selectedIds.size} Ad{selectedIds.size > 1 ? "s" : ""} Now
-              </button>
-            )}
+      
           </div>
         )}
 
@@ -493,23 +490,24 @@ export default function PipelineView({
         )}
 
         {/* Bulk Actions Bar — not shown on Killed tab (delete button is inline above) */}
-        {isFounder && selectedIds.size > 0 && !isOnKilledTab && (
+        {isFounder && selectedIds.size > 0 && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-4 z-50 border border-slate-700">
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">
               {selectedIds.size} selected
             </span>
             <div className="w-px h-5 bg-slate-700" />
             <select
-              value={bulkAction}
-              onChange={e => setBulkAction(e.target.value)}
-              className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400"
-            >
-              <option value="">Choose action...</option>
-              <option value="reassign">Reassign Editor</option>
-              <option value="priority">Set Priority</option>
-              <option value="move">Move Stage</option>
-              <option value="kill">Kill Ads</option>
-            </select>
+  value={bulkAction}
+  onChange={e => setBulkAction(e.target.value)}
+  className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400"
+>
+  <option value="">Choose action...</option>
+  <option value="reassign">Reassign Editor</option>
+  <option value="priority">Set Priority</option>
+  <option value="move">Move Stage</option>
+  <option value="kill">Kill Ads</option>
+  <option value="delete">🗑 Delete Permanently</option>
+</select>
             {bulkAction === "reassign" && (
               <select value={bulkEditor} onChange={e => setBulkEditor(e.target.value)} className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400">
                 <option value="">Select editor...</option>
