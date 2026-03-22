@@ -506,7 +506,7 @@ export default function PipelineView({
   <option value="priority">Set Priority</option>
   <option value="move">Move Stage</option>
   <option value="kill">Kill Ads</option>
-  <option value="delete">🗑 Delete Permanently</option>
+  <option value="delete">Delete Permanently</option>
 </select>
             {bulkAction === "reassign" && (
               <select value={bulkEditor} onChange={e => setBulkEditor(e.target.value)} className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400">
