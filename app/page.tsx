@@ -476,18 +476,19 @@ export default function App() {
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {viewMode === "Dashboard" && (
-          <DashboardView
-            ads={ads}
-            currentUser={currentUser}
-            currentRole={currentRole}
-            onSelectAd={handleSelectAd}
-            onNewAd={() => setIsNewAdOpen(true)}
-            onNavigate={handleSetViewMode}
-            allProfiles={allProfiles}
-            activeSessions={activeSessions}
-            formatTimer={formatTimer}
-          />
-        )}
+  <DashboardView
+    ads={ads}
+    currentUser={currentUser}
+    currentRole={currentRole}
+    onSelectAd={handleSelectAd}
+    onNewAd={() => setIsNewAdOpen(true)}
+    onNavigate={handleSetViewMode}
+    allProfiles={allProfiles}
+    activeSessions={activeSessions}
+    formatTimer={formatTimer}
+    supabase={supabase}
+  />
+)}
         {viewMode === "Pipeline" && (isFounder || isStrategist) && (
           <PipelineView
             ads={ads}

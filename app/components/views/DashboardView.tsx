@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Ad } from "../../types";
 
 type DashboardViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings";
@@ -14,6 +14,7 @@ interface Props {
   allProfiles?: any[];
   activeSessions?: Record<string, { sessionId: string; elapsedSeconds: number; startedAt: string }>;
   formatTimer?: (seconds: number) => string;
+  supabase?: any;
 }
 
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
@@ -30,6 +31,16 @@ function isOverdue(dateStr?: string) {
 function formatDueDate(dateStr?: string) {
   if (!dateStr) return null;
   return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function fmtDuration(seconds: number) {
+  if (!seconds) return "—";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
 }
 
 function PriorityDot({ priority }: { priority: string }) {
@@ -89,7 +100,6 @@ function AdCard({ ad, onClick, showDays = true, extra, session, formatTimer }: {
               </span>
             )}
           </div>
-          {/* Active timer on card */}
           {isActive && formatTimer && session && (
             <div className="mt-1 inline-flex items-center gap-2 bg-indigo-600 text-white px-2.5 py-1 rounded-lg">
               <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -136,7 +146,40 @@ function Section({ title, count, color, children, empty }: {
 }
 
 // ── FOUNDER DASHBOARD ──
-function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSessions, formatTimer }: Props) {
+function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSessions, formatTimer, supabase }: Props) {
+  const [adSessions, setAdSessions] = useState<Record<string, any>>({});
+
+  // Fetch latest session for each active ad from Supabase
+  useEffect(() => {
+    if (!supabase) return;
+    const activeAds = ads.filter(a => !["Completed", "Killed"].includes(a.status));
+    if (activeAds.length === 0) return;
+
+    const fetchSessions = async () => {
+      const { data } = await supabase
+        .from("ad_sessions")
+        .select("*")
+        .in("ad_id", activeAds.map(a => a.id))
+        .order("started_at", { ascending: false });
+
+      if (!data) return;
+
+      // Get the latest session per ad
+      const latestByAd: Record<string, any> = {};
+      data.forEach((s: any) => {
+        if (!latestByAd[s.ad_id]) {
+          latestByAd[s.ad_id] = s;
+        }
+      });
+      setAdSessions(latestByAd);
+    };
+
+    fetchSessions();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchSessions, 30000);
+    return () => clearInterval(interval);
+  }, [supabase, ads]);
+
   const overdueAds = ads.filter(ad => {
     const days = daysSince(ad.stage_updated_at || ad.created_at);
     return days >= 5 && !["Completed", "Killed", "Testing"].includes(ad.status);
@@ -169,11 +212,17 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
       .sort((a, b) => b.ads.length - a.ads.length);
   }, [allProfiles, activeAds]);
 
-  const activeSessionsByAd = activeSessions || {};
+  // Check who has active sessions from Supabase
+  const activeSessionAdIds = new Set(
+    Object.entries(adSessions)
+      .filter(([, s]) => s.is_active)
+      .map(([adId]) => adId)
+  );
+
   const activePeople = new Set(
-    Object.keys(activeSessionsByAd).map(adId => {
-      const ad = ads.find(a => a.id === adId);
-      return ad?.assigned_editor || ad?.assigned_copywriter || "";
+    Array.from(activeSessionAdIds).map(adId => {
+      const session = adSessions[adId];
+      return session?.user_name || "";
     }).filter(Boolean)
   );
 
@@ -202,16 +251,20 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
         ))}
       </div>
 
-      {/* Active sessions banner */}
-      {Object.keys(activeSessionsByAd).length > 0 && (
+      {/* Active sessions from Supabase */}
+      {activeSessionAdIds.size > 0 && (
         <div className="bg-indigo-50 border-2 border-indigo-100 rounded-[24px] p-5 mb-8">
           <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-3">
-            👁️ Live Sessions ({Object.keys(activeSessionsByAd).length})
+            ⏱️ Live Work Sessions ({activeSessionAdIds.size})
           </p>
           <div className="space-y-2">
-            {Object.entries(activeSessionsByAd).map(([adId, session]) => {
+            {Array.from(activeSessionAdIds).map(adId => {
               const ad = ads.find(a => a.id === adId);
-              if (!ad) return null;
+              const session = adSessions[adId];
+              if (!ad || !session) return null;
+              const elapsedSeconds = Math.floor(
+                (new Date().getTime() - new Date(session.started_at).getTime()) / 1000
+              );
               return (
                 <div
                   key={adId}
@@ -220,12 +273,14 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                 >
                   <div>
                     <p className="font-black text-slate-800 text-sm">{ad.concept_name}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">{ad.status}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">
+                      {session.user_name} · {session.user_role} · {ad.status}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-xl">
                     <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                     <span className="font-black text-sm font-mono tracking-widest">
-                      {formatTimer ? formatTimer(session.elapsedSeconds) : "00:00:00"}
+                      {formatTimer ? formatTimer(elapsedSeconds) : fmtDuration(elapsedSeconds)}
                     </span>
                   </div>
                 </div>
@@ -302,7 +357,7 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                   <div className="flex items-center gap-2">
                     {isPersonActive && (
                       <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        🟢 Online
+                        🟢 Working
                       </span>
                     )}
                     <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
@@ -317,19 +372,30 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                 {person.ads.length > 0 && (
                   <div className="space-y-1.5">
                     {person.ads.slice(0, 3).map((ad: Ad) => {
-                      const adSession = activeSessionsByAd[ad.id];
+                      const session = adSessions[ad.id];
+                      const isAdActive = session?.is_active;
+                      const elapsedSeconds = isAdActive
+                        ? Math.floor((new Date().getTime() - new Date(session.started_at).getTime()) / 1000)
+                        : null;
                       return (
                         <div
                           key={ad.id}
                           onClick={() => onSelectAd(ad)}
-                          className="flex items-center justify-between text-[10px] bg-slate-50 rounded-lg px-3 py-2 cursor-pointer hover:bg-indigo-50 transition-colors"
+                          className={`flex items-center justify-between text-[10px] rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                            isAdActive ? "bg-indigo-50 hover:bg-indigo-100" : "bg-slate-50 hover:bg-indigo-50"
+                          }`}
                         >
                           <span className="font-bold text-slate-600 truncate">{ad.concept_name}</span>
                           <div className="flex items-center gap-2 ml-2 shrink-0">
                             {isOverdue(ad.due_date) && <span className="text-rose-500">⚠️</span>}
-                            {adSession && formatTimer && (
-                              <span className="font-black text-indigo-600 font-mono text-[9px]">
-                                ⏱️ {formatTimer(adSession.elapsedSeconds)}
+                            {isAdActive && elapsedSeconds !== null && (
+                              <span className="font-black text-indigo-600 font-mono text-[9px] bg-indigo-100 px-1.5 py-0.5 rounded">
+                                ⏱️ {formatTimer ? formatTimer(elapsedSeconds) : fmtDuration(elapsedSeconds)}
+                              </span>
+                            )}
+                            {session && !isAdActive && (
+                              <span className="font-black text-slate-400 text-[9px]">
+                                last: {fmtDuration(session.total_seconds)}
                               </span>
                             )}
                             <span className="font-black text-slate-400">{ad.status}</span>
@@ -382,16 +448,10 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
           <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Strategist view</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => onNavigate?.("Ideas")}
-            className="text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100"
-          >
+          <button onClick={() => onNavigate?.("Ideas")} className="text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100">
             + Log Idea
           </button>
-          <button
-            onClick={onNewAd}
-            className="text-xs font-black text-white bg-indigo-600 px-4 py-2 rounded-xl hover:bg-indigo-700 transition-all shadow-sm"
-          >
+          <button onClick={onNewAd} className="text-xs font-black text-white bg-indigo-600 px-4 py-2 rounded-xl hover:bg-indigo-700 transition-all shadow-sm">
             + New Ad
           </button>
         </div>
@@ -411,29 +471,16 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
       </div>
 
       <Section title="Needs Brief" count={needsBrief.length} color="bg-amber-100 text-amber-700" empty="No briefs needed right now">
-        {needsBrief.map(ad => (
-          <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
-            session={activeSessions?.[ad.id]}
-            formatTimer={formatTimer}
-          />
-        ))}
+        {needsBrief.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} session={activeSessions?.[ad.id]} formatTimer={formatTimer} />)}
       </Section>
       <Section title="Awaiting My Review" count={awaitingReview.length} color="bg-indigo-100 text-indigo-700" empty="Nothing waiting for review">
-        {awaitingReview.map(ad => (
-          <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
-            session={activeSessions?.[ad.id]}
-            formatTimer={formatTimer}
-          />
-        ))}
+        {awaitingReview.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} session={activeSessions?.[ad.id]} formatTimer={formatTimer} />)}
       </Section>
       <Section title="Revision Requested" count={revisionRequested.length} color="bg-rose-100 text-rose-700" empty="No revisions requested">
         {revisionRequested.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
-            session={activeSessions?.[ad.id]}
-            formatTimer={formatTimer}
-            extra={ad.status === "Ad Revision" ? (
-              <p className="text-[9px] font-black text-rose-500">Round {ad.revision_count || 1}/2</p>
-            ) : undefined}
+            session={activeSessions?.[ad.id]} formatTimer={formatTimer}
+            extra={ad.status === "Ad Revision" ? <p className="text-[9px] font-black text-rose-500">Round {ad.revision_count || 1}/2</p> : undefined}
           />
         ))}
       </Section>
@@ -460,11 +507,9 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
   const avgRevs = myAds.length > 0
     ? (myAds.reduce((sum, ad) => sum + (ad.revision_count || 0), 0) / myAds.length).toFixed(1)
     : "0.0";
-
   const overdueCount = myAds.filter(ad =>
     isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status)
   ).length;
-
   const activeSessionCount = Object.keys(activeSessions || {}).filter(adId =>
     myAds.some(ad => ad.id === adId)
   ).length;
@@ -498,29 +543,18 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
       <Section title="Currently Editing" count={currentlyEditing.length} color="bg-indigo-100 text-indigo-700" empty="Nothing in progress">
         {currentlyEditing.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
-            session={activeSessions?.[ad.id]}
-            formatTimer={formatTimer}
-            extra={
-              <p className="text-[9px] font-bold text-slate-400">
-                {daysSince(ad.stage_updated_at || ad.created_at)} days in this stage
-              </p>
-            }
+            session={activeSessions?.[ad.id]} formatTimer={formatTimer}
+            extra={<p className="text-[9px] font-bold text-slate-400">{daysSince(ad.stage_updated_at || ad.created_at)} days in this stage</p>}
           />
         ))}
       </Section>
       <Section title="Waiting For Me" count={waitingForMe.length} color="bg-amber-100 text-amber-700" empty="Nothing waiting">
-        {waitingForMe.map(ad => (
-          <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
-            session={activeSessions?.[ad.id]}
-            formatTimer={formatTimer}
-          />
-        ))}
+        {waitingForMe.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} session={activeSessions?.[ad.id]} formatTimer={formatTimer} />)}
       </Section>
       <Section title="Revision Required" count={revisionRequired.length} color="bg-rose-100 text-rose-700" empty="No revisions needed">
         {revisionRequired.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
-            session={activeSessions?.[ad.id]}
-            formatTimer={formatTimer}
+            session={activeSessions?.[ad.id]} formatTimer={formatTimer}
             extra={<p className="text-[9px] font-black text-rose-500">Round {ad.revision_count || 1}/2</p>}
           />
         ))}
@@ -555,38 +589,22 @@ function VADashboard({ ads, onSelectAd, activeSessions, formatTimer }: Props) {
           {pendingAds.map(ad => {
             const session = activeSessions?.[ad.id];
             return (
-              <div
-                key={ad.id}
-                className={`border-2 rounded-[20px] p-5 hover:shadow-md transition-all ${
-                  session ? "bg-indigo-50/30 border-indigo-200" : "bg-white border-slate-100 hover:border-indigo-200"
-                }`}
-              >
+              <div key={ad.id} className={`border-2 rounded-[20px] p-5 hover:shadow-md transition-all ${session ? "bg-indigo-50/30 border-indigo-200" : "bg-white border-slate-100 hover:border-indigo-200"}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <p className="font-black text-slate-800 mb-1">{ad.concept_name}</p>
                     <div className="flex flex-wrap gap-2 mb-3">
                       <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">{ad.ad_format}</span>
                       {ad.assigned_editor && (
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md">
-                          Editor: {ad.assigned_editor}
-                        </span>
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md">Editor: {ad.assigned_editor}</span>
                       )}
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-600 rounded-md">
-                        {daysSince(ad.created_at)}d old
-                      </span>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-600 rounded-md">{daysSince(ad.created_at)}d old</span>
                     </div>
                     {ad.review_link && (
-                      <a
-                        href={ad.review_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors"
-                        onClick={e => e.stopPropagation()}
-                      >
+                      <a href={ad.review_link} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors" onClick={e => e.stopPropagation()}>
                         View Review File ↗
                       </a>
                     )}
-                    {/* Active timer */}
                     {session && formatTimer && (
                       <div className="mt-2 inline-flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-xl">
                         <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -595,10 +613,7 @@ function VADashboard({ ads, onSelectAd, activeSessions, formatTimer }: Props) {
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => onSelectAd(ad)}
-                    className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm shrink-0"
-                  >
+                  <button onClick={() => onSelectAd(ad)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm shrink-0">
                     Mark Uploaded
                   </button>
                 </div>
@@ -634,13 +649,8 @@ function ContentCoordDashboard({ ads, onSelectAd, activeSessions, formatTimer }:
         <div className="space-y-4">
           {myAds.map(ad => (
             <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
-              session={activeSessions?.[ad.id]}
-              formatTimer={formatTimer}
-              extra={
-                ad.status === "Content Revision Required"
-                  ? <p className="text-[9px] font-black text-rose-500 mt-1">Revision needed</p>
-                  : undefined
-              }
+              session={activeSessions?.[ad.id]} formatTimer={formatTimer}
+              extra={ad.status === "Content Revision Required" ? <p className="text-[9px] font-black text-rose-500 mt-1">Revision needed</p> : undefined}
             />
           ))}
         </div>
