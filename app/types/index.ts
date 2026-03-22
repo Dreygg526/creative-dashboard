@@ -27,6 +27,7 @@ export interface Ad {
   notes?: string;
   review_link?: string;
   due_date?: string;
+  killed_at?: string;
   created_at: string;
 }
 

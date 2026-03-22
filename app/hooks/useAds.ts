@@ -144,6 +144,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       let newRevisionCount = selectedAd.revision_count || 0;
       let newLiveDate = selectedAd.live_date;
       let newStageUpdatedDate = selectedAd.stage_updated_at;
+      let newKilledAt = selectedAd.killed_at || originalAd.killed_at || null;
 
       if (statusChanged || manualLogNote.trim()) {
         updatedTimeLog.push({
@@ -157,6 +158,16 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           newStageUpdatedDate = new Date().toISOString();
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
           if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
+
+          // Set killed_at when ad is killed
+          if (selectedAd.status === "Killed") {
+            newKilledAt = new Date().toISOString();
+          }
+
+          // Clear killed_at if somehow moved back (Founder override)
+          if (selectedAd.status !== "Killed") {
+            newKilledAt = null;
+          }
 
           let targetUser = "";
           if (selectedAd.status === "Brief Revision Required") {
@@ -206,6 +217,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           concept_name: isFounder || isStrategist ? selectedAd.concept_name : originalAd.concept_name,
           content_source: selectedAd.content_source,
           due_date: selectedAd.due_date || null,
+          killed_at: newKilledAt,
           live_date: newLiveDate,
           notes: selectedAd.notes,
           priority: isFounder ? selectedAd.priority : originalAd.priority,
