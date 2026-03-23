@@ -212,17 +212,17 @@ export default function App() {
   }, [ads]);
 
   const allEditors = useMemo(() => {
-  return allProfiles
-    .filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active)
-    .map((p: any) => p.full_name)
-    .sort();
-}, [allProfiles]);
+    return allProfiles
+      .filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active)
+      .map((p: any) => p.full_name)
+      .sort();
+  }, [allProfiles]);
 
-const allEditorProfiles = useMemo(() => {
-  return allProfiles
-    .filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active)
-    .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
-}, [allProfiles]);
+  const allEditorProfiles = useMemo(() => {
+    return allProfiles
+      .filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active)
+      .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
+  }, [allProfiles]);
 
   const allCopywriters = useMemo(() => {
     return allProfiles
@@ -238,7 +238,6 @@ const allEditorProfiles = useMemo(() => {
       .sort();
   }, [allProfiles]);
 
-  // Bulk action handlers
   const handleBulkReassign = async (adIds: string[], editor: string) => {
     for (const id of adIds) {
       await supabase.from("ads").update({ assigned_editor: editor }).eq("id", id);
@@ -277,21 +276,60 @@ const allEditorProfiles = useMemo(() => {
     fetchAds();
   };
 
-  // Unified select ad handler — starts session automatically
   const handleSelectAd = (ad: any) => {
-  setSelectedAd(ad);
-  if (ad) startSession(ad); // hook now handles all the checking internally
-};
+    setSelectedAd(ad);
+    if (ad) startSession(ad);
+  };
+
+  // Notify founder helper
+  const notifyFounder = async (adId: string, adName: string) => {
+    const { data: founders } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("role", "Founder")
+      .eq("is_active", true)
+      .limit(1);
+    const founderName = founders?.[0]?.full_name;
+    if (founderName) {
+      await supabase.from("notifications").insert([{
+        ad_id: adId,
+        message: `✅ ${currentUser} finished working on "${adName}"`,
+        target_user: founderName,
+        is_read: false
+      }]);
+    }
+  };
+
+  // Auto-finish session on stage change then save
+  const handleUpdateAdWithSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAd) return;
+
+    const originalAd = ads.find(a => a.id === selectedAd.id);
+    const stageChanged = originalAd && selectedAd.status !== originalAd.status;
+
+    // If stage changed and there's an active session — auto finish it
+    if (stageChanged) {
+      const session = getSessionForAd(selectedAd.id, selectedAd);
+      if (session) {
+        await finishSession(selectedAd.id);
+        await notifyFounder(selectedAd.id, selectedAd.concept_name);
+      }
+    }
+
+    // Now save the ad
+    handleUpdateAd(e);
+  };
 
   const navItems: ViewMode[] = isFounder
-  ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
-  : isStrategist
-  ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
-  : isVA
-  ? ["Dashboard", "Pipeline"]
-  : isContentCoord
-  ? ["Dashboard", "Pipeline", "MyQueue", "Ideas"]
-  : ["Dashboard", "Pipeline", "MyQueue", "Ideas"];
+    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
+    : isStrategist
+    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
+    : isVA
+    ? ["Dashboard", "Pipeline"]
+    : isContentCoord
+    ? ["Dashboard", "Pipeline", "MyQueue", "Ideas"]
+    : ["Dashboard", "Pipeline", "MyQueue", "Ideas"];
 
   if (libError) return (
     <div className="min-h-screen flex items-center justify-center p-4 text-rose-600 font-bold">{libError}</div>
@@ -326,28 +364,28 @@ const allEditorProfiles = useMemo(() => {
               </div>
 
               {Object.keys(activeSessions).length > 0 && (
-  <div className="hidden lg:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl">
-    <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
-      {Object.keys(activeSessions).length} Active Session{Object.keys(activeSessions).length > 1 ? "s" : ""}
-    </span>
-    <span className="text-[11px] font-black text-indigo-800 font-mono">
-      {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
-    </span>
-    <button
-      onClick={async () => {
-        if (confirm("Clear all active sessions?")) {
-          for (const adId of Object.keys(activeSessions)) {
-            await finishSession(adId);
-          }
-        }
-      }}
-      className="text-[9px] font-black text-indigo-400 hover:text-rose-500 uppercase tracking-widest ml-1 border-l border-indigo-200 pl-2 transition-colors"
-    >
-      Clear
-    </button>
-  </div>
-)}
+                <div className="hidden lg:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                    {Object.keys(activeSessions).length} Active Session{Object.keys(activeSessions).length > 1 ? "s" : ""}
+                  </span>
+                  <span className="text-[11px] font-black text-indigo-800 font-mono">
+                    {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      if (confirm("Clear all active sessions?")) {
+                        for (const adId of Object.keys(activeSessions)) {
+                          await finishSession(adId);
+                        }
+                      }
+                    }}
+                    className="text-[9px] font-black text-indigo-400 hover:text-rose-500 uppercase tracking-widest ml-1 border-l border-indigo-200 pl-2 transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
 
               <div className="flex items-center gap-3 lg:hidden">
                 <div className="relative">
@@ -493,19 +531,19 @@ const allEditorProfiles = useMemo(() => {
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {viewMode === "Dashboard" && (
-  <DashboardView
-    ads={ads}
-    currentUser={currentUser}
-    currentRole={currentRole}
-    onSelectAd={handleSelectAd}
-    onNewAd={() => setIsNewAdOpen(true)}
-    onNavigate={handleSetViewMode}
-    allProfiles={allProfiles}
-    activeSessions={activeSessions}
-    formatTimer={formatTimer}
-    supabase={supabase}
-  />
-)}
+          <DashboardView
+            ads={ads}
+            currentUser={currentUser}
+            currentRole={currentRole}
+            onSelectAd={handleSelectAd}
+            onNewAd={() => setIsNewAdOpen(true)}
+            onNavigate={handleSetViewMode}
+            allProfiles={allProfiles}
+            activeSessions={activeSessions}
+            formatTimer={formatTimer}
+            supabase={supabase}
+          />
+        )}
         {viewMode === "Pipeline" && (
           <PipelineView
             ads={ads}
@@ -596,16 +634,10 @@ const allEditorProfiles = useMemo(() => {
           />
         )}
         {viewMode === "Members" && isFounder && (
-          <MembersView
-            profiles={allProfiles}
-            currentUser={currentUser}
-          />
+          <MembersView profiles={allProfiles} currentUser={currentUser} />
         )}
         {viewMode === "Archive" && isFounder && (
-          <ArchiveView
-            ads={ads}
-            onSelectAd={handleSelectAd}
-          />
+          <ArchiveView ads={ads} onSelectAd={handleSelectAd} />
         )}
         {viewMode === "Settings" && isFounder && profile && (
           <SettingsView
@@ -620,18 +652,18 @@ const allEditorProfiles = useMemo(() => {
 
       {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
-  <NewAdModal
-  newAd={newAd}
-  setNewAd={setNewAd}
-  onSubmit={handleCreateAd}
-  onClose={() => setIsNewAdOpen(false)}
-  editors={allEditors}
-  copywriters={allCopywriters}
-  currentRole={currentRole}
-  currentUser={currentUser}
-  allEditorProfiles={allEditorProfiles}
-/>
-)}
+        <NewAdModal
+          newAd={newAd}
+          setNewAd={setNewAd}
+          onSubmit={handleCreateAd}
+          onClose={() => setIsNewAdOpen(false)}
+          editors={allEditors}
+          copywriters={allCopywriters}
+          currentRole={currentRole}
+          currentUser={currentUser}
+          allEditorProfiles={allEditorProfiles}
+        />
+      )}
       {ideaToPromote && (
         <PromoteIdeaModal
           idea={ideaToPromote}
@@ -641,39 +673,24 @@ const allEditorProfiles = useMemo(() => {
       )}
       {selectedAd && (
         <AdDetailModal
-  selectedAd={selectedAd}
-  ads={ads}
-  manualLogNote={manualLogNote}
-  setManualLogNote={setManualLogNote}
-  setSelectedAd={setSelectedAd}
-  onUpdate={handleUpdateAd}
-  onDelete={handleDeleteAd}
-  currentRole={currentRole}
-  currentUser={currentUser}
-  allEditors={allEditors}
-  allEditorProfiles={allEditorProfiles}
-  allStrategists={allStrategists}
-  supabase={supabase}
-  activeSession={getSessionForAd(selectedAd.id, selectedAd)}
-  onFinishSession={async () => {
-  await finishSession(selectedAd.id);
-  // Notify Founder
-  const { data: founders } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("role", "Founder")
-    .eq("is_active", true)
-    .limit(1);
-  const founderName = founders?.[0]?.full_name;
-  if (founderName && selectedAd) {
-    await supabase.from("notifications").insert([{
-      ad_id: selectedAd.id,
-      message: `✅ ${currentUser} finished working on "${selectedAd.concept_name}"`,
-      target_user: founderName,
-      is_read: false
-    }]);
-  }
-}}
+          selectedAd={selectedAd}
+          ads={ads}
+          manualLogNote={manualLogNote}
+          setManualLogNote={setManualLogNote}
+          setSelectedAd={setSelectedAd}
+          onUpdate={handleUpdateAdWithSession}
+          onDelete={handleDeleteAd}
+          currentRole={currentRole}
+          currentUser={currentUser}
+          allEditors={allEditors}
+          allEditorProfiles={allEditorProfiles}
+          allStrategists={allStrategists}
+          supabase={supabase}
+          activeSession={getSessionForAd(selectedAd.id, selectedAd)}
+          onFinishSession={async () => {
+            await finishSession(selectedAd.id);
+            await notifyFounder(selectedAd.id, selectedAd.concept_name);
+          }}
           fetchSessionsForAd={fetchSessionsForAd}
           fetchAllSessions={fetchAllSessions}
           formatTimer={formatTimer}
