@@ -633,7 +633,25 @@ export default function App() {
           allEditors={allEditors}
           supabase={supabase}
           activeSession={getSessionForAd(selectedAd.id)}
-          onFinishSession={() => finishSession(selectedAd.id)}
+          onFinishSession={async () => {
+  await finishSession(selectedAd.id);
+  // Notify Founder
+  const { data: founders } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("role", "Founder")
+    .eq("is_active", true)
+    .limit(1);
+  const founderName = founders?.[0]?.full_name;
+  if (founderName && selectedAd) {
+    await supabase.from("notifications").insert([{
+      ad_id: selectedAd.id,
+      message: `✅ ${currentUser} finished working on "${selectedAd.concept_name}"`,
+      target_user: founderName,
+      is_read: false
+    }]);
+  }
+}}
           fetchSessionsForAd={fetchSessionsForAd}
           fetchAllSessions={fetchAllSessions}
           formatTimer={formatTimer}

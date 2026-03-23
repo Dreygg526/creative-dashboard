@@ -54,12 +54,13 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       { action: "Concept Logged", user: currentUser, timestamp: new Date().toISOString() }
     ];
     const { error } = await supabase.from("ads").insert([{
-      ...newAd,
-      status: "Idea",
-      revision_count: 0,
-      stage_updated_at: new Date().toISOString(),
-      time_log: JSON.stringify(initialLog)
-    }]);
+  ...newAd,
+  status: "Idea",
+  revision_count: 0,
+  stage_updated_at: new Date().toISOString(),
+  time_log: JSON.stringify(initialLog),
+  assigned_copywriter: isStrategist ? currentUser : (newAd.assigned_copywriter || ""),
+}]);
     if (error) {
       console.error("Create error:", error);
       alert("Failed to create ad: " + error.message);
