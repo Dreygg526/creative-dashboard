@@ -235,9 +235,18 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
                   </div>
                 )}
               </div>
-              {selectedAd.review_link && (
-                <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="block text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors uppercase tracking-widest">View Review File ↗</a>
-              )}
+              <div className="flex flex-col gap-2">
+                {selectedAd.brief_link && (
+                  <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors uppercase tracking-widest">
+                    Open Brief (Milanote) ↗
+                  </a>
+                )}
+                {selectedAd.review_link && (
+                  <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors uppercase tracking-widest">
+                    View Review File (Frame.io) ↗
+                  </a>
+                )}
+              </div>
               {selectedAd.notes && (
                 <div className="bg-slate-50 rounded-xl p-3">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Notes</p>
@@ -300,22 +309,15 @@ export default function AdDetailModal({
     if (isFounder) {
       return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Preparing Content", "Content Revision Required", "Content Ready", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Completed", "Killed"].filter(s => s !== originalAdStatus);
     }
-    // Non-founders cannot move to Killed
     const transitions = ALLOWED_TRANSITIONS[originalAdStatus] || [];
     return transitions
       .filter(s => !(s === "Ad Revision" && revisionLimitReached))
       .filter(s => s !== "Killed");
   };
 
-  const canMoveStage = () => {
-    if (isFounder) return true;
-    // Everyone else can move stages as long as it's a valid transition
-    return true;
-  };
-
   const canDelete = isFounder;
   const canReassign = isFounder;
-  const stageMovable = canMoveStage() && !isLocked;
+  const stageMovable = !isLocked || isFounder;
   const allowedTransitions = getAllowedTransitions();
 
   let activityLog: TimeLogEntry[] = [];
@@ -345,7 +347,6 @@ export default function AdDetailModal({
     ) : null
   );
 
-  // ── READ ONLY — browsing an ad not assigned to them ──
   if (!isFounder && !isStrategist && !allowed) {
     return (
       <ReadOnlyView
@@ -395,6 +396,14 @@ export default function AdDetailModal({
                   </div>
                 </div>
               )}
+              {selectedAd.brief_link && (
+                <div className="bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-4">
+                  <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">Brief (Milanote)</p>
+                  <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-indigo-600 hover:text-indigo-800 transition-colors">
+                    Open Brief ↗
+                  </a>
+                </div>
+              )}
               <div>
                 <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">
                   Move Stage {revisionLimitReached && <span className="ml-2 text-rose-400 normal-case font-bold">— Ad Revision unavailable after Round 2</span>}
@@ -412,6 +421,11 @@ export default function AdDetailModal({
               <div>
                 <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Review Link (Frame.io)</label>
                 <input type="url" className="w-full border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-bold outline-none focus:border-indigo-400 text-slate-900" placeholder="Paste Frame.io link..." value={selectedAd.review_link || ""} onChange={e => setSelectedAd({ ...selectedAd, review_link: e.target.value })} />
+                {selectedAd.review_link && (
+                  <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-black text-indigo-500 hover:text-indigo-700 uppercase tracking-widest mt-1 transition-colors">
+                    Open Review File ↗
+                  </a>
+                )}
               </div>
               <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
                 <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Internal Note</label>
@@ -454,6 +468,18 @@ export default function AdDetailModal({
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <TimerBlock />
+            {selectedAd.brief_link && (
+              <div className="bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-4">
+                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">Brief (Milanote)</p>
+                <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-indigo-600 hover:text-indigo-800 transition-colors">Open Brief ↗</a>
+              </div>
+            )}
+            {selectedAd.review_link && (
+              <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-4">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Review File (Frame.io)</p>
+                <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-indigo-600 hover:text-indigo-800 transition-colors">Open Review File ↗</a>
+              </div>
+            )}
             <div>
               <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Move Stage</label>
               <select className="w-full border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-black text-slate-900" value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
@@ -486,6 +512,12 @@ export default function AdDetailModal({
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <TimerBlock />
+            {selectedAd.brief_link && (
+              <div className="bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-4">
+                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">Brief (Milanote)</p>
+                <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-indigo-600 hover:text-indigo-800 transition-colors">Open Brief ↗</a>
+              </div>
+            )}
             <div>
               <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Move Stage</label>
               <select disabled={!stageMovable} className={`w-full border-2 p-3 rounded-2xl text-sm font-black ${!stageMovable ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "border-slate-100 bg-slate-50 text-slate-900"}`} value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
@@ -571,7 +603,6 @@ export default function AdDetailModal({
                   <option value="Imitation">Imitation</option>
                 </select>
               </div>
-              {/* Priority — Founder only */}
               {isFounder && (
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Priority</label>
@@ -606,12 +637,8 @@ export default function AdDetailModal({
                   <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.assigned_editor || ""} onChange={e => setSelectedAd({ ...selectedAd, assigned_editor: e.target.value })}>
                     <option value="">— Unassigned —</option>
                     {allEditorProfiles.length > 0
-                      ? allEditorProfiles.map(p => (
-                          <option key={p.full_name} value={p.full_name}>{p.full_name} ({p.role})</option>
-                        ))
-                      : allEditors.map(name => (
-                          <option key={name} value={name}>{name}</option>
-                        ))
+                      ? allEditorProfiles.map(p => <option key={p.full_name} value={p.full_name}>{p.full_name} ({p.role})</option>)
+                      : allEditors.map(name => <option key={name} value={name}>{name}</option>)
                     }
                   </select>
                 ) : (
@@ -640,19 +667,34 @@ export default function AdDetailModal({
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Review Link (Frame.io)</label>
                 <input type="url" className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-bold text-slate-900" placeholder="Optional" value={selectedAd.review_link || ""} onChange={e => setSelectedAd({ ...selectedAd, review_link: e.target.value })} />
+                {selectedAd.review_link && (
+                  <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-black text-indigo-500 hover:text-indigo-700 uppercase tracking-widest mt-1 transition-colors">
+                    Open Review File ↗
+                  </a>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Brief Link (Milanote)</label>
+                <input type="url" className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-bold text-slate-900" placeholder="Optional" value={selectedAd.brief_link || ""} onChange={e => setSelectedAd({ ...selectedAd, brief_link: e.target.value })} />
+                {selectedAd.brief_link && (
+                  <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-black text-indigo-500 hover:text-indigo-700 uppercase tracking-widest mt-1 transition-colors">
+                    Open Brief ↗
+                  </a>
+                )}
+              </div>
+              <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Due Date</label>
                 <input type="date" className={`w-full border-2 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-bold text-slate-900 ${overdue ? "border-rose-300 bg-rose-50" : "border-slate-100"}`} value={formatDate(selectedAd.due_date)} onChange={e => setSelectedAd({ ...selectedAd, due_date: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
                 {overdue && <p className="text-[9px] font-black text-rose-500 mt-1">⚠️ This ad is overdue!</p>}
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</label>
-                <textarea rows={1} className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-medium resize-none text-slate-900" placeholder="Optional notes..." value={selectedAd.notes || ""} onChange={e => setSelectedAd({ ...selectedAd, notes: e.target.value })} />
-              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</label>
+              <textarea rows={1} className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-slate-50 font-medium resize-none text-slate-900" placeholder="Optional notes..." value={selectedAd.notes || ""} onChange={e => setSelectedAd({ ...selectedAd, notes: e.target.value })} />
             </div>
 
             <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
@@ -670,7 +712,6 @@ export default function AdDetailModal({
           </form>
         </div>
 
-        {/* Right panel */}
         <div className="w-full md:w-80 bg-slate-50 border-l border-slate-100 p-6 flex flex-col max-h-full">
           <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
             <button onClick={() => setActiveTab("log")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "log" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>Log</button>
