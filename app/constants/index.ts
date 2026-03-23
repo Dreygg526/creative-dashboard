@@ -18,7 +18,7 @@ export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "Killed": ["Idea"]
 };
 
-export const IDEA_TYPE_TAGS = ["New Concept", "Iteration", "Ideation", "Imitation", "Angle to Test"];
+export const IDEA_TYPE_TAGS = ["Iteration", "Ideation", "Imitation", "Angle to Test"];
 
 export const PRIORITY_ORDER: Record<string, number> = {
   "High": 0, "Medium": 1, "Low": 2
@@ -26,6 +26,6 @@ export const PRIORITY_ORDER: Record<string, number> = {
 
 export const DEFAULT_NEW_AD = {
   concept_name: "", angle: "", ad_format: "Video Ad", product: "",
-  ad_type: "New Concept", priority: "Medium", content_source: "Internal Team",
+  ad_type: "Iteration", priority: "Medium", content_source: "Internal Team",
   assigned_editor: "", assigned_copywriter: "", brief_link: ""
 };

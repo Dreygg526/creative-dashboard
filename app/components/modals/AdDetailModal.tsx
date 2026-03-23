@@ -597,7 +597,6 @@ export default function AdDetailModal({
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Type</label>
                 <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.ad_type || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_type: e.target.value })}>
-                  <option value="New Concept">New Concept</option>
                   <option value="Iteration">Iteration</option>
                   <option value="Ideation">Ideation</option>
                   <option value="Imitation">Imitation</option>

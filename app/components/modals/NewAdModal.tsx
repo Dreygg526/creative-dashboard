@@ -52,7 +52,6 @@ export default function NewAdModal({
                 value={newAd.ad_type}
                 onChange={e => setNewAd({ ...newAd, ad_type: e.target.value })}
               >
-                <option>New Concept</option>
                 <option>Iteration</option>
                 <option>Ideation</option>
                 <option>Imitation</option>
