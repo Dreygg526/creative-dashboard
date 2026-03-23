@@ -22,7 +22,7 @@ export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "Killed": ["Idea"]
 };
 
-export const IDEA_TYPE_TAGS = ["New Concept", "Iteration", "Angle to Test"];
+export const IDEA_TYPE_TAGS = ["New Concept", "Iteration", "Ideation", "Imitation", "Angle to Test"];
 
 export const PRIORITY_ORDER: Record<string, number> = {
   "High": 0, "Medium": 1, "Low": 2
