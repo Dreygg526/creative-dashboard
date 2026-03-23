@@ -278,14 +278,14 @@ export default function App() {
 };
 
   const navItems: ViewMode[] = isFounder
-    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
-    : isStrategist
-    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
-    : isVA
-    ? ["Dashboard"]
-    : isContentCoord
-    ? ["Dashboard", "MyQueue", "Ideas"]
-    : ["Dashboard", "MyQueue", "Ideas"];
+  ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
+  : isStrategist
+  ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
+  : isVA
+  ? ["Dashboard", "Pipeline"]
+  : isContentCoord
+  ? ["Dashboard", "Pipeline", "MyQueue", "Ideas"]
+  : ["Dashboard", "Pipeline", "MyQueue", "Ideas"];
 
   if (libError) return (
     <div className="min-h-screen flex items-center justify-center p-4 text-rose-600 font-bold">{libError}</div>

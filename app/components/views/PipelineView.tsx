@@ -40,6 +40,15 @@ function getDaysUntilDeletion(killedAt?: string): number | null {
   return daysLeft > 0 ? daysLeft : 0;
 }
 
+function isMyAd(ad: Ad, currentRole: string, currentUser: string): boolean {
+  if (currentRole === "Founder") return false;
+  if (currentRole === "Strategist") return ad.assigned_copywriter === currentUser;
+  if (currentRole === "Editor" || currentRole === "Graphic Designer") return ad.assigned_editor === currentUser;
+  if (currentRole === "VA") return ad.status === "Pending Upload";
+  if (currentRole === "Content Coordinator") return ["Preparing Content", "Content Revision Required"].includes(ad.status);
+  return false;
+}
+
 export default function PipelineView({
   ads, activeStage, setActiveStage, setSelectedAd,
   currentRole, currentUser, allEditors = [], allStrategists = [],
@@ -48,7 +57,6 @@ export default function PipelineView({
 }: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
-  const isOnKilledTab = activeStage === "Killed";
 
   const [search, setSearch] = useState("");
   const [filterEditor, setFilterEditor] = useState("All");
@@ -114,15 +122,6 @@ export default function PipelineView({
     });
   }, [ads, activeStage, search, filterEditor, filterStrategist, filterProduct, filterFormat, filterPriority, filterAdType]);
 
-  const canClickAd = (ad: Ad) => {
-    if (isFounder) return true;
-    if (isStrategist) {
-      return ad.assigned_copywriter === currentUser ||
-        ["Ad Revision", "Testing", "Writing Brief", "Brief Revision Required"].includes(ad.status);
-    }
-    return false;
-  };
-
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
@@ -154,21 +153,13 @@ export default function PipelineView({
         onBulkKill?.(ids);
       }
     } else if (bulkAction === "move" && bulkStatus) {
-  onBulkMove?.(ids, bulkStatus);
-} else if (bulkAction === "delete") {
-  if (confirm(`Permanently delete ${ids.length} ad${ids.length > 1 ? "s" : ""}? This cannot be undone.`)) {
-    onBulkDelete?.(ids);
-  }
-}
-    clearSelection();
-  };
-
-  const handleBulkDelete = () => {
-    const ids = Array.from(selectedIds);
-    if (confirm(`Permanently delete ${ids.length} ad${ids.length > 1 ? "s" : ""}? This cannot be undone.`)) {
-      onBulkDelete?.(ids);
-      clearSelection();
+      onBulkMove?.(ids, bulkStatus);
+    } else if (bulkAction === "delete") {
+      if (confirm(`Permanently delete ${ids.length} ad${ids.length > 1 ? "s" : ""}? This cannot be undone.`)) {
+        onBulkDelete?.(ids);
+      }
     }
+    clearSelection();
   };
 
   const nextStages = useMemo(() => {
@@ -295,6 +286,8 @@ export default function PipelineView({
                   <option value="All">All Types</option>
                   <option value="New Concept">New Concept</option>
                   <option value="Iteration">Iteration</option>
+                  <option value="Ideation">Ideation</option>
+                  <option value="Imitation">Imitation</option>
                 </select>
               </div>
             </div>
@@ -315,7 +308,7 @@ export default function PipelineView({
         {activeStage === "Killed" && (
           <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <span className="text-xl">💀</span>
-            <p className="text-sm font-bold text-rose-600">Killed ads are permanently deleted after 30 days. Select ads and click Delete to remove them early.</p>
+            <p className="text-sm font-bold text-rose-600">Killed ads are permanently deleted after 30 days.</p>
           </div>
         )}
 
@@ -335,7 +328,6 @@ export default function PipelineView({
                 Clear
               </button>
             )}
-      
           </div>
         )}
 
@@ -360,22 +352,24 @@ export default function PipelineView({
             {filteredAds.map(ad => {
               const daysInStage = Math.floor((new Date().getTime() - new Date(ad.stage_updated_at || ad.created_at).getTime()) / (1000 * 3600 * 24));
               const testingDaysLeft = getDaysLeftInTesting(ad.live_date);
-              const isTestingLocked = ad.status === "Testing" && testingDaysLeft > 0;
               const isStale = daysInStage >= 5 && !["Testing", "Completed", "Killed"].includes(ad.status);
-              const clickable = canClickAd(ad);
               const overdue = isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status);
               const dueDate = formatDueDate(ad.due_date);
               const isSelected = selectedIds.has(ad.id);
               const daysUntilDeletion = ad.status === "Killed" ? getDaysUntilDeletion(ad.killed_at) : null;
+              const myTask = isMyAd(ad, currentRole, currentUser);
+              const session = activeSessions?.[ad.id];
 
               return (
                 <div
                   key={ad.id}
-                  className={`p-6 rounded-[24px] border-2 shadow-sm transition-all relative overflow-hidden ${
+                  onClick={() => { if (!isSelected) setSelectedAd(ad); }}
+                  className={`p-6 rounded-[24px] border-2 shadow-sm transition-all relative overflow-hidden cursor-pointer hover:scale-[1.01] hover:shadow-lg ${
                     isSelected ? "border-indigo-400 ring-2 ring-indigo-200" :
+                    session ? "border-indigo-300 bg-indigo-50/20" :
                     overdue ? "border-rose-300 bg-rose-50/30" :
                     getCardColor(ad.status)
-                  } ${clickable ? "cursor-pointer hover:scale-[1.01] hover:shadow-lg" : "cursor-default opacity-75"}`}
+                  }`}
                 >
                   {isFounder && (
                     <div
@@ -389,12 +383,6 @@ export default function PipelineView({
                         className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
                         onClick={e => e.stopPropagation()}
                       />
-                    </div>
-                  )}
-
-                  {!clickable && (
-                    <div className="absolute top-2 left-8 text-[8px] font-black uppercase px-2 py-0.5 bg-slate-200 text-slate-500 rounded-full tracking-widest">
-                      Read Only
                     </div>
                   )}
 
@@ -416,10 +404,7 @@ export default function PipelineView({
                     {ad.priority}
                   </div>
 
-                  <div
-                    onClick={() => clickable && !isSelected && setSelectedAd(ad)}
-                    className="w-full"
-                  >
+                  <div className="w-full">
                     <p className={`font-black text-lg mb-3 text-slate-800 leading-snug ${overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
                       {ad.concept_name}
                     </p>
@@ -473,7 +458,7 @@ export default function PipelineView({
                     )}
 
                     {ad.review_link && (
-                      <div className="mt-2">
+                      <div className="mt-2 mb-2">
                         <a
                           href={ad.review_link}
                           target="_blank"
@@ -485,6 +470,20 @@ export default function PipelineView({
                         </a>
                       </div>
                     )}
+
+                    {/* Bottom row */}
+                    <div className="mt-4 pt-3 border-t border-slate-900/5 flex items-center justify-between">
+                      <span className={`text-[10px] font-bold uppercase ${isStale ? "text-rose-600 font-black" : "text-slate-400"}`}>
+                        ⏱️ {daysInStage}d in stage
+                      </span>
+                      {myTask && session && formatTimer && (
+                        <div className="flex items-center gap-1.5 bg-indigo-600 text-white px-2.5 py-1 rounded-lg">
+                          <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                          <span className="text-[9px] font-black uppercase tracking-widest">Active</span>
+                          <span className="font-black text-xs font-mono">{formatTimer(session.elapsedSeconds)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -492,7 +491,7 @@ export default function PipelineView({
           </div>
         )}
 
-        {/* Bulk Actions Bar — not shown on Killed tab (delete button is inline above) */}
+        {/* Bulk Actions Bar — Founder only */}
         {isFounder && selectedIds.size > 0 && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-4 z-50 border border-slate-700">
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">
@@ -500,17 +499,17 @@ export default function PipelineView({
             </span>
             <div className="w-px h-5 bg-slate-700" />
             <select
-  value={bulkAction}
-  onChange={e => setBulkAction(e.target.value)}
-  className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400"
->
-  <option value="">Choose action...</option>
-  <option value="reassign">Reassign Editor</option>
-  <option value="priority">Set Priority</option>
-  <option value="move">Move Stage</option>
-  <option value="kill">Kill Ads</option>
-  <option value="delete">Delete Permanently</option>
-</select>
+              value={bulkAction}
+              onChange={e => setBulkAction(e.target.value)}
+              className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400"
+            >
+              <option value="">Choose action...</option>
+              <option value="reassign">Reassign Editor</option>
+              <option value="priority">Set Priority</option>
+              <option value="move">Move Stage</option>
+              <option value="kill">Kill Ads</option>
+              <option value="delete">Delete Permanently</option>
+            </select>
             {bulkAction === "reassign" && (
               <select value={bulkEditor} onChange={e => setBulkEditor(e.target.value)} className="bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-400">
                 <option value="">Select editor...</option>
