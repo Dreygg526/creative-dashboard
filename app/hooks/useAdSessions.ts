@@ -37,8 +37,14 @@ function removeStoredSession(adId: string) {
 // The single source of truth for whether a user should have a timer on an ad
 export function isDesignatedTask(ad: Ad, userRole: string, userName: string): boolean {
   if (userRole === "Founder") return false;
-  if (userRole === "Strategist") return ad.assigned_copywriter === userName;
-  if (userRole === "Editor" || userRole === "Graphic Designer") return ad.assigned_editor === userName;
+  if (userRole === "Strategist") {
+    return ad.assigned_copywriter === userName &&
+      ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Ad Revision", "Testing"].includes(ad.status);
+  }
+  if (userRole === "Editor" || userRole === "Graphic Designer") {
+    return ad.assigned_editor === userName &&
+      ["Editor Assigned", "In Progress", "Ad Revision", "Content Revision Required"].includes(ad.status);
+  }
   if (userRole === "VA") return ad.status === "Pending Upload";
   if (userRole === "Content Coordinator") return ["Preparing Content", "Content Revision Required"].includes(ad.status);
   return false;
