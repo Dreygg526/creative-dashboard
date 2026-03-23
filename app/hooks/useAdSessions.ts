@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Ad } from "../types";
 
 export interface AdSession {
   id?: string;
@@ -13,7 +14,7 @@ export interface AdSession {
 
 const STORAGE_KEY = "creative_ops_active_sessions";
 
-function getStoredSessions(): Record<string, { sessionId: string; startedAt: string; elapsedSeconds: number }> {
+function getStoredSessions(): Record<string, { sessionId: string; startedAt: string }> {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
   } catch {
@@ -21,9 +22,9 @@ function getStoredSessions(): Record<string, { sessionId: string; startedAt: str
   }
 }
 
-function storeSession(adId: string, sessionId: string, startedAt: string, elapsedSeconds: number) {
+function storeSession(adId: string, sessionId: string, startedAt: string) {
   const current = getStoredSessions();
-  current[adId] = { sessionId, startedAt, elapsedSeconds };
+  current[adId] = { sessionId, startedAt };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
 }
 
@@ -33,33 +34,50 @@ function removeStoredSession(adId: string) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
 }
 
+// The single source of truth for whether a user should have a timer on an ad
+export function isDesignatedTask(ad: Ad, userRole: string, userName: string): boolean {
+  if (userRole === "Founder") return false;
+  if (userRole === "Strategist") return ad.assigned_copywriter === userName;
+  if (userRole === "Editor" || userRole === "Graphic Designer") return ad.assigned_editor === userName;
+  if (userRole === "VA") return ad.status === "Pending Upload";
+  if (userRole === "Content Coordinator") return ["Preparing Content", "Content Revision Required"].includes(ad.status);
+  return false;
+}
+
+export function formatTimer(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 export function useAdSessions(supabase: any, userName: string, userRole: string) {
   const [activeSessions, setActiveSessions] = useState<Record<string, { sessionId: string; elapsedSeconds: number; startedAt: string }>>({});
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load stored sessions on mount
+  // On mount — restore any sessions from localStorage
   useEffect(() => {
     const stored = getStoredSessions();
     if (Object.keys(stored).length > 0) {
       const restored: Record<string, { sessionId: string; elapsedSeconds: number; startedAt: string }> = {};
       Object.entries(stored).forEach(([adId, data]) => {
-        // Calculate elapsed time since last stored
-        const secondsSinceStored = Math.floor((Date.now() - new Date(data.startedAt).getTime()) / 1000);
+        const elapsedSeconds = Math.floor((Date.now() - new Date(data.startedAt).getTime()) / 1000);
         restored[adId] = {
           sessionId: data.sessionId,
           startedAt: data.startedAt,
-          elapsedSeconds: secondsSinceStored,
+          elapsedSeconds,
         };
       });
       setActiveSessions(restored);
     }
   }, []);
 
-  // Tick every second for all active sessions
+  // Tick every second
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       setActiveSessions(prev => {
+        if (Object.keys(prev).length === 0) return prev;
         const updated = { ...prev };
         Object.keys(updated).forEach(adId => {
           updated[adId] = {
@@ -75,30 +93,39 @@ export function useAdSessions(supabase: any, userName: string, userRole: string)
     };
   }, []);
 
-  const startSession = useCallback(async (adId: string) => {
-    if (!supabase || activeSessions[adId]) return;
+  // ad is passed in so we can verify it's a designated task before starting
+  const startSession = useCallback(async (ad: Ad) => {
+    if (!supabase || !userName || !ad) return;
+
+    // Hard gate — only start if this is their designated task
+    if (!isDesignatedTask(ad, userRole, userName)) return;
+
+    // Don't start if already running
+    if (activeSessions[ad.id]) return;
 
     const startedAt = new Date().toISOString();
 
-    // Insert into Supabase
-    const { data, error } = await supabase.from("ad_sessions").insert([{
-      ad_id: adId,
-      user_name: userName,
-      user_role: userRole,
-      started_at: startedAt,
-      is_active: true,
-    }]).select().single();
+    const { data, error } = await supabase
+      .from("ad_sessions")
+      .insert([{
+        ad_id: ad.id,
+        user_name: userName,
+        user_role: userRole,
+        started_at: startedAt,
+        is_active: true,
+      }])
+      .select()
+      .single();
 
     if (error || !data) {
       console.error("Session start error:", error);
       return;
     }
 
-    const sessionId = data.id;
-    storeSession(adId, sessionId, startedAt, 0);
+    storeSession(ad.id, data.id, startedAt);
     setActiveSessions(prev => ({
       ...prev,
-      [adId]: { sessionId, startedAt, elapsedSeconds: 0 }
+      [ad.id]: { sessionId: data.id, startedAt, elapsedSeconds: 0 }
     }));
   }, [supabase, userName, userRole, activeSessions]);
 
@@ -110,11 +137,14 @@ export function useAdSessions(supabase: any, userName: string, userRole: string)
     const finishedAt = new Date().toISOString();
     const totalSeconds = session.elapsedSeconds;
 
-    await supabase.from("ad_sessions").update({
-      finished_at: finishedAt,
-      total_seconds: totalSeconds,
-      is_active: false,
-    }).eq("id", session.sessionId);
+    await supabase
+      .from("ad_sessions")
+      .update({
+        finished_at: finishedAt,
+        total_seconds: totalSeconds,
+        is_active: false,
+      })
+      .eq("id", session.sessionId);
 
     removeStoredSession(adId);
     setActiveSessions(prev => {
@@ -124,11 +154,14 @@ export function useAdSessions(supabase: any, userName: string, userRole: string)
     });
   }, [supabase, activeSessions]);
 
-  const getSessionForAd = useCallback((adId: string) => {
-  const session = activeSessions[adId];
-  if (!session) return null;
-  return session;
-}, [activeSessions]);
+  // Only returns session if it's a designated task
+  const getSessionForAd = useCallback((adId: string, ad?: Ad) => {
+    const session = activeSessions[adId];
+    if (!session) return null;
+    // If ad is passed, verify it's still a designated task
+    if (ad && !isDesignatedTask(ad, userRole, userName)) return null;
+    return session;
+  }, [activeSessions, userRole, userName]);
 
   const fetchSessionsForAd = useCallback(async (adId: string): Promise<AdSession[]> => {
     if (!supabase) return [];
@@ -157,11 +190,4 @@ export function useAdSessions(supabase: any, userName: string, userRole: string)
     fetchSessionsForAd,
     fetchAllSessions,
   };
-}
-
-export function formatTimer(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }

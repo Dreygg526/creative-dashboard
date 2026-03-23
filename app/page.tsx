@@ -274,16 +274,7 @@ export default function App() {
   // Unified select ad handler — starts session automatically
   const handleSelectAd = (ad: any) => {
   setSelectedAd(ad);
-  if (!ad || isFounder) return;
-
-  // Only start timer if this is their designated task
-  const shouldStart =
-    (currentRole === "Editor" || currentRole === "Graphic Designer") && ad.assigned_editor === currentUser ||
-    currentRole === "Strategist" && ad.assigned_copywriter === currentUser ||
-    currentRole === "VA" && ad.status === "Pending Upload" ||
-    currentRole === "Content Coordinator" && ["Preparing Content", "Content Revision Required"].includes(ad.status);
-
-  if (shouldStart) startSession(ad.id);
+  if (ad) startSession(ad); // hook now handles all the checking internally
 };
 
   const navItems: ViewMode[] = isFounder
@@ -644,15 +635,7 @@ export default function App() {
           allEditors={allEditors}
           allStrategists={allStrategists}
           supabase={supabase}
-          activeSession={(() => {
-  if (!selectedAd || isFounder) return null;
-  const shouldShow =
-    (currentRole === "Editor" || currentRole === "Graphic Designer") && selectedAd.assigned_editor === currentUser ||
-    currentRole === "Strategist" && selectedAd.assigned_copywriter === currentUser ||
-    currentRole === "VA" && selectedAd.status === "Pending Upload" ||
-    currentRole === "Content Coordinator" && ["Preparing Content", "Content Revision Required"].includes(selectedAd.status);
-  return shouldShow ? getSessionForAd(selectedAd.id) : null;
-})()}
+          activeSession={getSessionForAd(selectedAd.id, selectedAd)}
           onFinishSession={async () => {
   await finishSession(selectedAd.id);
   // Notify Founder
