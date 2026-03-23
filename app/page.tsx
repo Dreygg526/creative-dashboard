@@ -274,7 +274,16 @@ export default function App() {
   // Unified select ad handler — starts session automatically
   const handleSelectAd = (ad: any) => {
   setSelectedAd(ad);
-  if (ad && !isFounder) startSession(ad.id);
+  if (!ad || isFounder) return;
+
+  // Only start timer if this is their designated task
+  const shouldStart =
+    (currentRole === "Editor" || currentRole === "Graphic Designer") && ad.assigned_editor === currentUser ||
+    currentRole === "Strategist" && ad.assigned_copywriter === currentUser ||
+    currentRole === "VA" && ad.status === "Pending Upload" ||
+    currentRole === "Content Coordinator" && ["Preparing Content", "Content Revision Required"].includes(ad.status);
+
+  if (shouldStart) startSession(ad.id);
 };
 
   const navItems: ViewMode[] = isFounder
