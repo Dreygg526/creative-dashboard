@@ -1,5 +1,10 @@
 import { NewAdForm } from "../../types";
 
+interface EditorProfile {
+  full_name: string;
+  role: string;
+}
+
 interface Props {
   newAd: NewAdForm;
   setNewAd: (v: NewAdForm) => void;
@@ -9,14 +14,16 @@ interface Props {
   copywriters: string[];
   currentRole?: string;
   currentUser?: string;
+  allEditorProfiles?: EditorProfile[];
 }
 
-export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors, currentRole, currentUser }: Props) {
+export default function NewAdModal({
+  newAd, setNewAd, onSubmit, onClose,
+  editors, currentRole, currentUser, allEditorProfiles = []
+}: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
   const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
-  const isVA = currentRole === "VA";
-  const isContentCoord = currentRole === "Content Coordinator";
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 md:p-4">
@@ -108,32 +115,56 @@ export default function NewAdModal({ newAd, setNewAd, onSubmit, onClose, editors
               />
             </div>
 
-            {/* Editor — show for Founder, auto-filled and locked for Editor */}
-            {(isFounder || isStrategist || isEditor) && (
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">
-                  Editor <span className="text-slate-300 normal-case font-medium">(optional)</span>
-                </label>
-                {isEditor ? (
-                  <input
-                    disabled
-                    className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm bg-slate-100 font-bold text-slate-400 cursor-not-allowed"
-                    value={currentUser || ""}
-                  />
-                ) : (
-                  <select
-                    className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold text-slate-900"
-                    value={newAd.assigned_editor}
-                    onChange={e => setNewAd({ ...newAd, assigned_editor: e.target.value })}
-                  >
-                    <option value="">— Select Editor —</option>
-                    {editors.map(name => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            )}
+            {/* Editor — auto-filled and locked for Editor/Graphic Designer, dropdown for Founder */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">
+                Editor <span className="text-slate-300 normal-case font-medium">(optional)</span>
+              </label>
+              {isEditor ? (
+                <input
+                  disabled
+                  className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm bg-slate-100 font-bold text-slate-400 cursor-not-allowed"
+                  value={`${currentUser || ""} (${currentRole})`}
+                />
+              ) : isFounder ? (
+                <select
+                  className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold text-slate-900"
+                  value={newAd.assigned_editor}
+                  onChange={e => setNewAd({ ...newAd, assigned_editor: e.target.value })}
+                >
+                  <option value="">— Select Editor —</option>
+                  {allEditorProfiles.length > 0
+                    ? allEditorProfiles.map(p => (
+                        <option key={p.full_name} value={p.full_name}>
+                          {p.full_name} ({p.role})
+                        </option>
+                      ))
+                    : editors.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))
+                  }
+                </select>
+              ) : (
+                // Strategist, VA, Content Coord — show simple dropdown
+                <select
+                  className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none bg-slate-50 font-bold text-slate-900"
+                  value={newAd.assigned_editor}
+                  onChange={e => setNewAd({ ...newAd, assigned_editor: e.target.value })}
+                >
+                  <option value="">— Select Editor —</option>
+                  {allEditorProfiles.length > 0
+                    ? allEditorProfiles.map(p => (
+                        <option key={p.full_name} value={p.full_name}>
+                          {p.full_name} ({p.role})
+                        </option>
+                      ))
+                    : editors.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))
+                  }
+                </select>
+              )}
+            </div>
 
             {/* Due Date */}
             <div>

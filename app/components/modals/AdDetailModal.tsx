@@ -4,6 +4,11 @@ import { ALLOWED_TRANSITIONS } from "../../constants";
 import { getPriorityBadge, getDaysLeftInTesting } from "../../utils/helpers";
 import { useComments } from "../../hooks/useComments";
 
+interface EditorProfile {
+  full_name: string;
+  role: string;
+}
+
 interface Props {
   selectedAd: Ad;
   ads: Ad[];
@@ -15,6 +20,7 @@ interface Props {
   currentRole: string;
   currentUser: string;
   allEditors?: string[];
+  allEditorProfiles?: EditorProfile[];
   allStrategists?: string[];
   supabase: any;
   activeSession?: { sessionId: string; elapsedSeconds: number; startedAt: string } | null;
@@ -44,7 +50,6 @@ function fmtDuration(seconds: number) {
   return `${s}s`;
 }
 
-// Check if this user is actually allowed to modify this ad
 function canUserModify(ad: Ad, originalStatus: string, currentRole: string, currentUser: string): { allowed: boolean; reason: string } {
   if (currentRole === "Founder") return { allowed: true, reason: "" };
   if (currentRole === "Strategist") {
@@ -69,17 +74,11 @@ function canUserModify(ad: Ad, originalStatus: string, currentRole: string, curr
 }
 
 function CommentsSection({ adId, adName, assignedEditor, assignedCopywriter, currentUser, currentRole, supabase }: {
-  adId: string;
-  adName: string;
-  assignedEditor: string;
-  assignedCopywriter: string;
-  currentUser: string;
-  currentRole: string;
-  supabase: any;
+  adId: string; adName: string; assignedEditor: string; assignedCopywriter: string;
+  currentUser: string; currentRole: string; supabase: any;
 }) {
   const { comments, fetchComments, newComment, setNewComment, isSubmitting, submitComment, deleteComment } = useComments(supabase, currentUser);
   const isFounder = currentRole === "Founder";
-
   useEffect(() => { fetchComments(adId); }, [adId]);
 
   return (
@@ -93,13 +92,9 @@ function CommentsSection({ adId, adName, assignedEditor, assignedCopywriter, cur
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-[9px]">
-                      {comment.posted_by?.charAt(0)?.toUpperCase()}
-                    </div>
+                    <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-[9px]">{comment.posted_by?.charAt(0)?.toUpperCase()}</div>
                     <span className="text-[10px] font-black text-slate-700">{comment.posted_by}</span>
-                    <span className="text-[9px] text-slate-400">
-                      {new Date(comment.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} at {new Date(comment.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
+                    <span className="text-[9px] text-slate-400">{new Date(comment.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} at {new Date(comment.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   </div>
                   <p className="text-[12px] text-slate-700 font-medium leading-snug pl-7">{comment.message}</p>
                 </div>
@@ -112,35 +107,16 @@ function CommentsSection({ adId, adName, assignedEditor, assignedCopywriter, cur
         )}
       </div>
       <div className="flex gap-2">
-        <input
-          type="text"
-          placeholder="Add a comment..."
-          className="flex-1 border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-medium outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 text-slate-900"
-          value={newComment}
-          onChange={e => setNewComment(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(adId, adName, assignedEditor, assignedCopywriter); } }}
-        />
-        <button
-          onClick={() => submitComment(adId, adName, assignedEditor, assignedCopywriter)}
-          disabled={isSubmitting || !newComment.trim()}
-          className="bg-indigo-600 text-white px-4 py-3 rounded-2xl font-black text-xs hover:bg-indigo-700 transition-all disabled:opacity-40 shrink-0"
-        >
-          {isSubmitting ? "..." : "Post"}
-        </button>
+        <input type="text" placeholder="Add a comment..." className="flex-1 border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-medium outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 text-slate-900" value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(adId, adName, assignedEditor, assignedCopywriter); } }} />
+        <button onClick={() => submitComment(adId, adName, assignedEditor, assignedCopywriter)} disabled={isSubmitting || !newComment.trim()} className="bg-indigo-600 text-white px-4 py-3 rounded-2xl font-black text-xs hover:bg-indigo-700 transition-all disabled:opacity-40 shrink-0">{isSubmitting ? "..." : "Post"}</button>
       </div>
     </div>
   );
 }
 
-function MonitoringTab({ adId, fetchSessionsForAd }: {
-  adId: string;
-  fetchSessionsForAd?: (adId: string) => Promise<any[]>;
-}) {
+function MonitoringTab({ adId, fetchSessionsForAd }: { adId: string; fetchSessionsForAd?: (adId: string) => Promise<any[]>; }) {
   const [sessions, setSessions] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (fetchSessionsForAd) fetchSessionsForAd(adId).then(setSessions);
-  }, [adId]);
+  useEffect(() => { if (fetchSessionsForAd) fetchSessionsForAd(adId).then(setSessions); }, [adId]);
 
   const summary: Record<string, { sessions: number; totalSeconds: number; lastSeen: string }> = {};
   sessions.forEach(s => {
@@ -191,16 +167,12 @@ function MonitoringTab({ adId, fetchSessionsForAd }: {
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
                   <span className="text-[9px] text-slate-400">{new Date(s.started_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${s.is_active ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"}`}>
-                    {s.is_active ? "Active" : fmtDuration(s.total_seconds)}
-                  </span>
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${s.is_active ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"}`}>{s.is_active ? "Active" : fmtDuration(s.total_seconds)}</span>
                 </div>
                 {s.finished_at && (
                   <div className="mt-1 flex items-center gap-1.5">
                     <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Finished Time:</span>
-                    <span className="text-[9px] font-black text-emerald-600">
-                      {new Date(s.finished_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(s.finished_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
+                    <span className="text-[9px] font-black text-emerald-600">{new Date(s.finished_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(s.finished_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   </div>
                 )}
               </div>
@@ -212,15 +184,9 @@ function MonitoringTab({ adId, fetchSessionsForAd }: {
   );
 }
 
-// ── READ ONLY VIEW — for users browsing ads not assigned to them ──
 function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser, currentRole, supabase, reason }: {
-  selectedAd: Ad;
-  setSelectedAd: (ad: Ad | null) => void;
-  setManualLogNote: (v: string) => void;
-  currentUser: string;
-  currentRole: string;
-  supabase: any;
-  reason: string;
+  selectedAd: Ad; setSelectedAd: (ad: Ad | null) => void; setManualLogNote: (v: string) => void;
+  currentUser: string; currentRole: string; supabase: any; reason: string;
 }) {
   let activityLog: TimeLogEntry[] = [];
   try { activityLog = JSON.parse(selectedAd.time_log || "[]"); } catch { activityLog = []; }
@@ -235,13 +201,9 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
               <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
               <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${getPriorityBadge(selectedAd.priority)}`}>{selectedAd.priority} Priority</span>
             </div>
-
-            {/* Forbidden banner */}
             <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 mb-4">
               <p className="text-[11px] font-black text-rose-700 leading-relaxed">{reason}</p>
             </div>
-
-            {/* Read only info */}
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 rounded-xl p-3">
@@ -274,9 +236,7 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
                 )}
               </div>
               {selectedAd.review_link && (
-                <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="block text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors uppercase tracking-widest">
-                  View Review File ↗
-                </a>
+                <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="block text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors uppercase tracking-widest">View Review File ↗</a>
               )}
               {selectedAd.notes && (
                 <div className="bg-slate-50 rounded-xl p-3">
@@ -285,34 +245,15 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
                 </div>
               )}
             </div>
-
-            {/* Comments — everyone can comment */}
             <div className="mt-6">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Comments</p>
-              <CommentsSection
-                adId={selectedAd.id}
-                adName={selectedAd.concept_name}
-                assignedEditor={selectedAd.assigned_editor}
-                assignedCopywriter={selectedAd.assigned_copywriter}
-                currentUser={currentUser}
-                currentRole={currentRole}
-                supabase={supabase}
-              />
+              <CommentsSection adId={selectedAd.id} adName={selectedAd.concept_name} assignedEditor={selectedAd.assigned_editor} assignedCopywriter={selectedAd.assigned_copywriter} currentUser={currentUser} currentRole={currentRole} supabase={supabase} />
             </div>
           </div>
-
           <div className="flex justify-start pt-4 border-t-2 border-slate-100">
-            <button
-              type="button"
-              onClick={() => { setSelectedAd(null); setManualLogNote(""); }}
-              className="text-xs font-black text-slate-400 uppercase tracking-widest px-4 py-2 hover:bg-slate-50 rounded-xl"
-            >
-              Close
-            </button>
+            <button type="button" onClick={() => { setSelectedAd(null); setManualLogNote(""); }} className="text-xs font-black text-slate-400 uppercase tracking-widest px-4 py-2 hover:bg-slate-50 rounded-xl">Close</button>
           </div>
         </div>
-
-        {/* Right panel — activity log */}
         <div className="w-full md:w-72 bg-slate-50 p-6 flex flex-col max-h-full">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Activity Log</h3>
           <div className="flex-1 overflow-y-auto space-y-4">
@@ -335,7 +276,7 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
 export default function AdDetailModal({
   selectedAd, ads, manualLogNote, setManualLogNote,
   setSelectedAd, onUpdate, onDelete,
-  currentRole, currentUser, allEditors = [], allStrategists = [], supabase,
+  currentRole, currentUser, allEditors = [], allEditorProfiles = [], allStrategists = [], supabase,
   activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer
 }: Props) {
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
@@ -353,30 +294,23 @@ export default function AdDetailModal({
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
 
-  // Check permission
   const { allowed, reason } = canUserModify(selectedAd, originalAdStatus, currentRole, currentUser);
 
   const getAllowedTransitions = () => {
     if (isFounder) {
-      return [
-        "Idea", "Writing Brief", "Brief Revision Required", "Brief Approved",
-        "Preparing Content", "Content Revision Required", "Content Ready",
-        "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload",
-        "Testing", "Completed", "Killed"
-      ].filter(s => s !== originalAdStatus);
+      return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Preparing Content", "Content Revision Required", "Content Ready", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Completed", "Killed"].filter(s => s !== originalAdStatus);
     }
+    // Non-founders cannot move to Killed
     const transitions = ALLOWED_TRANSITIONS[originalAdStatus] || [];
-    return transitions.filter(s => !(s === "Ad Revision" && revisionLimitReached));
+    return transitions
+      .filter(s => !(s === "Ad Revision" && revisionLimitReached))
+      .filter(s => s !== "Killed");
   };
 
   const canMoveStage = () => {
-    if (!allowed) return false;
     if (isFounder) return true;
-    if (isStrategist && (selectedAd.assigned_copywriter === currentUser || ["Ad Revision", "Testing"].includes(originalAdStatus))) return true;
-    if (isEditor && selectedAd.assigned_editor === currentUser) return true;
-    if (isVA && originalAdStatus === "Pending Upload") return true;
-    if (isContentCoord && ["Preparing Content", "Content Revision Required"].includes(originalAdStatus)) return true;
-    return false;
+    // Everyone else can move stages as long as it's a valid transition
+    return true;
   };
 
   const canDelete = isFounder;
@@ -389,7 +323,6 @@ export default function AdDetailModal({
 
   const [activeTab, setActiveTab] = useState<"log" | "comments" | "monitoring">("log");
 
-  // Intercept save — block if not allowed
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!allowed) {
@@ -404,25 +337,15 @@ export default function AdDetailModal({
       <div className="bg-indigo-600 rounded-2xl p-4 flex items-center justify-between mb-2">
         <div>
           <p className="text-[9px] font-black text-indigo-200 uppercase tracking-widest mb-1">⏱️ Session Active</p>
-          <p className="text-2xl font-black text-white font-mono tracking-widest">
-            {formatTimer ? formatTimer(activeSession.elapsedSeconds) : "00:00:00"}
-          </p>
-          <p className="text-[9px] text-indigo-300 mt-1">
-            Started {new Date(activeSession.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </p>
+          <p className="text-2xl font-black text-white font-mono tracking-widest">{formatTimer ? formatTimer(activeSession.elapsedSeconds) : "00:00:00"}</p>
+          <p className="text-[9px] text-indigo-300 mt-1">Started {new Date(activeSession.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
         </div>
-        <button
-          type="button"
-          onClick={onFinishSession}
-          className="bg-white text-indigo-600 font-black text-xs uppercase tracking-widest px-4 py-3 rounded-xl hover:bg-indigo-50 transition-all shadow-sm"
-        >
-          ✅ Finish
-        </button>
+        <button type="button" onClick={onFinishSession} className="bg-white text-indigo-600 font-black text-xs uppercase tracking-widest px-4 py-3 rounded-xl hover:bg-indigo-50 transition-all shadow-sm">✅ Finish</button>
       </div>
     ) : null
   );
 
-  // ── NON-FOUNDER/STRATEGIST viewing an ad not theirs → Read Only view ──
+  // ── READ ONLY — browsing an ad not assigned to them ──
   if (!isFounder && !isStrategist && !allowed) {
     return (
       <ReadOnlyView
@@ -474,8 +397,7 @@ export default function AdDetailModal({
               )}
               <div>
                 <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">
-                  Move Stage
-                  {revisionLimitReached && <span className="ml-2 text-rose-400 normal-case font-bold">— Ad Revision unavailable after Round 2</span>}
+                  Move Stage {revisionLimitReached && <span className="ml-2 text-rose-400 normal-case font-bold">— Ad Revision unavailable after Round 2</span>}
                 </label>
                 <select
                   disabled={!stageMovable}
@@ -649,14 +571,17 @@ export default function AdDetailModal({
                   <option value="Imitation">Imitation</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Priority</label>
-                <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.priority || "Medium"} onChange={e => setSelectedAd({ ...selectedAd, priority: e.target.value })}>
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-              </div>
+              {/* Priority — Founder only */}
+              {isFounder && (
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Priority</label>
+                  <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.priority || "Medium"} onChange={e => setSelectedAd({ ...selectedAd, priority: e.target.value })}>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -680,7 +605,14 @@ export default function AdDetailModal({
                 {canReassign ? (
                   <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.assigned_editor || ""} onChange={e => setSelectedAd({ ...selectedAd, assigned_editor: e.target.value })}>
                     <option value="">— Unassigned —</option>
-                    {allEditors.map(name => <option key={name} value={name}>{name}</option>)}
+                    {allEditorProfiles.length > 0
+                      ? allEditorProfiles.map(p => (
+                          <option key={p.full_name} value={p.full_name}>{p.full_name} ({p.role})</option>
+                        ))
+                      : allEditors.map(name => (
+                          <option key={name} value={name}>{name}</option>
+                        ))
+                    }
                   </select>
                 ) : (
                   <input disabled className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-100 font-bold text-slate-400 cursor-not-allowed" value={selectedAd.assigned_editor || "Unassigned"} />

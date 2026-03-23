@@ -212,11 +212,17 @@ export default function App() {
   }, [ads]);
 
   const allEditors = useMemo(() => {
-    return allProfiles
-      .filter(p => p.role === "Editor" && p.is_active)
-      .map((p: any) => p.full_name)
-      .sort();
-  }, [allProfiles]);
+  return allProfiles
+    .filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active)
+    .map((p: any) => p.full_name)
+    .sort();
+}, [allProfiles]);
+
+const allEditorProfiles = useMemo(() => {
+  return allProfiles
+    .filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active)
+    .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
+}, [allProfiles]);
 
   const allCopywriters = useMemo(() => {
     return allProfiles
@@ -604,15 +610,16 @@ export default function App() {
       {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
   <NewAdModal
-    newAd={newAd}
-    setNewAd={setNewAd}
-    onSubmit={handleCreateAd}
-    onClose={() => setIsNewAdOpen(false)}
-    editors={allEditors}
-    copywriters={allCopywriters}
-    currentRole={currentRole}
-    currentUser={currentUser}
-  />
+  newAd={newAd}
+  setNewAd={setNewAd}
+  onSubmit={handleCreateAd}
+  onClose={() => setIsNewAdOpen(false)}
+  editors={allEditors}
+  copywriters={allCopywriters}
+  currentRole={currentRole}
+  currentUser={currentUser}
+  allEditorProfiles={allEditorProfiles}
+/>
 )}
       {ideaToPromote && (
         <PromoteIdeaModal
@@ -623,20 +630,21 @@ export default function App() {
       )}
       {selectedAd && (
         <AdDetailModal
-          selectedAd={selectedAd}
-          ads={ads}
-          manualLogNote={manualLogNote}
-          setManualLogNote={setManualLogNote}
-          setSelectedAd={setSelectedAd}
-          onUpdate={handleUpdateAd}
-          onDelete={handleDeleteAd}
-          currentRole={currentRole}
-          currentUser={currentUser}
-          allEditors={allEditors}
-          allStrategists={allStrategists}
-          supabase={supabase}
-          activeSession={getSessionForAd(selectedAd.id, selectedAd)}
-          onFinishSession={async () => {
+  selectedAd={selectedAd}
+  ads={ads}
+  manualLogNote={manualLogNote}
+  setManualLogNote={setManualLogNote}
+  setSelectedAd={setSelectedAd}
+  onUpdate={handleUpdateAd}
+  onDelete={handleDeleteAd}
+  currentRole={currentRole}
+  currentUser={currentUser}
+  allEditors={allEditors}
+  allEditorProfiles={allEditorProfiles}
+  allStrategists={allStrategists}
+  supabase={supabase}
+  activeSession={getSessionForAd(selectedAd.id, selectedAd)}
+  onFinishSession={async () => {
   await finishSession(selectedAd.id);
   // Notify Founder
   const { data: founders } = await supabase
