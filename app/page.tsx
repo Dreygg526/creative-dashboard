@@ -644,7 +644,15 @@ export default function App() {
           allEditors={allEditors}
           allStrategists={allStrategists}
           supabase={supabase}
-          activeSession={getSessionForAd(selectedAd.id)}
+          activeSession={(() => {
+  if (!selectedAd || isFounder) return null;
+  const shouldShow =
+    (currentRole === "Editor" || currentRole === "Graphic Designer") && selectedAd.assigned_editor === currentUser ||
+    currentRole === "Strategist" && selectedAd.assigned_copywriter === currentUser ||
+    currentRole === "VA" && selectedAd.status === "Pending Upload" ||
+    currentRole === "Content Coordinator" && ["Preparing Content", "Content Revision Required"].includes(selectedAd.status);
+  return shouldShow ? getSessionForAd(selectedAd.id) : null;
+})()}
           onFinishSession={async () => {
   await finishSession(selectedAd.id);
   // Notify Founder

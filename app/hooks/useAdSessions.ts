@@ -125,8 +125,10 @@ export function useAdSessions(supabase: any, userName: string, userRole: string)
   }, [supabase, activeSessions]);
 
   const getSessionForAd = useCallback((adId: string) => {
-    return activeSessions[adId] || null;
-  }, [activeSessions]);
+  const session = activeSessions[adId];
+  if (!session) return null;
+  return session;
+}, [activeSessions]);
 
   const fetchSessionsForAd = useCallback(async (adId: string): Promise<AdSession[]> => {
     if (!supabase) return [];
