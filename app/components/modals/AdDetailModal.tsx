@@ -15,6 +15,7 @@ interface Props {
   currentRole: string;
   currentUser: string;
   allEditors?: string[];
+  allStrategists?: string[];
   supabase: any;
   activeSession?: { sessionId: string; elapsedSeconds: number; startedAt: string } | null;
   onFinishSession?: () => void;
@@ -153,7 +154,6 @@ function MonitoringTab({ adId, fetchSessionsForAd }: {
         </div>
       ) : (
         <>
-          {/* Summary per person */}
           <div className="mb-4">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Summary</p>
             <div className="space-y-2">
@@ -179,7 +179,6 @@ function MonitoringTab({ adId, fetchSessionsForAd }: {
             </div>
           </div>
 
-          {/* Session log */}
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Session Log</p>
           <div className="space-y-2">
             {sessions.map((s, idx) => (
@@ -193,20 +192,18 @@ function MonitoringTab({ adId, fetchSessionsForAd }: {
                   <span className="text-[9px] text-slate-400">
                     {new Date(s.started_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
-                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
-                    s.is_active ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"
-                  }`}>
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${s.is_active ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"}`}>
                     {s.is_active ? "Active" : fmtDuration(s.total_seconds)}
                   </span>
                 </div>
                 {s.finished_at && (
-  <div className="mt-1 flex items-center gap-1.5">
-    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Finished Time:</span>
-    <span className="text-[9px] font-black text-emerald-600">
-      {new Date(s.finished_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(s.finished_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-    </span>
-  </div>
-)}
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Finished Time:</span>
+                    <span className="text-[9px] font-black text-emerald-600">
+                      {new Date(s.finished_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(s.finished_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -219,7 +216,7 @@ function MonitoringTab({ adId, fetchSessionsForAd }: {
 export default function AdDetailModal({
   selectedAd, ads, manualLogNote, setManualLogNote,
   setSelectedAd, onUpdate, onDelete,
-  currentRole, currentUser, allEditors = [], supabase,
+  currentRole, currentUser, allEditors = [], allStrategists = [], supabase,
   activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer
 }: Props) {
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
@@ -269,7 +266,6 @@ export default function AdDetailModal({
 
   const [activeTab, setActiveTab] = useState<"log" | "comments" | "monitoring">("log");
 
-  // ── TIMER BLOCK (reusable) ──
   const TimerBlock = () => (
     activeSession ? (
       <div className="bg-indigo-600 rounded-2xl p-4 flex items-center justify-between mb-2">
@@ -483,6 +479,7 @@ export default function AdDetailModal({
               </div>
             )}
 
+            {/* Stage + Content Source */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Move Stage</label>
@@ -499,6 +496,7 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Ad Type + Priority */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Type</label>
@@ -519,7 +517,21 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Strategist + Editor */}
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                  Strategist {!canReassign && <span className="text-slate-300 normal-case">(locked)</span>}
+                </label>
+                {canReassign ? (
+                  <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.assigned_copywriter || ""} onChange={e => setSelectedAd({ ...selectedAd, assigned_copywriter: e.target.value })}>
+                    <option value="">— Unassigned —</option>
+                    {allStrategists.map(name => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                ) : (
+                  <input disabled className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-100 font-bold text-slate-400 cursor-not-allowed" value={selectedAd.assigned_copywriter || "Unassigned"} />
+                )}
+              </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                   Editor {!canReassign && <span className="text-slate-300 normal-case">(locked)</span>}
@@ -533,7 +545,11 @@ export default function AdDetailModal({
                   <input disabled className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-100 font-bold text-slate-400 cursor-not-allowed" value={selectedAd.assigned_editor || "Unassigned"} />
                 )}
               </div>
-              {showResult && (
+            </div>
+
+            {/* Result — only for Testing/Completed */}
+            {showResult && (
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Result</label>
                   <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.result || ""} onChange={e => setSelectedAd({ ...selectedAd, result: e.target.value })}>
@@ -541,9 +557,10 @@ export default function AdDetailModal({
                     <option>Winner</option><option>Loser</option><option>Inconclusive</option>
                   </select>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
+            {/* Ad Spend + Review Link */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Spend ($)</label>
@@ -555,6 +572,7 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Due Date + Notes */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Due Date</label>
@@ -567,6 +585,7 @@ export default function AdDetailModal({
               </div>
             </div>
 
+            {/* Internal Note */}
             <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
               <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Internal Note (Appends to Log)</label>
               <textarea rows={2} className="w-full border-2 border-white p-3 rounded-xl text-sm outline-none focus:border-indigo-400 bg-white font-medium shadow-sm" placeholder="Explain action taken..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />
@@ -592,10 +611,10 @@ export default function AdDetailModal({
               Comments
             </button>
             {isFounder && (
-  <button onClick={() => setActiveTab("monitoring")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "monitoring" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>
-    Time Session
-  </button>
-)}
+              <button onClick={() => setActiveTab("monitoring")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "monitoring" ? "bg-white shadow-sm text-indigo-600" : "text-slate-400"}`}>
+                Time Session
+              </button>
+            )}
           </div>
 
           {activeTab === "log" && (

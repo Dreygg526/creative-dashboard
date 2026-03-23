@@ -631,6 +631,7 @@ export default function App() {
           currentRole={currentRole}
           currentUser={currentUser}
           allEditors={allEditors}
+          allStrategists={allStrategists}
           supabase={supabase}
           activeSession={getSessionForAd(selectedAd.id)}
           onFinishSession={async () => {
