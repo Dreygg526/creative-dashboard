@@ -325,18 +325,29 @@ const allEditorProfiles = useMemo(() => {
                 <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
               </div>
 
-              {/* Active session indicator in nav */}
               {Object.keys(activeSessions).length > 0 && (
-                <div className="hidden lg:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
-                    {Object.keys(activeSessions).length} Active Session{Object.keys(activeSessions).length > 1 ? "s" : ""}
-                  </span>
-                  <span className="text-[11px] font-black text-indigo-800 font-mono">
-                    {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
-                  </span>
-                </div>
-              )}
+  <div className="hidden lg:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl">
+    <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+      {Object.keys(activeSessions).length} Active Session{Object.keys(activeSessions).length > 1 ? "s" : ""}
+    </span>
+    <span className="text-[11px] font-black text-indigo-800 font-mono">
+      {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
+    </span>
+    <button
+      onClick={async () => {
+        if (confirm("Clear all active sessions?")) {
+          for (const adId of Object.keys(activeSessions)) {
+            await finishSession(adId);
+          }
+        }
+      }}
+      className="text-[9px] font-black text-indigo-400 hover:text-rose-500 uppercase tracking-widest ml-1 border-l border-indigo-200 pl-2 transition-colors"
+    >
+      Clear
+    </button>
+  </div>
+)}
 
               <div className="flex items-center gap-3 lg:hidden">
                 <div className="relative">
