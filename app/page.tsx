@@ -54,7 +54,7 @@ export default function App() {
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
   const canManageIdeas = isManager;
-  const canCreateAd = isManager;
+  const canCreateAd = true;
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window === "undefined") return "Dashboard";
@@ -603,15 +603,17 @@ export default function App() {
 
       {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
-        <NewAdModal
-          newAd={newAd}
-          setNewAd={setNewAd}
-          onSubmit={handleCreateAd}
-          onClose={() => setIsNewAdOpen(false)}
-          editors={allEditors}
-          copywriters={allCopywriters}
-        />
-      )}
+  <NewAdModal
+    newAd={newAd}
+    setNewAd={setNewAd}
+    onSubmit={handleCreateAd}
+    onClose={() => setIsNewAdOpen(false)}
+    editors={allEditors}
+    copywriters={allCopywriters}
+    currentRole={currentRole}
+    currentUser={currentUser}
+  />
+)}
       {ideaToPromote && (
         <PromoteIdeaModal
           idea={ideaToPromote}

@@ -16,7 +16,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
   const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
-  const canCreate = isFounder || isStrategist;
   const canDelete = isFounder;
 
   const fetchAds = useCallback(async () => {
@@ -46,21 +45,29 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
   const handleCreateAd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
-    if (!canCreate) {
-      alert("You don't have permission to create ads.");
-      return;
-    }
+
     const initialLog: TimeLogEntry[] = [
       { action: "Concept Logged", user: currentUser, timestamp: new Date().toISOString() }
     ];
+
+    // Auto-assign based on role
+    let autoAssignedEditor = newAd.assigned_editor || "";
+    let autoAssignedCopywriter = newAd.assigned_copywriter || "";
+
+    if (isEditor) autoAssignedEditor = currentUser;
+    if (isStrategist) autoAssignedCopywriter = currentUser;
+
     const { error } = await supabase.from("ads").insert([{
-  ...newAd,
-  status: "Idea",
-  revision_count: 0,
-  stage_updated_at: new Date().toISOString(),
-  time_log: JSON.stringify(initialLog),
-  assigned_copywriter: isStrategist ? currentUser : (newAd.assigned_copywriter || ""),
-}]);
+      ...newAd,
+      status: "Idea",
+      revision_count: 0,
+      priority: isFounder ? (newAd.priority || "Medium") : "Medium",
+      stage_updated_at: new Date().toISOString(),
+      time_log: JSON.stringify(initialLog),
+      assigned_editor: autoAssignedEditor,
+      assigned_copywriter: autoAssignedCopywriter,
+    }]);
+
     if (error) {
       console.error("Create error:", error);
       alert("Failed to create ad: " + error.message);
@@ -89,6 +96,12 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           return;
         }
 
+        // Prevent non-founders from killing ads
+        if (selectedAd.status === "Killed") {
+          alert("⛔ Only the Founder can kill ads.");
+          return;
+        }
+
         // Valid transition check
         const validTransitions = ALLOWED_TRANSITIONS[originalAd.status] || [];
         if (!validTransitions.includes(selectedAd.status)) {
@@ -96,46 +109,10 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           return;
         }
 
-        // Revision limit enforcement — backend guard
+        // Revision limit enforcement
         if (selectedAd.status === "Ad Revision" && (originalAd.revision_count || 0) >= 2) {
           alert("Maximum revision rounds reached. This ad cannot be sent back again.");
           return;
-        }
-
-        // Role-based stage permission checks
-        if (isStrategist) {
-          const strategistStages = ["Ad Revision", "Testing", "Completed", "Killed", "Writing Brief", "Brief Revision Required", "Brief Approved"];
-          if (!strategistStages.includes(selectedAd.status)) {
-            alert("You can only move ads within your assigned stages.");
-            return;
-          }
-        }
-
-        if (isEditor) {
-          if (originalAd.assigned_editor !== currentUser) {
-            alert("You can only move ads assigned to you.");
-            return;
-          }
-          const editorStages = ["In Progress", "Content Revision Required", "Ad Revision", "Pending Upload"];
-          if (!editorStages.includes(selectedAd.status)) {
-            alert("You can only move ads to your assigned stages.");
-            return;
-          }
-        }
-
-        if (isVA) {
-          if (originalAd.status !== "Pending Upload" || selectedAd.status !== "Testing") {
-            alert("You can only move ads from Pending Upload to Testing.");
-            return;
-          }
-        }
-
-        if (isContentCoord) {
-          const coordStages = ["Content Ready", "Content Revision Required"];
-          if (!coordStages.includes(selectedAd.status)) {
-            alert("You can only update content stages.");
-            return;
-          }
         }
       }
 
@@ -160,12 +137,9 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
           if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
 
-          // Set killed_at when ad is killed
           if (selectedAd.status === "Killed") {
             newKilledAt = new Date().toISOString();
           }
-
-          // Clear killed_at if somehow moved back (Founder override)
           if (selectedAd.status !== "Killed") {
             newKilledAt = null;
           }
@@ -212,6 +186,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           ad_spend: selectedAd.ad_spend,
           ad_type: selectedAd.ad_type,
           angle: selectedAd.angle,
+          // Only Founder can reassign strategist/editor
           assigned_copywriter: isFounder ? selectedAd.assigned_copywriter : originalAd.assigned_copywriter,
           assigned_editor: isFounder ? selectedAd.assigned_editor : originalAd.assigned_editor,
           brief_link: selectedAd.brief_link,
@@ -221,6 +196,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           killed_at: newKilledAt,
           live_date: newLiveDate,
           notes: selectedAd.notes,
+          // Only Founder can change priority
           priority: isFounder ? selectedAd.priority : originalAd.priority,
           product: selectedAd.product,
           result: isFounder || isStrategist ? selectedAd.result : originalAd.result,
