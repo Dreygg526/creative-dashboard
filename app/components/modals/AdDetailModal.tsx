@@ -306,9 +306,9 @@ export default function AdDetailModal({
   const { allowed, reason } = canUserModify(selectedAd, originalAdStatus, currentRole, currentUser);
 
   const getAllowedTransitions = () => {
-    if (isFounder) {
-      return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Preparing Content", "Content Revision Required", "Content Ready", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Completed", "Killed"].filter(s => s !== originalAdStatus);
-    }
+   if (isFounder) {
+  return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Completed", "Killed"].filter(s => s !== originalAdStatus);
+}
     const transitions = ALLOWED_TRANSITIONS[originalAdStatus] || [];
     return transitions
       .filter(s => !(s === "Ad Revision" && revisionLimitReached))
