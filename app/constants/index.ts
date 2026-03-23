@@ -1,6 +1,5 @@
 export const STAGES = [
   "Idea", "Writing Brief", "Brief Revision Required", "Brief Approved",
-  "Preparing Content", "Content Revision Required", "Content Ready",
   "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload",
   "Testing", "Completed", "Killed"
 ];
@@ -9,11 +8,8 @@ export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "Idea": ["Writing Brief", "Killed"],
   "Writing Brief": ["Brief Revision Required", "Brief Approved", "Killed"],
   "Brief Revision Required": ["Writing Brief", "Killed"],
-  "Brief Approved": ["Preparing Content", "Killed"],
-  "Preparing Content": ["Content Revision Required", "Content Ready", "Killed"],
-  "Content Revision Required": ["Preparing Content", "Killed"],
-  "Content Ready": ["Editor Assigned", "Killed"],
-  "Editor Assigned": ["In Progress", "Killed"],
+  "Brief Approved": ["Editor Assigned", "Killed"],
+"Editor Assigned": ["In Progress", "Killed"],
   "In Progress": ["Ad Revision", "Pending Upload", "Killed"],
   "Ad Revision": ["In Progress", "Pending Upload", "Killed"],
   "Pending Upload": ["Testing", "Killed"],
