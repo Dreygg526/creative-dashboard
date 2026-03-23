@@ -489,7 +489,7 @@ export default function App() {
     supabase={supabase}
   />
 )}
-        {viewMode === "Pipeline" && (isFounder || isStrategist) && (
+        {viewMode === "Pipeline" && (
           <PipelineView
             ads={ads}
             activeStage={activeStage}
