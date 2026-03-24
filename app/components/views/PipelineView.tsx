@@ -107,11 +107,18 @@ export default function PipelineView({
   const filteredAds = useMemo(() => {
     return ads.filter(ad => {
       if (ad.status !== activeStage) return false;
-      if (search.trim() &&
-        !ad.concept_name.toLowerCase().includes(search.toLowerCase()) &&
-        !(ad.product || "").toLowerCase().includes(search.toLowerCase()) &&
-        !(ad.assigned_editor || "").toLowerCase().includes(search.toLowerCase()) &&
-        !(ad.assigned_copywriter || "").toLowerCase().includes(search.toLowerCase())) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase().replace(/^#/, "");
+        const imprintStr = ad.imprint_number ? String(ad.imprint_number).padStart(4, "0") : "";
+        const imprintMatch = imprintStr.includes(q) || String(ad.imprint_number || "").includes(q);
+        if (
+          !imprintMatch &&
+          !ad.concept_name.toLowerCase().includes(q) &&
+          !(ad.product || "").toLowerCase().includes(q) &&
+          !(ad.assigned_editor || "").toLowerCase().includes(q) &&
+          !(ad.assigned_copywriter || "").toLowerCase().includes(q)
+        ) return false;
+      }
       if (filterEditor !== "All" && ad.assigned_editor !== filterEditor) return false;
       if (filterStrategist !== "All" && ad.assigned_copywriter !== filterStrategist) return false;
       if (filterProduct !== "All" && ad.product !== filterProduct) return false;
@@ -405,7 +412,14 @@ export default function PipelineView({
                   </div>
 
                   <div className="w-full">
-                    <p className={`font-black text-lg mb-3 text-slate-800 leading-snug ${overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
+                    {ad.imprint_number && (
+                      <div className={`inline-flex items-center gap-1 mb-2 ${overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
+                        <span className="text-[9px] font-black text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md tracking-widest uppercase font-mono">
+                          #{String(ad.imprint_number).padStart(4, "0")}
+                        </span>
+                      </div>
+                    )}
+                    <p className={`font-black text-lg mb-3 text-slate-800 leading-snug ${ad.imprint_number ? "" : overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
                       {ad.concept_name}
                     </p>
 

@@ -30,6 +30,7 @@ export interface Ad {
   killed_at?: string;
   time_tracking?: string;
   created_at: string;
+  imprint_number?: number; // ← Digital imprint receipt number
 }
 
 export interface Notification {

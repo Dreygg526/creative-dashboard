@@ -42,6 +42,19 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
     return data?.[0]?.full_name || "";
   };
 
+  // Gets the next imprint number by finding current max and adding 1
+  const getNextImprintNumber = async (): Promise<number> => {
+    const { data, error } = await supabase
+      .from("ads")
+      .select("imprint_number")
+      .order("imprint_number", { ascending: false })
+      .limit(1);
+    if (error || !data || data.length === 0) return 1;
+    const max = data[0]?.imprint_number;
+    if (!max || isNaN(max)) return 1;
+    return max + 1;
+  };
+
   const handleCreateAd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
@@ -57,6 +70,9 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
     if (isEditor) autoAssignedEditor = currentUser;
     if (isStrategist) autoAssignedCopywriter = currentUser;
 
+    // Get next sequential imprint number
+    const imprintNumber = await getNextImprintNumber();
+
     const { error } = await supabase.from("ads").insert([{
       ...newAd,
       status: "Idea",
@@ -66,6 +82,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       time_log: JSON.stringify(initialLog),
       assigned_editor: autoAssignedEditor,
       assigned_copywriter: autoAssignedCopywriter,
+      imprint_number: imprintNumber,
     }]);
 
     if (error) {
@@ -204,6 +221,8 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           revision_count: newRevisionCount,
           stage_updated_at: newStageUpdatedDate,
           time_log: JSON.stringify(updatedTimeLog),
+          // Only Founder can edit imprint number
+          imprint_number: isFounder ? selectedAd.imprint_number : originalAd.imprint_number,
         })
         .eq("id", selectedAd.id)
         .select();

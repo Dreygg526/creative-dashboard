@@ -196,6 +196,13 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
       <div className="bg-white rounded-[32px] w-full max-w-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden max-h-[90vh]">
         <div className="flex-1 p-6 md:p-8 overflow-y-auto border-r border-slate-100">
           <div className="mb-6">
+            {selectedAd.imprint_number && (
+              <div className="mb-2 bg-slate-900 rounded-xl px-3 py-2 overflow-x-auto">
+                <p className="text-[10px] font-black font-mono text-amber-400 whitespace-nowrap tracking-wide">
+                  #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.ad_format || "").replace(/ /g, "")} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
+                </p>
+              </div>
+            )}
             <h2 className="text-2xl font-black text-slate-800 mb-2">{selectedAd.concept_name}</h2>
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
@@ -368,6 +375,13 @@ export default function AdDetailModal({
         <div className="bg-white rounded-[32px] w-full max-w-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden max-h-[90vh]">
           <div className="flex-1 p-6 md:p-8 overflow-y-auto border-r border-slate-100">
             <div className="mb-6">
+              {selectedAd.imprint_number && (
+                <div className="mb-2 bg-slate-900 rounded-xl px-3 py-2 overflow-x-auto">
+                  <p className="text-[10px] font-black font-mono text-amber-400 whitespace-nowrap tracking-wide">
+                    #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.ad_format || "").replace(/ /g, "")} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
+                  </p>
+                </div>
+              )}
               <h2 className="text-2xl font-black text-slate-800 mb-2">{selectedAd.concept_name}</h2>
               <div className="flex flex-wrap gap-2">
                 <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
@@ -545,6 +559,35 @@ export default function AdDetailModal({
       <div className="bg-white rounded-[32px] w-full max-w-5xl shadow-2xl flex flex-col md:flex-row overflow-hidden max-h-[90vh]">
         <div className="flex-1 p-6 md:p-8 overflow-y-auto border-r border-slate-100 bg-white">
           <div className="mb-6">
+            {/* Imprint block */}
+            {selectedAd.imprint_number && (
+              <div className="mb-3 flex items-center gap-2">
+                {isFounder ? (
+                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Imprint</span>
+                    <span className="text-[9px] font-black text-slate-400">#</span>
+                    <input
+                      type="number"
+                      className="w-16 text-[11px] font-black text-slate-700 bg-transparent outline-none font-mono"
+                      value={selectedAd.imprint_number || ""}
+                      onChange={e => setSelectedAd({ ...selectedAd, imprint_number: e.target.value ? Number(e.target.value) : undefined })}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-[10px] font-black text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl tracking-widest font-mono uppercase">
+                    #{String(selectedAd.imprint_number).padStart(4, "0")}
+                  </span>
+                )}
+              </div>
+            )}
+            {/* Imprint string */}
+            {selectedAd.imprint_number && (
+              <div className="mb-3 bg-slate-900 rounded-xl px-3 py-2 overflow-x-auto">
+                <p className="text-[10px] font-black font-mono text-amber-400 whitespace-nowrap tracking-wide">
+                  #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.ad_format || "").replace(/ /g, "")} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
+                </p>
+              </div>
+            )}
             <h2 className="text-2xl font-black text-slate-800 leading-tight mb-2">{selectedAd.concept_name}</h2>
             <div className="flex flex-wrap gap-2">
               <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
