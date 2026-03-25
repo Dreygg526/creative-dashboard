@@ -382,7 +382,9 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                           key={ad.id}
                           onClick={() => onSelectAd(ad)}
                           className={`flex items-center justify-between text-[10px] rounded-lg px-3 py-2 cursor-pointer transition-colors ${
-                            isAdActive ? "bg-indigo-50 hover:bg-indigo-100" : "bg-slate-50 hover:bg-indigo-50"
+                            isAdActive ? "bg-indigo-50 hover:bg-indigo-100" :
+                            ad.status === "Done, Waiting for Approval" ? "bg-emerald-50 border border-emerald-200 hover:bg-emerald-100" :
+                            "bg-slate-50 hover:bg-indigo-50"
                           }`}
                         >
                           <span className="font-bold text-slate-600 truncate">{ad.concept_name}</span>
@@ -398,7 +400,9 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                                 last: {fmtDuration(session.total_seconds)}
                               </span>
                             )}
-                            <span className="font-black text-slate-400">{ad.status}</span>
+                            <span className={`font-black ${ad.status === "Done, Waiting for Approval" ? "text-emerald-600" : "text-slate-400"}`}>
+                              {ad.status === "Done, Waiting for Approval" ? "✋ " + ad.status : ad.status}
+                            </span>
                           </div>
                         </div>
                       );

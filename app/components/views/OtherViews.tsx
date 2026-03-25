@@ -112,8 +112,14 @@ export function ManagerView({ workloads, setSelectedAd }: ManagerProps) {
             {tasks.length === 0 ? (
               <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-300 font-bold">Idle</div>
             ) : tasks.map(ad => (
-              <div key={ad.id} onClick={() => setSelectedAd(ad)} className="p-4 rounded-2xl border border-slate-200 bg-white shadow-sm cursor-pointer hover:border-indigo-400 transition-all">
-                <p className="text-[9px] font-black uppercase text-indigo-500 mb-1">{ad.status}</p>
+              <div key={ad.id} onClick={() => setSelectedAd(ad)} className={`p-4 rounded-2xl border shadow-sm cursor-pointer hover:border-indigo-400 transition-all ${
+                ad.status === "Done, Waiting for Approval"
+                  ? "bg-emerald-50 border-emerald-200"
+                  : "bg-white border-slate-200"
+              }`}>
+                <p className={`text-[9px] font-black uppercase mb-1 ${
+                  ad.status === "Done, Waiting for Approval" ? "text-emerald-600" : "text-indigo-500"
+                }`}>{ad.status === "Done, Waiting for Approval" ? "✋ " + ad.status : ad.status}</p>
                 <p className="font-bold text-slate-800 leading-tight">{ad.concept_name}</p>
                 <div className="mt-3 flex justify-between items-center">
                   <div className={`w-2 h-2 rounded-full ${getPriorityBadge(ad.priority)}`}></div>

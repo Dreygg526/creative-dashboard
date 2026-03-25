@@ -201,9 +201,9 @@ export default function App() {
   const myQueue = useMemo(() => {
     const queue = ads.filter(ad => {
       if (isVA) return ad.status === "Pending Upload";
-      if (isStrategist) return ["Ad Revision", "Testing", "Done, Waiting for Checking"].includes(ad.status);
+      if (isStrategist) return ["Ad Revision", "Testing", "Done, Waiting for Approval"].includes(ad.status);
       if (isContentCoord) return ["Preparing Content", "Content Revision Required"].includes(ad.status);
-      if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Done, Waiting for Checking", "Content Revision Required", "Ad Revision"].includes(ad.status);
+     if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Done, Waiting for Approval", "Content Revision Required", "Ad Revision"].includes(ad.status);
       return false;
     });
     return queue.sort((a, b) => {
@@ -226,7 +226,7 @@ export default function App() {
         (ad.assigned_editor === p ||
           ad.assigned_copywriter === p ||
           (p === "VA" && ad.status === "Pending Upload") ||
-          (p === "Strategist" && ["Ad Revision", "Testing", "Done, Waiting for Checking"].includes(ad.status))) &&
+          (p === "Strategist" && ["Ad Revision", "Testing", "Done, Waiting for Approval"].includes(ad.status))) &&
         !["Completed", "Killed"].includes(ad.status)
       );
     });
@@ -329,8 +329,8 @@ export default function App() {
     const stageChanged = originalAd && selectedAd.status !== originalAd.status;
 
     if (stageChanged) {
-      const session = getSessionForAd(selectedAd.id, selectedAd);
-      if (session) {
+      const session = activeSessions[selectedAd.id];
+      if (session && selectedAd.status === "Done, Waiting for Approval") {
         await finishSession(selectedAd.id);
         await notifyFounder(selectedAd.id, selectedAd.concept_name);
       }
