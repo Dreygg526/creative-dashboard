@@ -28,6 +28,7 @@ interface Props {
   fetchSessionsForAd?: (adId: string) => Promise<any[]>;
   fetchAllSessions?: () => Promise<any[]>;
   formatTimer?: (seconds: number) => string;
+  products?: string[];
 }
 
 function formatDate(dateStr?: string) {
@@ -49,17 +50,54 @@ function fmtDuration(seconds: number) {
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
 }
+function EditableTitle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  const commit = () => {
+    setEditing(false);
+    if (draft.trim()) onChange(draft.trim());
+    else setDraft(value);
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        className="text-2xl font-black text-slate-800 leading-tight mb-2 w-full border-b-2 border-indigo-400 bg-transparent outline-none"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") { setDraft(value); setEditing(false); }
+        }}
+      />
+    );
+  }
+
+  return (
+    <h2
+      className="text-2xl font-black text-slate-800 leading-tight mb-2 cursor-pointer hover:text-indigo-600 transition-colors group flex items-center gap-2"
+      onClick={() => { setDraft(value); setEditing(true); }}
+      title="Click to rename"
+    >
+      {value}
+      <span className="text-sm text-slate-300 group-hover:text-indigo-400 transition-colors">✏️</span>
+    </h2>
+  );
+}
 
 function canUserModify(ad: Ad, originalStatus: string, currentRole: string, currentUser: string): { allowed: boolean; reason: string } {
   if (currentRole === "Founder") return { allowed: true, reason: "" };
   if (currentRole === "Strategist") {
-    if (ad.assigned_copywriter === currentUser || ["Ad Revision", "Testing", "Writing Brief", "Brief Revision Required"].includes(originalStatus)) {
+    if (ad.assigned_copywriter === currentUser || ["Ad Revision", "Testing", "Writing Brief", "Brief Revision Required", "Done, Waiting for Checking"].includes(originalStatus)) {
       return { allowed: true, reason: "" };
     }
     return { allowed: false, reason: `⛔ Access Denied — You are not the assigned strategist for this ad. Only the assigned strategist or Founder can make changes.` };
   }
   if (currentRole === "Editor" || currentRole === "Graphic Designer") {
-    if (ad.assigned_editor === currentUser) return { allowed: true, reason: "" };
+    if (ad.assigned_editor === currentUser || originalStatus === "Done, Waiting for Checking") return { allowed: true, reason: "" };
     return { allowed: false, reason: `⛔ Access Denied — This ad is not assigned to you. Only ${ad.assigned_editor || "the assigned editor"} can make changes to this ad.` };
   }
   if (currentRole === "VA") {
@@ -199,11 +237,14 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
             {selectedAd.imprint_number && (
               <div className="mb-2 bg-slate-900 rounded-xl px-3 py-2 overflow-x-auto">
                 <p className="text-[10px] font-black font-mono text-amber-400 whitespace-nowrap tracking-wide">
-                  #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.ad_format || "").replace(/ /g, "")} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
+                  {selectedAd.ad_format?.replace(/ /g, "")} #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
                 </p>
               </div>
             )}
-            <h2 className="text-2xl font-black text-slate-800 mb-2">{selectedAd.concept_name}</h2>
+            <EditableTitle
+                value={selectedAd.concept_name}
+                onChange={v => setSelectedAd({ ...selectedAd, concept_name: v })}
+              />
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
               <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${getPriorityBadge(selectedAd.priority)}`}>{selectedAd.priority} Priority</span>
@@ -293,7 +334,8 @@ export default function AdDetailModal({
   selectedAd, ads, manualLogNote, setManualLogNote,
   setSelectedAd, onUpdate, onDelete,
   currentRole, currentUser, allEditors = [], allEditorProfiles = [], allStrategists = [], supabase,
-  activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer
+  activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer,
+  products = []
 }: Props) {
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
   const isLocked = selectedAd.status === "Testing" && daysLeft > 0;
@@ -378,7 +420,7 @@ export default function AdDetailModal({
               {selectedAd.imprint_number && (
                 <div className="mb-2 bg-slate-900 rounded-xl px-3 py-2 overflow-x-auto">
                   <p className="text-[10px] font-black font-mono text-amber-400 whitespace-nowrap tracking-wide">
-                    #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.ad_format || "").replace(/ /g, "")} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
+                    {selectedAd.ad_format?.replace(/ /g, "")} #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
                   </p>
                 </div>
               )}
@@ -559,43 +601,41 @@ export default function AdDetailModal({
       <div className="bg-white rounded-[32px] w-full max-w-5xl shadow-2xl flex flex-col md:flex-row overflow-hidden max-h-[90vh]">
         <div className="flex-1 p-6 md:p-8 overflow-y-auto border-r border-slate-100 bg-white">
           <div className="mb-6">
-            {/* Imprint block */}
-            {selectedAd.imprint_number && (
-              <div className="mb-3 flex items-center gap-2">
-                {isFounder ? (
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Imprint</span>
-                    <span className="text-[9px] font-black text-slate-400">#</span>
-                    <input
-                      type="number"
-                      className="w-16 text-[11px] font-black text-slate-700 bg-transparent outline-none font-mono"
-                      value={selectedAd.imprint_number || ""}
-                      onChange={e => setSelectedAd({ ...selectedAd, imprint_number: e.target.value ? Number(e.target.value) : undefined })}
-                    />
-                  </div>
-                ) : (
-                  <span className="text-[10px] font-black text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl tracking-widest font-mono uppercase">
-                    #{String(selectedAd.imprint_number).padStart(4, "0")}
-                  </span>
-                )}
+                        {selectedAd.imprint_number && isFounder && (
+              <div className="mb-2 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 w-fit">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Imprint</span>
+                <span className="text-[9px] font-black text-slate-500 font-mono">{selectedAd.ad_format?.replace(/ /g, "")} #</span>
+                <input
+                  type="number"
+                  className="w-14 text-[11px] font-black text-slate-700 bg-transparent outline-none font-mono"
+                  value={selectedAd.imprint_number || ""}
+                  onChange={e => setSelectedAd({ ...selectedAd, imprint_number: e.target.value ? Number(e.target.value) : undefined })}
+                />
               </div>
             )}
-            {/* Imprint string */}
-            {selectedAd.imprint_number && (
+                        {selectedAd.imprint_number && (
               <div className="mb-3 bg-slate-900 rounded-xl px-3 py-2 overflow-x-auto">
                 <p className="text-[10px] font-black font-mono text-amber-400 whitespace-nowrap tracking-wide">
-                  #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.ad_format || "").replace(/ /g, "")} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
+                  {selectedAd.ad_format?.replace(/ /g, "")} #{String(selectedAd.imprint_number).padStart(4, "0")} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} || {selectedAd.concept_name || "—"} || {selectedAd.angle || "—"} || {(selectedAd.product || "").replace(/ /g, "")} || {selectedAd.assigned_editor || "—"} || {selectedAd.assigned_copywriter || "—"}
                 </p>
               </div>
             )}
-            <h2 className="text-2xl font-black text-slate-800 leading-tight mb-2">{selectedAd.concept_name}</h2>
+            <EditableTitle
+              value={selectedAd.concept_name}
+              onChange={v => setSelectedAd({ ...selectedAd, concept_name: v })}
+            />
             <div className="flex flex-wrap gap-2">
               <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase border border-indigo-100">{selectedAd.status}</span>
               <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${getPriorityBadge(selectedAd.priority)}`}>{selectedAd.priority} Priority</span>
               {overdue && <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-rose-100 text-rose-600 border border-rose-200 animate-pulse">⚠️ Overdue</span>}
-              {originalAdStatus === "Ad Revision" && (originalAd?.revision_count || 0) > 0 && (
+              {["Ad Revision", "Done, Waiting for Checking"].includes(originalAdStatus) && (originalAd?.revision_count || 0) > 0 && (
                 <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${revisionLimitReached ? "bg-rose-100 text-rose-600 border border-rose-200" : "bg-amber-100 text-amber-600 border border-amber-200"}`}>
-                  Round {originalAd?.revision_count}/2
+                  🔄 Round {originalAd?.revision_count}/2
+                </span>
+              )}
+              {originalAdStatus === "Done, Waiting for Checking" && (
+                <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-teal-100 text-teal-700 border border-teal-200 animate-pulse">
+                  ✋ Awaiting Review
                 </span>
               )}
             </div>
@@ -632,6 +672,24 @@ export default function AdDetailModal({
                 <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Content Source</label>
                 <select className="w-full border-2 p-3 rounded-2xl text-sm font-black border-slate-100 bg-slate-50 text-slate-900" value={selectedAd.content_source} onChange={e => setSelectedAd({ ...selectedAd, content_source: e.target.value })}>
                   <option>Internal Team</option><option>UGC Creator</option><option>AI Generated</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Product</label>
+                <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.product || ""} onChange={e => setSelectedAd({ ...selectedAd, product: e.target.value })}>
+                  <option value="">— Select Product —</option>
+                  {products.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ad Format</label>
+                <select className="w-full border-2 border-slate-100 p-3 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-400 text-slate-900" value={selectedAd.ad_format || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_format: e.target.value })}>
+                  <option>Video Ad</option>
+                  <option>Static Ad</option>
+                  <option>Native Ad</option>
                 </select>
               </div>
             </div>

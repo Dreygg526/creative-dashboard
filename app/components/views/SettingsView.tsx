@@ -8,6 +8,7 @@ interface Props {
   onUpdateRole: (userId: string, role: string) => Promise<void>;
   onDeactivateUser: (userId: string) => Promise<void>;
   getAllUsers: () => Promise<UserProfile[]>;
+  supabase: any;
 }
 
 const ROLES = ["Founder", "Strategist", "Editor", "Graphic Designer", "Content Coordinator", "VA"];
@@ -23,8 +24,10 @@ const ROLE_STYLES: Record<string, string> = {
 
 export default function SettingsView({
   currentProfile, onInviteUser, onUpdateRole,
-  onDeactivateUser, getAllUsers
+  onDeactivateUser, getAllUsers, supabase
 }: Props) {
+  const isFounder = currentProfile.role === "Founder";
+
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -34,13 +37,58 @@ export default function SettingsView({
   const [inviteSuccess, setInviteSuccess] = useState(false);
   const [inviteError, setInviteError] = useState("");
 
+  // Product management
+  const [products, setProducts] = useState<string[]>([]);
+  const [newProduct, setNewProduct] = useState("");
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [productMsg, setProductMsg] = useState("");
+
   useEffect(() => {
     loadUsers();
+    loadProducts();
   }, []);
 
   const loadUsers = async () => {
     const data = await getAllUsers();
     setUsers(data);
+  };
+
+  const loadProducts = async () => {
+    if (!supabase) return;
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "products")
+      .single();
+    if (data?.value) {
+      setProducts(Array.isArray(data.value) ? data.value : []);
+    }
+  };
+
+  const saveProducts = async (updated: string[]) => {
+    if (!supabase) return;
+    setIsSavingProduct(true);
+    await supabase
+      .from("settings")
+      .upsert({ key: "products", value: updated, updated_at: new Date().toISOString() });
+    setProducts(updated);
+    setIsSavingProduct(false);
+    setProductMsg("Saved!");
+    setTimeout(() => setProductMsg(""), 2000);
+  };
+
+  const handleAddProduct = async () => {
+    const trimmed = newProduct.trim();
+    if (!trimmed || products.includes(trimmed)) return;
+    const updated = [...products, trimmed];
+    setNewProduct("");
+    await saveProducts(updated);
+  };
+
+  const handleRemoveProduct = async (product: string) => {
+    if (!confirm(`Remove "${product}" from the product list?`)) return;
+    const updated = products.filter(p => p !== product);
+    await saveProducts(updated);
   };
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -87,7 +135,7 @@ export default function SettingsView({
             Manage team accounts and access
           </p>
         </div>
-        {currentProfile.role === "Founder" && (
+        {isFounder && (
           <button
             onClick={() => setIsInviteOpen(!isInviteOpen)}
             className="bg-indigo-600 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm"
@@ -97,8 +145,63 @@ export default function SettingsView({
         )}
       </div>
 
+      {/* ── PRODUCT MANAGER ── */}
+      {isFounder && (
+        <div className="bg-white border-2 border-slate-100 rounded-[28px] p-6 mb-8 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Product List</p>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">These appear as dropdown options when creating or editing ads</p>
+            </div>
+            {productMsg && (
+              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                ✓ {productMsg}
+              </span>
+            )}
+          </div>
+
+          {/* Existing products */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {products.length === 0 ? (
+              <p className="text-[11px] text-slate-300 font-bold italic">No products added yet</p>
+            ) : (
+              products.map(p => (
+                <div key={p} className="flex items-center gap-1.5 bg-slate-50 border-2 border-slate-100 px-3 py-1.5 rounded-xl group">
+                  <span className="text-[11px] font-black text-slate-700">{p}</span>
+                  <button
+                    onClick={() => handleRemoveProduct(p)}
+                    className="text-[9px] text-slate-300 hover:text-rose-500 font-black opacity-0 group-hover:opacity-100 transition-all ml-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Add new product */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Add new product (e.g. NAC)"
+              className="flex-1 border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-bold outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 text-slate-900"
+              value={newProduct}
+              onChange={e => setNewProduct(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddProduct(); } }}
+            />
+            <button
+              onClick={handleAddProduct}
+              disabled={!newProduct.trim() || isSavingProduct}
+              className="bg-indigo-600 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-40 shadow-sm"
+            >
+              {isSavingProduct ? "..." : "Add"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Invite Form */}
-      {isInviteOpen && currentProfile.role === "Founder" && (
+      {isInviteOpen && isFounder && (
         <form onSubmit={handleInvite} className="bg-white border-2 border-slate-100 rounded-[28px] p-6 mb-8 shadow-sm">
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">
             Invite New Team Member
@@ -120,9 +223,7 @@ export default function SettingsView({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">
-                Full Name
-              </label>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Full Name</label>
               <input
                 required
                 type="text"
@@ -133,9 +234,7 @@ export default function SettingsView({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">
-                Email
-              </label>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Email</label>
               <input
                 required
                 type="email"
@@ -146,9 +245,7 @@ export default function SettingsView({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">
-                Role
-              </label>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Role</label>
               <select
                 className="w-full border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-black outline-none focus:border-indigo-400 transition-all"
                 value={inviteRole}
@@ -207,7 +304,7 @@ export default function SettingsView({
                     Deactivated
                   </span>
                 )}
-                {currentProfile.role === "Founder" && u.id !== currentProfile.id ? (
+                {isFounder && u.id !== currentProfile.id ? (
                   <>
                     <select
                       value={u.role}

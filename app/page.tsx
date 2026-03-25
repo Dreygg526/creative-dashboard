@@ -71,6 +71,21 @@ export default function App() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
+  // ── PRODUCTS LIST ──
+  const [products, setProducts] = useState<string[]>([]);
+
+  const loadProducts = async () => {
+    if (!supabase) return;
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "products")
+      .single();
+    if (data?.value && Array.isArray(data.value)) {
+      setProducts(data.value);
+    }
+  };
+
   const currentUserRef = useRef(currentUser);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
@@ -135,7 +150,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (supabase && user) loadAllProfiles();
+    if (supabase && user) {
+      loadAllProfiles();
+      loadProducts();
+    }
   }, [supabase, user, profile]);
 
   useEffect(() => {
@@ -156,6 +174,9 @@ export default function App() {
     const profilesChannel = supabase.channel("profiles-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => loadAllProfiles())
       .subscribe();
+    const settingsChannel = supabase.channel("settings-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => loadProducts())
+      .subscribe();
     const notifChannel = supabase.channel("notif-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
         if (payload.new.target_user === currentUserRef.current) {
@@ -170,6 +191,7 @@ export default function App() {
       supabase.removeChannel(ideasChannel);
       supabase.removeChannel(learningsChannel);
       supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(settingsChannel);
       supabase.removeChannel(notifChannel);
     };
   }, [supabase, user]);
@@ -179,9 +201,9 @@ export default function App() {
   const myQueue = useMemo(() => {
     const queue = ads.filter(ad => {
       if (isVA) return ad.status === "Pending Upload";
-      if (isStrategist) return ["Ad Revision", "Testing"].includes(ad.status);
+      if (isStrategist) return ["Ad Revision", "Testing", "Done, Waiting for Checking"].includes(ad.status);
       if (isContentCoord) return ["Preparing Content", "Content Revision Required"].includes(ad.status);
-      if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Content Revision Required", "Ad Revision"].includes(ad.status);
+      if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Done, Waiting for Checking", "Content Revision Required", "Ad Revision"].includes(ad.status);
       return false;
     });
     return queue.sort((a, b) => {
@@ -204,7 +226,7 @@ export default function App() {
         (ad.assigned_editor === p ||
           ad.assigned_copywriter === p ||
           (p === "VA" && ad.status === "Pending Upload") ||
-          (p === "Strategist" && ["Ad Revision", "Testing"].includes(ad.status))) &&
+          (p === "Strategist" && ["Ad Revision", "Testing", "Done, Waiting for Checking"].includes(ad.status))) &&
         !["Completed", "Killed"].includes(ad.status)
       );
     });
@@ -281,7 +303,6 @@ export default function App() {
     if (ad) startSession(ad);
   };
 
-  // Notify founder helper
   const notifyFounder = async (adId: string, adName: string) => {
     const { data: founders } = await supabase
       .from("profiles")
@@ -300,7 +321,6 @@ export default function App() {
     }
   };
 
-  // Auto-finish session on stage change then save
   const handleUpdateAdWithSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAd) return;
@@ -308,7 +328,6 @@ export default function App() {
     const originalAd = ads.find(a => a.id === selectedAd.id);
     const stageChanged = originalAd && selectedAd.status !== originalAd.status;
 
-    // If stage changed and there's an active session — auto finish it
     if (stageChanged) {
       const session = getSessionForAd(selectedAd.id, selectedAd);
       if (session) {
@@ -317,7 +336,6 @@ export default function App() {
       }
     }
 
-    // Now save the ad
     handleUpdateAd(e);
   };
 
@@ -334,15 +352,12 @@ export default function App() {
   if (libError) return (
     <div className="min-h-screen flex items-center justify-center p-4 text-rose-600 font-bold">{libError}</div>
   );
-
   if (authLoading) return (
     <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
   );
-
   if (!user) return (
     <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
   );
-
   if (!supabase) return (
     <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
   );
@@ -646,6 +661,7 @@ export default function App() {
             onUpdateRole={updateUserRole}
             onDeactivateUser={deactivateUser}
             getAllUsers={getAllUsers}
+            supabase={supabase}
           />
         )}
       </main>
@@ -662,6 +678,7 @@ export default function App() {
           currentRole={currentRole}
           currentUser={currentUser}
           allEditorProfiles={allEditorProfiles}
+          products={products}
         />
       )}
       {ideaToPromote && (
@@ -694,6 +711,7 @@ export default function App() {
           fetchSessionsForAd={fetchSessionsForAd}
           fetchAllSessions={fetchAllSessions}
           formatTimer={formatTimer}
+          products={products}
         />
       )}
     </div>

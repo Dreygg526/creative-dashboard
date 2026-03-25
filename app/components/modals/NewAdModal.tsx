@@ -15,11 +15,12 @@ interface Props {
   currentRole?: string;
   currentUser?: string;
   allEditorProfiles?: EditorProfile[];
+  products?: string[];
 }
 
 export default function NewAdModal({
   newAd, setNewAd, onSubmit, onClose,
-  editors, currentRole, currentUser, allEditorProfiles = []
+  editors, currentRole, currentUser, allEditorProfiles = [], products = []
 }: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
@@ -105,13 +106,15 @@ export default function NewAdModal({
             {/* Product */}
             <div className="md:col-span-2">
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Product</label>
-              <input
+              <select
                 required
-                type="text"
                 className="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-indigo-500 bg-slate-50 font-bold transition-all text-slate-900"
                 value={newAd.product}
                 onChange={e => setNewAd({ ...newAd, product: e.target.value })}
-              />
+              >
+                <option value="">— Select Product —</option>
+                {products.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
 
             {/* Editor — auto-filled and locked for Editor/Graphic Designer, dropdown for Founder */}

@@ -42,11 +42,14 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
     return data?.[0]?.full_name || "";
   };
 
-  // Gets the next imprint number by finding current max and adding 1
-  const getNextImprintNumber = async (): Promise<number> => {
+  // Gets next imprint number scoped by ad_format
+  // Video Ad #1, Static Ad #1, Native Ad #1 — each counts independently
+  const getNextImprintNumber = async (adFormat: string): Promise<number> => {
     const { data, error } = await supabase
       .from("ads")
       .select("imprint_number")
+      .eq("ad_format", adFormat)
+      .not("imprint_number", "is", null)
       .order("imprint_number", { ascending: false })
       .limit(1);
     if (error || !data || data.length === 0) return 1;
@@ -63,15 +66,14 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       { action: "Concept Logged", user: currentUser, timestamp: new Date().toISOString() }
     ];
 
-    // Auto-assign based on role
     let autoAssignedEditor = newAd.assigned_editor || "";
     let autoAssignedCopywriter = newAd.assigned_copywriter || "";
 
     if (isEditor) autoAssignedEditor = currentUser;
     if (isStrategist) autoAssignedCopywriter = currentUser;
 
-    // Get next sequential imprint number
-    const imprintNumber = await getNextImprintNumber();
+    // Imprint number is per-format
+    const imprintNumber = await getNextImprintNumber(newAd.ad_format || "Video Ad");
 
     const { error } = await supabase.from("ads").insert([{
       ...newAd,
@@ -106,27 +108,20 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       const statusChanged = originalAd.status !== selectedAd.status;
 
       if (statusChanged && !isFounder) {
-        // Testing lock check
         const daysLeft = getDaysLeftInTesting(originalAd.live_date);
         if (originalAd.status === "Testing" && daysLeft > 0) {
           alert(`Cannot move from Testing yet. ${daysLeft} days remaining.`);
           return;
         }
-
-        // Prevent non-founders from killing ads
         if (selectedAd.status === "Killed") {
           alert("⛔ Only the Founder can kill ads.");
           return;
         }
-
-        // Valid transition check
         const validTransitions = ALLOWED_TRANSITIONS[originalAd.status] || [];
         if (!validTransitions.includes(selectedAd.status)) {
           alert(`Invalid stage move: ${originalAd.status} → ${selectedAd.status}`);
           return;
         }
-
-        // Revision limit enforcement
         if (selectedAd.status === "Ad Revision" && (originalAd.revision_count || 0) >= 2) {
           alert("Maximum revision rounds reached. This ad cannot be sent back again.");
           return;
@@ -153,28 +148,22 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           newStageUpdatedDate = new Date().toISOString();
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
           if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
-
-          if (selectedAd.status === "Killed") {
-            newKilledAt = new Date().toISOString();
-          }
-          if (selectedAd.status !== "Killed") {
-            newKilledAt = null;
-          }
+          if (selectedAd.status === "Killed") newKilledAt = new Date().toISOString();
+          if (selectedAd.status !== "Killed") newKilledAt = null;
 
           let targetUser = "";
           if (selectedAd.status === "Brief Revision Required") {
             targetUser = selectedAd.assigned_copywriter || "";
-          } else if (selectedAd.status === "Brief Approved") {
-            targetUser = await getProfileByRole("Content Coordinator");
-          } else if (selectedAd.status === "Preparing Content") {
-            targetUser = await getProfileByRole("Content Coordinator");
-          } else if (selectedAd.status === "Content Revision Required") {
+          } else if (["Brief Approved", "Preparing Content", "Content Revision Required"].includes(selectedAd.status)) {
             targetUser = await getProfileByRole("Content Coordinator");
           } else if (selectedAd.status === "Content Ready") {
             targetUser = await getProfileByRole("Strategist");
             if (!targetUser) targetUser = await getProfileByRole("Founder");
-          } else if (selectedAd.status === "Editor Assigned" || selectedAd.status === "In Progress") {
+          } else if (["Editor Assigned", "In Progress"].includes(selectedAd.status)) {
             targetUser = selectedAd.assigned_editor || "";
+          } else if (selectedAd.status === "Done, Waiting for Checking") {
+            // Notify Founder that editor marked their work done
+            targetUser = await getProfileByRole("Founder");
           } else if (selectedAd.status === "Ad Revision") {
             targetUser = selectedAd.assigned_editor || "";
           } else if (selectedAd.status === "Pending Upload") {
@@ -203,17 +192,16 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           ad_spend: selectedAd.ad_spend,
           ad_type: selectedAd.ad_type,
           angle: selectedAd.angle,
-          // Only Founder can reassign strategist/editor
           assigned_copywriter: isFounder ? selectedAd.assigned_copywriter : originalAd.assigned_copywriter,
           assigned_editor: isFounder ? selectedAd.assigned_editor : originalAd.assigned_editor,
           brief_link: selectedAd.brief_link,
-          concept_name: isFounder || isStrategist ? selectedAd.concept_name : originalAd.concept_name,
+          // ALL roles can now rename the concept name
+          concept_name: selectedAd.concept_name,
           content_source: selectedAd.content_source,
           due_date: selectedAd.due_date || null,
           killed_at: newKilledAt,
           live_date: newLiveDate,
           notes: selectedAd.notes,
-          // Only Founder can change priority
           priority: isFounder ? selectedAd.priority : originalAd.priority,
           product: selectedAd.product,
           result: isFounder || isStrategist ? selectedAd.result : originalAd.result,
@@ -221,7 +209,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           revision_count: newRevisionCount,
           stage_updated_at: newStageUpdatedDate,
           time_log: JSON.stringify(updatedTimeLog),
-          // Only Founder can edit imprint number
           imprint_number: isFounder ? selectedAd.imprint_number : originalAd.imprint_number,
         })
         .eq("id", selectedAd.id)

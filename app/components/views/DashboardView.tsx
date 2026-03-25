@@ -492,9 +492,11 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
 function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatTimer }: Props) {
   const myAds = ads.filter(ad => ad.assigned_editor === currentUser);
 
+  const waitingForMe = myAds.filter(ad => ad.status === "Editor Assigned")
+    .sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
   const currentlyEditing = myAds.filter(ad => ad.status === "In Progress")
     .sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
-  const waitingForMe = myAds.filter(ad => ad.status === "Editor Assigned")
+  const doneWaiting = myAds.filter(ad => ad.status === "Done, Waiting for Approval")
     .sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
   const revisionRequired = myAds.filter(ad => ["Content Revision Required", "Ad Revision"].includes(ad.status))
     .sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
@@ -540,6 +542,9 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
         </div>
       </div>
 
+      <Section title="Waiting For Me" count={waitingForMe.length} color="bg-amber-100 text-amber-700" empty="Nothing waiting">
+        {waitingForMe.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} session={activeSessions?.[ad.id]} formatTimer={formatTimer} />)}
+      </Section>
       <Section title="Currently Editing" count={currentlyEditing.length} color="bg-indigo-100 text-indigo-700" empty="Nothing in progress">
         {currentlyEditing.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
@@ -548,8 +553,13 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
           />
         ))}
       </Section>
-      <Section title="Waiting For Me" count={waitingForMe.length} color="bg-amber-100 text-amber-700" empty="Nothing waiting">
-        {waitingForMe.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} session={activeSessions?.[ad.id]} formatTimer={formatTimer} />)}
+      <Section title="Done, Waiting for Approval" count={doneWaiting.length} color="bg-emerald-100 text-emerald-700" empty="Nothing submitted for review">
+        {doneWaiting.map(ad => (
+          <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+            session={activeSessions?.[ad.id]} formatTimer={formatTimer}
+            extra={<p className="text-[9px] font-bold text-emerald-600">✋ Submitted — awaiting for approval</p>}
+          />
+        ))}
       </Section>
       <Section title="Revision Required" count={revisionRequired.length} color="bg-rose-100 text-rose-700" empty="No revisions needed">
         {revisionRequired.map(ad => (
