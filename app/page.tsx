@@ -37,7 +37,11 @@ type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "
 
 export default function App() {
   const { supabase, libError } = useSupabaseClient();
-  const { isAudioUnlocked, playNotificationSound } = useAudio();
+  const { isAudioUnlocked, unlockAudio, playNotificationSound } = useAudio();
+  const playNotificationSoundRef = useRef(playNotificationSound);
+useEffect(() => {
+  playNotificationSoundRef.current = playNotificationSound;
+}, [playNotificationSound]);
   const {
     user, profile, authLoading,
     signIn, signOut, resetPassword,
@@ -177,14 +181,22 @@ export default function App() {
     const settingsChannel = supabase.channel("settings-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => loadProducts())
       .subscribe();
-    const notifChannel = supabase.channel("notif-realtime")
+    const notifChannel = supabase.channel("notif-realtime-v2")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
+        console.log("🔔 NOTIF FIRED", payload.new);
+        console.log("🔔 TARGET:", payload.new.target_user);
+        console.log("🔔 CURRENT USER:", currentUserRef.current);
+        console.log("🔔 MATCH:", payload.new.target_user === currentUserRef.current);
         if (payload.new.target_user === currentUserRef.current) {
-          playNotificationSound();
+          console.log("🔊 PLAYING SOUND NOW");
+          playNotificationSoundRef.current();
           fetchNotifications();
         }
       })
-      .subscribe((status: string) => setIsSubscribed(status === "SUBSCRIBED"));
+      .subscribe((status: string) => {
+        console.log("📡 NOTIF CHANNEL STATUS:", status);
+        setIsSubscribed(status === "SUBSCRIBED");
+      });
 
     return () => {
       supabase.removeChannel(adsChannel);
@@ -194,7 +206,7 @@ export default function App() {
       supabase.removeChannel(settingsChannel);
       supabase.removeChannel(notifChannel);
     };
-  }, [supabase, user]);
+  }, [supabase, user?.id]);
 
   useEffect(() => { if (supabase && user) fetchNotifications(); }, [currentUser, supabase, user]);
 
@@ -303,46 +315,58 @@ export default function App() {
     if (ad) startSession(ad);
   };
 
-  const notifyFounder = async (adId: string, adName: string) => {
-    const { data: founders } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("role", "Founder")
-      .eq("is_active", true)
-      .limit(1);
-    const founderName = founders?.[0]?.full_name;
-    if (founderName) {
-      await supabase.from("notifications").insert([{
-        ad_id: adId,
-        message: `✅ ${currentUser} finished working on "${adName}"`,
-        target_user: founderName,
-        is_read: false
-      }]);
-    }
-  };
+  const notifyFounder = async (adId: string, adName: string, message?: string) => {
+  const { data: founders } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("role", "Founder")
+    .eq("is_active", true)
+    .limit(1);
+  const founderName = founders?.[0]?.full_name;
+  if (founderName) {
+    await supabase.from("notifications").insert([{
+      ad_id: adId,
+      message: message || `✅ ${currentUser} finished working on "${adName}"`,
+      target_user: founderName,
+      is_read: false
+    }]);
+  }
+};
 
   const handleUpdateAdWithSession = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAd) return;
+  e.preventDefault();
+  if (!selectedAd) return;
 
-    const originalAd = ads.find(a => a.id === selectedAd.id);
-    const stageChanged = originalAd && selectedAd.status !== originalAd.status;
+  const originalAd = ads.find(a => a.id === selectedAd.id);
+  const stageChanged = originalAd && selectedAd.status !== originalAd.status;
 
-    if (stageChanged) {
+  if (stageChanged && !isFounder) {
+    // Stop timer and notify on Done, Waiting for Approval
+    if (selectedAd.status === "Done, Waiting for Approval") {
       const session = activeSessions[selectedAd.id];
-      if (session && selectedAd.status === "Done, Waiting for Approval") {
-        await finishSession(selectedAd.id);
-        await notifyFounder(selectedAd.id, selectedAd.concept_name);
-      }
+      if (session) await finishSession(selectedAd.id);
+      await notifyFounder(
+        selectedAd.id,
+        selectedAd.concept_name,
+        `✋ ${currentUser} submitted "${selectedAd.concept_name}" — Done, Waiting for Approval`
+      );
+    } else {
+      // Notify founder on ANY stage change by non-founder
+      await notifyFounder(
+        selectedAd.id,
+        selectedAd.concept_name,
+        `🔄 ${currentUser} moved "${selectedAd.concept_name}" → ${selectedAd.status}`
+      );
     }
+  }
 
-    handleUpdateAd(e);
-  };
+  handleUpdateAd(e);
+};
 
   const navItems: ViewMode[] = isFounder
     ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
     : isStrategist
-    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings"]
+    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Manager"]
     : isVA
     ? ["Dashboard", "Pipeline"]
     : isContentCoord
@@ -356,35 +380,37 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
   );
   if (!user) return (
+  <div onClick={unlockAudio} onKeyDown={unlockAudio}>
     <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
-  );
+  </div>
+);
   if (!supabase) return (
     <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans text-[13px] flex flex-col">
+    <div className="min-h-screen bg-[#131314] text-slate-100 font-sans text-[13px] flex flex-col" onClick={unlockAudio}>
       <datalist id="editor-autocomplete">{allEditors.map(n => <option key={n} value={n} />)}</datalist>
       <datalist id="copywriter-autocomplete">{allCopywriters.map(n => <option key={n} value={n} />)}</datalist>
 
       {/* ── NAV ── */}
-      <nav className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
-        <div className="p-3 md:p-4 max-w-[1800px] mx-auto border-b border-slate-50">
+      <nav className="bg-[#1e1f20] border-b border-white/10 shadow-sm sticky top-0 z-40">
+        <div className="p-3 md:p-4 max-w-[1800px] mx-auto border-b border-white/5">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
 
             <div className="flex justify-between items-center w-full lg:w-auto">
               <div className="flex items-center gap-3">
-                <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-800">Creative Ops</h1>
+               <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">Creative Ops</h1>
                 <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
               </div>
 
               {Object.keys(activeSessions).length > 0 && (
-                <div className="hidden lg:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                <div className="hidden lg:flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 px-3 py-1.5 rounded-xl">
+                  <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                  <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">
                     {Object.keys(activeSessions).length} Active Session{Object.keys(activeSessions).length > 1 ? "s" : ""}
                   </span>
-                  <span className="text-[11px] font-black text-indigo-800 font-mono">
+                  <span className="text-[11px] font-black text-indigo-200 font-mono">
                     {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
                   </span>
                   <button
@@ -395,7 +421,7 @@ export default function App() {
                         }
                       }
                     }}
-                    className="text-[9px] font-black text-indigo-400 hover:text-rose-500 uppercase tracking-widest ml-1 border-l border-indigo-200 pl-2 transition-colors"
+                    className="text-[9px] font-black text-indigo-400 hover:text-rose-400 uppercase tracking-widest ml-1 border-l border-indigo-500/30 pl-2 transition-colors"
                   >
                     Clear
                   </button>
@@ -433,12 +459,12 @@ export default function App() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 md:gap-4">
-              <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner flex-wrap gap-1">
+              <div className="flex bg-white/5 p-1 rounded-xl shadow-inner flex-wrap gap-1">
                 {navItems.map(v => (
                   <button
                     key={v}
                     onClick={() => handleSetViewMode(v)}
-                    className={`relative px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === v ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
+                    className={`relative px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === v ? "bg-white/10 shadow-sm text-indigo-300" : "text-slate-400 hover:text-slate-200"}`}
                   >
                     {v === "MyQueue" ? "My Queue" : v}
                     {v === "Ideas" && ideaCounts.pending > 0 && (
@@ -451,7 +477,7 @@ export default function App() {
                 {isFounder && (
                   <button
                     onClick={() => handleSetViewMode("Manager")}
-                    className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Manager" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
+                    className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Manager" ? "bg-white/10 shadow-sm text-indigo-300" : "text-slate-400 hover:text-slate-200"}`}
                   >
                     Workload
                   </button>
@@ -459,7 +485,7 @@ export default function App() {
                 {isFounder && (
                   <button
                     onClick={() => handleSetViewMode("Settings")}
-                    className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Settings" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"}`}
+                    className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Settings" ? "bg-white/10 shadow-sm text-indigo-300" : "text-slate-400 hover:text-slate-200"}`}
                   >
                     Settings
                   </button>
@@ -469,33 +495,34 @@ export default function App() {
               <div className="relative">
                 <div
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                  className="flex items-center gap-2 border border-slate-200 bg-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-slate-50 cursor-pointer"
+                  className="flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1.5 rounded-lg shadow-sm hover:bg-white/10 cursor-pointer"
                 >
                   <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-[10px]">
                     {currentUser.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-xs font-black text-slate-800 leading-none">{currentUser}</p>
+                    <p className="text-xs font-black text-slate-100 leading-none">{currentUser}</p>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentRole}</p>
                   </div>
                   <span className={`text-[10px] transition-transform ${isUserDropdownOpen ? "rotate-180" : ""}`}>▼</span>
                   <button
-                    onClick={e => { e.stopPropagation(); playNotificationSound(); }}
-                    className={`ml-1 p-1 rounded-md transition-all ${isAudioUnlocked ? "text-emerald-600" : "text-slate-400"}`}
-                  >
-                    {isAudioUnlocked ? "🔊" : "🔇"}
-                  </button>
+  onClick={e => { e.stopPropagation(); unlockAudio(); playNotificationSound(); }}
+  className={`ml-1 p-1 rounded-md transition-all ${isAudioUnlocked ? "text-emerald-400" : "text-slate-500 animate-pulse"}`}
+  title={isAudioUnlocked ? "Sound ON" : "Click to enable sounds"}
+>
+  {isAudioUnlocked ? "🔊" : "🔇"}
+</button>
                 </div>
                 {isUserDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
-                    <div className="px-4 py-2 border-b border-slate-50">
-                      <p className="text-xs font-black text-slate-700">{currentUser}</p>
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-[#2a2b2c] border border-white/10 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
+                    <div className="px-4 py-2 border-b border-white/5">
+                      <p className="text-xs font-black text-slate-100">{currentUser}</p>
                       <p className="text-[10px] text-slate-400">{profile?.email}</p>
                     </div>
                     {isFounder && (
                       <button
                         onClick={() => { handleSetViewMode("Settings"); setIsUserDropdownOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-50 text-slate-600 transition-colors"
+                        className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-white/5 text-slate-300 transition-colors"
                       >
                         ⚙️ Settings
                       </button>
@@ -533,7 +560,7 @@ export default function App() {
               {canCreateAd && (
                 <button
                   onClick={() => setIsNewAdOpen(true)}
-                  className="hidden lg:block bg-indigo-600 text-white px-5 py-2 rounded-lg font-black hover:bg-indigo-700 text-sm shadow-sm transition-all"
+                  className="hidden lg:block bg-indigo-500 text-white px-5 py-2 rounded-lg font-black hover:bg-indigo-400 text-sm shadow-sm transition-all"
                 >
                   + New Ad
                 </button>
@@ -587,7 +614,7 @@ export default function App() {
             formatTimer={formatTimer}
           />
         )}
-        {viewMode === "Manager" && isFounder && (
+        {viewMode === "Manager" && (isFounder || isStrategist) && (
           <ManagerView workloads={workloads} setSelectedAd={handleSelectAd} />
         )}
         {viewMode === "Reports" && isManager && (

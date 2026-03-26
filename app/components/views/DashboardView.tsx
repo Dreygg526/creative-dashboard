@@ -47,9 +47,9 @@ function PriorityDot({ priority }: { priority: string }) {
   const colors: Record<string, string> = {
     High: "bg-rose-500",
     Medium: "bg-amber-400",
-    Low: "bg-slate-300"
+    Low: "bg-slate-500"
   };
-  return <span className={`inline-block w-2 h-2 rounded-full ${colors[priority] || "bg-slate-300"}`} />;
+  return <span className={`inline-block w-2 h-2 rounded-full ${colors[priority] || "bg-slate-500"}`} />;
 }
 
 function AdCard({ ad, onClick, showDays = true, extra, session, formatTimer }: {
@@ -69,39 +69,39 @@ function AdCard({ ad, onClick, showDays = true, extra, session, formatTimer }: {
   return (
     <div
       onClick={onClick}
-      className={`bg-white border-2 rounded-[18px] p-4 cursor-pointer hover:shadow-md transition-all ${
-        isActive ? "border-indigo-300 bg-indigo-50/20 hover:border-indigo-400" :
-        overdue ? "border-rose-300 bg-rose-50/20 hover:border-rose-400" :
-        "border-slate-100 hover:border-indigo-200"
+      className={`border rounded-[18px] p-4 cursor-pointer hover:shadow-md transition-all ${
+        isActive ? "border-indigo-500/40 bg-indigo-500/10 hover:border-indigo-400/60" :
+        overdue ? "border-rose-500/40 bg-rose-500/10 hover:border-rose-400/60" :
+        "border-white/10 bg-white/5 hover:border-indigo-500/30 hover:bg-white/8"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <PriorityDot priority={ad.priority} />
-            <p className="font-black text-slate-800 text-sm truncate">{ad.concept_name}</p>
+            <p className="font-black text-slate-100 text-sm truncate">{ad.concept_name}</p>
             {overdue && (
-              <span className="text-[8px] font-black uppercase px-1.5 py-0.5 bg-rose-100 text-rose-600 rounded-md shrink-0 animate-pulse">
+              <span className="text-[8px] font-black uppercase px-1.5 py-0.5 bg-rose-500/20 text-rose-400 rounded-md shrink-0 animate-pulse">
                 Overdue
               </span>
             )}
           </div>
           <div className="flex flex-wrap gap-1.5 mb-2">
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">{ad.ad_format}</span>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">{ad.status}</span>
+            <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-white/10 text-slate-400 rounded-md">{ad.ad_format}</span>
+            <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-white/10 text-slate-400 rounded-md">{ad.status}</span>
             {ad.priority === "High" && (
-              <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-rose-100 text-rose-600 rounded-md">🔥 High</span>
+              <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-rose-500/20 text-rose-400 rounded-md">🔥 High</span>
             )}
             {dueDate && (
               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
-                overdue ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-500"
+                overdue ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-slate-400"
               }`}>
                 📅 {dueDate}
               </span>
             )}
           </div>
           {isActive && formatTimer && session && (
-            <div className="mt-1 inline-flex items-center gap-2 bg-indigo-600 text-white px-2.5 py-1 rounded-lg">
+            <div className="mt-1 inline-flex items-center gap-2 bg-indigo-500 text-white px-2.5 py-1 rounded-lg">
               <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               <span className="text-[9px] font-black uppercase tracking-widest">Active</span>
               <span className="font-black text-xs font-mono">{formatTimer(session.elapsedSeconds)}</span>
@@ -110,7 +110,7 @@ function AdCard({ ad, onClick, showDays = true, extra, session, formatTimer }: {
           {extra}
         </div>
         {showDays && (
-          <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg shrink-0 ${isStale ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-400"}`}>
+          <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg shrink-0 ${isStale ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-slate-500"}`}>
             {days}d
           </span>
         )}
@@ -132,10 +132,10 @@ function Section({ title, count, color, children, empty }: {
         <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${color}`}>
           {title}
         </span>
-        <span className="text-[10px] font-black text-slate-400">{count}</span>
+        <span className="text-[10px] font-black text-slate-500">{count}</span>
       </div>
       {count === 0 ? (
-        <div className="border-2 border-dashed border-slate-200 rounded-[18px] p-8 text-center text-slate-300 font-bold text-sm">
+        <div className="border border-dashed border-white/10 rounded-[18px] p-8 text-center text-slate-600 font-bold text-sm">
           {empty}
         </div>
       ) : (
@@ -149,7 +149,6 @@ function Section({ title, count, color, children, empty }: {
 function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSessions, formatTimer, supabase }: Props) {
   const [adSessions, setAdSessions] = useState<Record<string, any>>({});
 
-  // Fetch latest session for each active ad from Supabase
   useEffect(() => {
     if (!supabase) return;
     const activeAds = ads.filter(a => !["Completed", "Killed"].includes(a.status));
@@ -163,19 +162,14 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
         .order("started_at", { ascending: false });
 
       if (!data) return;
-
-      // Get the latest session per ad
       const latestByAd: Record<string, any> = {};
       data.forEach((s: any) => {
-        if (!latestByAd[s.ad_id]) {
-          latestByAd[s.ad_id] = s;
-        }
+        if (!latestByAd[s.ad_id]) latestByAd[s.ad_id] = s;
       });
       setAdSessions(latestByAd);
     };
 
     fetchSessions();
-    // Refresh every 30 seconds
     const interval = setInterval(fetchSessions, 30000);
     return () => clearInterval(interval);
   }, [supabase, ads]);
@@ -212,7 +206,6 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
       .sort((a, b) => b.ads.length - a.ads.length);
   }, [allProfiles, activeAds]);
 
-  // Check who has active sessions from Supabase
   const activeSessionAdIds = new Set(
     Object.entries(adSessions)
       .filter(([, s]) => s.is_active)
@@ -229,7 +222,7 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[1200px] mx-auto w-full">
       <div className="mb-8">
-        <h2 className="text-3xl font-black text-slate-800 mb-1">Command Centre</h2>
+        <h2 className="text-3xl font-black text-white mb-1">Command Centre</h2>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Full team overview</p>
       </div>
 
@@ -243,18 +236,18 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
           <button
             key={s.view}
             onClick={() => onNavigate?.(s.view)}
-            className="bg-white border-2 border-slate-100 rounded-2xl p-4 text-center hover:border-indigo-200 hover:shadow-md transition-all"
+            className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center hover:border-indigo-500/30 hover:bg-white/8 transition-all"
           >
             <div className="text-2xl mb-1">{s.icon}</div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">{s.label}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
           </button>
         ))}
       </div>
 
-      {/* Active sessions from Supabase */}
+      {/* Active sessions */}
       {activeSessionAdIds.size > 0 && (
-        <div className="bg-indigo-50 border-2 border-indigo-100 rounded-[24px] p-5 mb-8">
-          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-3">
+        <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-[24px] p-5 mb-8">
+          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-3">
             ⏱️ Live Work Sessions ({activeSessionAdIds.size})
           </p>
           <div className="space-y-2">
@@ -269,15 +262,15 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                 <div
                   key={adId}
                   onClick={() => onSelectAd(ad)}
-                  className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:shadow-md transition-all"
+                  className="bg-white/5 rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-all"
                 >
                   <div>
-                    <p className="font-black text-slate-800 text-sm">{ad.concept_name}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">
+                    <p className="font-black text-slate-100 text-sm">{ad.concept_name}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase">
                       {session.user_name} · {session.user_role} · {ad.status}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-xl">
+                  <div className="flex items-center gap-2 bg-indigo-500 text-white px-3 py-1.5 rounded-xl">
                     <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                     <span className="font-black text-sm font-mono tracking-widest">
                       {formatTimer ? formatTimer(elapsedSeconds) : fmtDuration(elapsedSeconds)}
@@ -290,10 +283,10 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
         </div>
       )}
 
-      {/* Overdue / Stale Ads */}
+      {/* Overdue / Stale */}
       {allOverdue.length > 0 && (
-        <div className="bg-rose-50 border-2 border-rose-100 rounded-[24px] p-6 mb-8">
-          <p className="text-[10px] font-black uppercase tracking-widest text-rose-500 mb-4">
+        <div className="bg-rose-500/10 border border-rose-500/20 rounded-[24px] p-6 mb-8">
+          <p className="text-[10px] font-black uppercase tracking-widest text-rose-400 mb-4">
             ⚠️ Needs Attention ({allOverdue.length}) — Overdue or stuck 5+ days
           </p>
           <div className="space-y-3">
@@ -304,20 +297,20 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                 <div
                   key={ad.id}
                   onClick={() => onSelectAd(ad)}
-                  className="bg-white rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:shadow-md transition-all"
+                  className="bg-white/5 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-all"
                 >
                   <div>
-                    <p className="font-black text-slate-800 text-sm">{ad.concept_name}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">{ad.status}</p>
+                    <p className="font-black text-slate-100 text-sm">{ad.concept_name}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase">{ad.status}</p>
                   </div>
                   <div className="flex gap-2">
                     {dueDateOverdueFlag && (
-                      <span className="text-[10px] font-black bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl">
+                      <span className="text-[10px] font-black bg-rose-500/20 text-rose-400 px-3 py-1.5 rounded-xl">
                         📅 Due {formatDueDate(ad.due_date)}
                       </span>
                     )}
                     {stuckFlag && (
-                      <span className="text-[10px] font-black bg-amber-100 text-amber-600 px-3 py-1.5 rounded-xl">
+                      <span className="text-[10px] font-black bg-amber-500/20 text-amber-400 px-3 py-1.5 rounded-xl">
                         {daysSince(ad.stage_updated_at || ad.created_at)}d stuck
                       </span>
                     )}
@@ -331,39 +324,39 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
 
       {/* Team Workload */}
       <div className="mb-8">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Team Workload</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Team Workload</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {teamWorkload.map(person => {
             const isPersonActive = activePeople.has(person.full_name);
             return (
-              <div key={person.id} className={`border-2 rounded-[20px] p-5 transition-all ${
-                isPersonActive ? "bg-indigo-50/30 border-indigo-200" : "bg-white border-slate-100"
+              <div key={person.id} className={`border rounded-[20px] p-5 transition-all ${
+                isPersonActive ? "bg-indigo-500/10 border-indigo-500/30" : "bg-white/5 border-white/10"
               }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-xs">
+                      <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center font-black text-indigo-400 text-xs">
                         {person.full_name?.charAt(0)?.toUpperCase()}
                       </div>
                       {isPersonActive && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#131314]" />
                       )}
                     </div>
                     <div>
-                      <p className="font-black text-slate-800 text-sm">{person.full_name}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase">{person.role}</p>
+                      <p className="font-black text-slate-100 text-sm">{person.full_name}</p>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase">{person.role}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {isPersonActive && (
-                      <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                         🟢 Working
                       </span>
                     )}
                     <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
-                      person.ads.length === 0 ? "bg-slate-100 text-slate-400" :
-                      person.ads.length >= 4 ? "bg-rose-100 text-rose-600" :
-                      "bg-emerald-100 text-emerald-600"
+                      person.ads.length === 0 ? "bg-white/10 text-slate-500" :
+                      person.ads.length >= 4 ? "bg-rose-500/20 text-rose-400" :
+                      "bg-emerald-500/20 text-emerald-400"
                     }`}>
                       {person.ads.length} active
                     </span>
@@ -377,43 +370,44 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                       const elapsedSeconds = isAdActive
                         ? Math.floor((new Date().getTime() - new Date(session.started_at).getTime()) / 1000)
                         : null;
+                      const isDoneWaiting = ad.status === "Done, Waiting for Approval";
                       return (
                         <div
                           key={ad.id}
                           onClick={() => onSelectAd(ad)}
                           className={`flex items-center justify-between text-[10px] rounded-lg px-3 py-2 cursor-pointer transition-colors ${
-                            isAdActive ? "bg-indigo-50 hover:bg-indigo-100" :
-                            ad.status === "Done, Waiting for Approval" ? "bg-emerald-50 border border-emerald-200 hover:bg-emerald-100" :
-                            "bg-slate-50 hover:bg-indigo-50"
+                            isAdActive ? "bg-indigo-500/20 hover:bg-indigo-500/30" :
+                            isDoneWaiting ? "bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20" :
+                            "bg-white/5 hover:bg-white/10"
                           }`}
                         >
-                          <span className="font-bold text-slate-600 truncate">{ad.concept_name}</span>
+                          <span className="font-bold text-slate-300 truncate">{ad.concept_name}</span>
                           <div className="flex items-center gap-2 ml-2 shrink-0">
-                            {isOverdue(ad.due_date) && <span className="text-rose-500">⚠️</span>}
+                            {isOverdue(ad.due_date) && <span className="text-rose-400">⚠️</span>}
                             {isAdActive && elapsedSeconds !== null && (
-                              <span className="font-black text-indigo-600 font-mono text-[9px] bg-indigo-100 px-1.5 py-0.5 rounded">
+                              <span className="font-black text-indigo-300 font-mono text-[9px] bg-indigo-500/20 px-1.5 py-0.5 rounded">
                                 ⏱️ {formatTimer ? formatTimer(elapsedSeconds) : fmtDuration(elapsedSeconds)}
                               </span>
                             )}
                             {session && !isAdActive && (
-                              <span className="font-black text-slate-400 text-[9px]">
+                              <span className="font-black text-slate-500 text-[9px]">
                                 last: {fmtDuration(session.total_seconds)}
                               </span>
                             )}
-                            <span className={`font-black ${ad.status === "Done, Waiting for Approval" ? "text-emerald-600" : "text-slate-400"}`}>
-                              {ad.status === "Done, Waiting for Approval" ? "✋ " + ad.status : ad.status}
+                            <span className={`font-black text-[9px] ${isDoneWaiting ? "text-emerald-400" : "text-slate-500"}`}>
+                              {isDoneWaiting ? "✋ " + ad.status : ad.status}
                             </span>
                           </div>
                         </div>
                       );
                     })}
                     {person.ads.length > 3 && (
-                      <p className="text-[9px] font-black text-slate-400 text-center pt-1">+{person.ads.length - 3} more</p>
+                      <p className="text-[9px] font-black text-slate-500 text-center pt-1">+{person.ads.length - 3} more</p>
                     )}
                   </div>
                 )}
                 {person.ads.length === 0 && (
-                  <p className="text-[10px] font-bold text-slate-300 text-center py-2">No active ads</p>
+                  <p className="text-[10px] font-bold text-slate-600 text-center py-2">No active ads</p>
                 )}
               </div>
             );
@@ -437,6 +431,9 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
   const revisionRequested = myAds.filter(ad => ["Brief Revision Required", "Ad Revision"].includes(ad.status))
     .sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
 
+  const doneWaitingApproval = ads.filter(ad => ad.status === "Done, Waiting for Approval")
+    .sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
+
   const myCompleted = ads.filter(ad => ad.status === "Completed" && ad.assigned_copywriter === currentUser);
   const winners = myCompleted.filter(ad => ad.result === "Winner").length;
   const hitRate = myCompleted.length > 0 ? Math.round((winners / myCompleted.length) * 100) : 0;
@@ -448,14 +445,14 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[900px] mx-auto w-full">
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 mb-1">My Dashboard</h2>
+          <h2 className="text-3xl font-black text-white mb-1">My Dashboard</h2>
           <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Strategist view</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => onNavigate?.("Ideas")} className="text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-100">
+          <button onClick={() => onNavigate?.("Ideas")} className="text-xs font-black text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-xl hover:bg-indigo-500/20 transition-all border border-indigo-500/20">
             + Log Idea
           </button>
-          <button onClick={onNewAd} className="text-xs font-black text-white bg-indigo-600 px-4 py-2 rounded-xl hover:bg-indigo-700 transition-all shadow-sm">
+          <button onClick={onNewAd} className="text-xs font-black text-white bg-indigo-500 px-4 py-2 rounded-xl hover:bg-indigo-400 transition-all shadow-sm">
             + New Ad
           </button>
         </div>
@@ -467,24 +464,32 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
           { label: "Hit Rate", val: hitRate + "%" },
           { label: "Avg Revisions", val: avgRevs },
         ].map((s, i) => (
-          <div key={i} className="bg-white border-2 border-slate-100 rounded-2xl p-4 text-center">
-            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">{s.label}</p>
-            <p className="text-xl font-black text-slate-800">{s.val}</p>
+          <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+            <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">{s.label}</p>
+            <p className="text-xl font-black text-white">{s.val}</p>
           </div>
         ))}
       </div>
 
-      <Section title="Needs Brief" count={needsBrief.length} color="bg-amber-100 text-amber-700" empty="No briefs needed right now">
+      <Section title="Needs Brief" count={needsBrief.length} color="bg-amber-500/20 text-amber-400" empty="No briefs needed right now">
         {needsBrief.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} session={activeSessions?.[ad.id]} formatTimer={formatTimer} />)}
       </Section>
-      <Section title="Awaiting My Review" count={awaitingReview.length} color="bg-indigo-100 text-indigo-700" empty="Nothing waiting for review">
+      <Section title="Awaiting My Review" count={awaitingReview.length} color="bg-indigo-500/20 text-indigo-400" empty="Nothing waiting for review">
         {awaitingReview.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} session={activeSessions?.[ad.id]} formatTimer={formatTimer} />)}
       </Section>
-      <Section title="Revision Requested" count={revisionRequested.length} color="bg-rose-100 text-rose-700" empty="No revisions requested">
+      <Section title="Done, Waiting for Approval" count={doneWaitingApproval.length} color="bg-emerald-500/20 text-emerald-400" empty="Nothing waiting for approval">
+        {doneWaitingApproval.map(ad => (
+          <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
+            session={activeSessions?.[ad.id]} formatTimer={formatTimer}
+            extra={<p className="text-[9px] font-bold text-emerald-400">✋ Submitted — awaiting approval</p>}
+          />
+        ))}
+      </Section>
+      <Section title="Revision Requested" count={revisionRequested.length} color="bg-rose-500/20 text-rose-400" empty="No revisions requested">
         {revisionRequested.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
             session={activeSessions?.[ad.id]} formatTimer={formatTimer}
-            extra={ad.status === "Ad Revision" ? <p className="text-[9px] font-black text-rose-500">Round {ad.revision_count || 1}/2</p> : undefined}
+            extra={ad.status === "Ad Revision" ? <p className="text-[9px] font-black text-rose-400">Round {ad.revision_count || 1}/2</p> : undefined}
           />
         ))}
       </Section>
@@ -523,53 +528,53 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[900px] mx-auto w-full">
       <div className="mb-6">
-        <h2 className="text-3xl font-black text-slate-800 mb-1">My Dashboard</h2>
+        <h2 className="text-3xl font-black text-white mb-1">My Dashboard</h2>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Editor view</p>
       </div>
 
       <div className="grid grid-cols-4 gap-3 mb-8">
-        <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 text-center">
-          <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">Completed This Month</p>
-          <p className="text-xl font-black text-slate-800">{completedThisMonth}</p>
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+          <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Completed This Month</p>
+          <p className="text-xl font-black text-white">{completedThisMonth}</p>
         </div>
-        <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 text-center">
-          <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">Avg Revision Rounds</p>
-          <p className="text-xl font-black text-slate-800">{avgRevs}</p>
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+          <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Avg Revision Rounds</p>
+          <p className="text-xl font-black text-white">{avgRevs}</p>
         </div>
-        <div className={`border-2 rounded-2xl p-4 text-center ${overdueCount > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-slate-100"}`}>
-          <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${overdueCount > 0 ? "text-rose-400" : "text-slate-400"}`}>Overdue</p>
-          <p className={`text-xl font-black ${overdueCount > 0 ? "text-rose-600" : "text-slate-300"}`}>{overdueCount}</p>
+        <div className={`border rounded-2xl p-4 text-center ${overdueCount > 0 ? "bg-rose-500/10 border-rose-500/20" : "bg-white/5 border-white/10"}`}>
+          <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${overdueCount > 0 ? "text-rose-400" : "text-slate-500"}`}>Overdue</p>
+          <p className={`text-xl font-black ${overdueCount > 0 ? "text-rose-400" : "text-slate-600"}`}>{overdueCount}</p>
         </div>
-        <div className={`border-2 rounded-2xl p-4 text-center ${activeSessionCount > 0 ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-100"}`}>
-          <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${activeSessionCount > 0 ? "text-indigo-400" : "text-slate-400"}`}>Active Sessions</p>
-          <p className={`text-xl font-black ${activeSessionCount > 0 ? "text-indigo-600" : "text-slate-300"}`}>{activeSessionCount}</p>
+        <div className={`border rounded-2xl p-4 text-center ${activeSessionCount > 0 ? "bg-indigo-500/10 border-indigo-500/20" : "bg-white/5 border-white/10"}`}>
+          <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${activeSessionCount > 0 ? "text-indigo-400" : "text-slate-500"}`}>Active Sessions</p>
+          <p className={`text-xl font-black ${activeSessionCount > 0 ? "text-indigo-400" : "text-slate-600"}`}>{activeSessionCount}</p>
         </div>
       </div>
 
-      <Section title="Waiting For Me" count={waitingForMe.length} color="bg-amber-100 text-amber-700" empty="Nothing waiting">
+      <Section title="Waiting For Me" count={waitingForMe.length} color="bg-amber-500/20 text-amber-400" empty="Nothing waiting">
         {waitingForMe.map(ad => <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)} session={activeSessions?.[ad.id]} formatTimer={formatTimer} />)}
       </Section>
-      <Section title="Currently Editing" count={currentlyEditing.length} color="bg-indigo-100 text-indigo-700" empty="Nothing in progress">
+      <Section title="Currently Editing" count={currentlyEditing.length} color="bg-indigo-500/20 text-indigo-400" empty="Nothing in progress">
         {currentlyEditing.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
             session={activeSessions?.[ad.id]} formatTimer={formatTimer}
-            extra={<p className="text-[9px] font-bold text-slate-400">{daysSince(ad.stage_updated_at || ad.created_at)} days in this stage</p>}
+            extra={<p className="text-[9px] font-bold text-slate-500">{daysSince(ad.stage_updated_at || ad.created_at)} days in this stage</p>}
           />
         ))}
       </Section>
-      <Section title="Done, Waiting for Approval" count={doneWaiting.length} color="bg-emerald-100 text-emerald-700" empty="Nothing submitted for review">
+      <Section title="Done, Waiting for Approval" count={doneWaiting.length} color="bg-emerald-500/20 text-emerald-400" empty="Nothing submitted for review">
         {doneWaiting.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
             session={activeSessions?.[ad.id]} formatTimer={formatTimer}
-            extra={<p className="text-[9px] font-bold text-emerald-600">✋ Submitted — awaiting for approval</p>}
+            extra={<p className="text-[9px] font-bold text-emerald-400">✋ Submitted — awaiting approval</p>}
           />
         ))}
       </Section>
-      <Section title="Revision Required" count={revisionRequired.length} color="bg-rose-100 text-rose-700" empty="No revisions needed">
+      <Section title="Revision Required" count={revisionRequired.length} color="bg-rose-500/20 text-rose-400" empty="No revisions needed">
         {revisionRequired.map(ad => (
           <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
             session={activeSessions?.[ad.id]} formatTimer={formatTimer}
-            extra={<p className="text-[9px] font-black text-rose-500">Round {ad.revision_count || 1}/2</p>}
+            extra={<p className="text-[9px] font-black text-rose-400">Round {ad.revision_count || 1}/2</p>}
           />
         ))}
       </Section>
@@ -586,14 +591,14 @@ function VADashboard({ ads, onSelectAd, activeSessions, formatTimer }: Props) {
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[900px] mx-auto w-full">
       <div className="mb-8">
-        <h2 className="text-3xl font-black text-slate-800 mb-1">Upload Queue</h2>
+        <h2 className="text-3xl font-black text-white mb-1">Upload Queue</h2>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">
           {pendingAds.length} ads pending upload — oldest first
         </p>
       </div>
 
       {pendingAds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+        <div className="flex flex-col items-center justify-center py-20 text-slate-600">
           <div className="text-6xl mb-4">✅</div>
           <p className="text-lg font-bold">All caught up!</p>
           <p className="text-sm font-medium">No ads pending upload right now</p>
@@ -603,31 +608,31 @@ function VADashboard({ ads, onSelectAd, activeSessions, formatTimer }: Props) {
           {pendingAds.map(ad => {
             const session = activeSessions?.[ad.id];
             return (
-              <div key={ad.id} className={`border-2 rounded-[20px] p-5 hover:shadow-md transition-all ${session ? "bg-indigo-50/30 border-indigo-200" : "bg-white border-slate-100 hover:border-indigo-200"}`}>
+              <div key={ad.id} className={`border rounded-[20px] p-5 hover:shadow-md transition-all ${session ? "bg-indigo-500/10 border-indigo-500/30" : "bg-white/5 border-white/10 hover:border-indigo-500/20"}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <p className="font-black text-slate-800 mb-1">{ad.concept_name}</p>
+                    <p className="font-black text-slate-100 mb-1">{ad.concept_name}</p>
                     <div className="flex flex-wrap gap-2 mb-3">
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">{ad.ad_format}</span>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-white/10 text-slate-400 rounded-md">{ad.ad_format}</span>
                       {ad.assigned_editor && (
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md">Editor: {ad.assigned_editor}</span>
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-md">Editor: {ad.assigned_editor}</span>
                       )}
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-600 rounded-md">{daysSince(ad.created_at)}d old</span>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-md">{daysSince(ad.created_at)}d old</span>
                     </div>
                     {ad.review_link && (
-                      <a href={ad.review_link} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 transition-colors" onClick={e => e.stopPropagation()}>
+                      <a href={ad.review_link} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors" onClick={e => e.stopPropagation()}>
                         View Review File ↗
                       </a>
                     )}
                     {session && formatTimer && (
-                      <div className="mt-2 inline-flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-xl">
+                      <div className="mt-2 inline-flex items-center gap-2 bg-indigo-500 text-white px-3 py-1.5 rounded-xl">
                         <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                         <span className="text-[9px] font-black uppercase tracking-widest">Session Active</span>
                         <span className="font-black text-sm font-mono">{formatTimer(session.elapsedSeconds)}</span>
                       </div>
                     )}
                   </div>
-                  <button onClick={() => onSelectAd(ad)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm shrink-0">
+                  <button onClick={() => onSelectAd(ad)} className="bg-emerald-500 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-sm shrink-0">
                     Mark Uploaded
                   </button>
                 </div>
@@ -649,22 +654,22 @@ function ContentCoordDashboard({ ads, onSelectAd, activeSessions, formatTimer }:
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto max-w-[900px] mx-auto w-full">
       <div className="mb-8">
-        <h2 className="text-3xl font-black text-slate-800 mb-1">My Queue</h2>
+        <h2 className="text-3xl font-black text-white mb-1">My Queue</h2>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Content Coordinator view</p>
       </div>
 
       {myAds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+        <div className="flex flex-col items-center justify-center py-20 text-slate-600">
           <div className="text-6xl mb-4">✅</div>
-          <p className="text-lg font-bold">All clear!</p>
-          <p className="text-sm">No content stages need attention right now</p>
+          <p className="text-lg font-bold text-slate-400">All clear!</p>
+          <p className="text-sm text-slate-500">No content stages need attention right now</p>
         </div>
       ) : (
         <div className="space-y-4">
           {myAds.map(ad => (
             <AdCard key={ad.id} ad={ad} onClick={() => onSelectAd(ad)}
               session={activeSessions?.[ad.id]} formatTimer={formatTimer}
-              extra={ad.status === "Content Revision Required" ? <p className="text-[9px] font-black text-rose-500 mt-1">Revision needed</p> : undefined}
+              extra={ad.status === "Content Revision Required" ? <p className="text-[9px] font-black text-rose-400 mt-1">Revision needed</p> : undefined}
             />
           ))}
         </div>

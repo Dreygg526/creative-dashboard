@@ -172,7 +172,6 @@ export default function PipelineView({
   const nextStages = useMemo(() => {
     const stages = [
       "Idea", "Writing Brief", "Brief Revision Required", "Brief Approved",
-      "Preparing Content", "Content Revision Required", "Content Ready",
       "Editor Assigned", "In Progress", "Ad Revision",
       "Pending Upload", "Testing", "Completed", "Killed"
     ];
@@ -182,7 +181,7 @@ export default function PipelineView({
   return (
     <>
       {/* Stage tabs */}
-      <div className="bg-white border-b border-slate-200 p-3 flex justify-center flex-wrap gap-2 overflow-x-auto">
+      <div className="bg-[#1e1f20] border-b border-white/10 p-3 flex justify-center flex-wrap gap-2 overflow-x-auto">
         {STAGES.map(stage => {
           const isArchived = ["Completed", "Killed"].includes(stage);
           const stageCount = ads.filter(ad => ad.status === stage).length;
@@ -192,17 +191,17 @@ export default function PipelineView({
               onClick={() => { setActiveStage(stage); setSelectedIds(new Set()); clearSelection(); }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tight transition-all
                 ${activeStage === stage
-                  ? "bg-slate-800 text-white shadow-md"
+                  ? "bg-indigo-500 text-white shadow-md"
                   : isArchived
-                  ? "bg-slate-50 text-slate-300 border border-slate-100 italic"
-                  : "bg-slate-100 text-slate-500 border border-slate-200"
+                  ? "bg-white/5 text-slate-600 border border-white/5 italic"
+                  : "bg-white/5 text-slate-400 border border-white/10 hover:text-slate-200"
                 }`}
             >
               {stage}
               <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${
-                activeStage === stage ? "bg-slate-700 text-white"
-                : isArchived ? "bg-slate-100 text-slate-300"
-                : "bg-white text-slate-400"
+                activeStage === stage ? "bg-indigo-600 text-white"
+                : isArchived ? "bg-white/5 text-slate-600"
+                : "bg-white/10 text-slate-400"
               }`}>
                 {stageCount}
               </span>
@@ -212,7 +211,7 @@ export default function PipelineView({
       </div>
 
       {/* Search + Filter Bar */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3">
+      <div className="bg-[#1e1f20] border-b border-white/10 px-4 py-3">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">
@@ -222,7 +221,7 @@ export default function PipelineView({
               <input
                 type="text"
                 placeholder="Search by name, product, editor, strategist..."
-                className="w-full pl-9 pr-4 py-2.5 border-2 border-slate-100 bg-slate-50 rounded-xl text-sm font-medium outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 text-slate-900"
+                className="w-full pl-9 pr-4 py-2.5 border-2 border-white/10 bg-white/5 rounded-xl text-sm font-medium outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600 text-slate-100"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -232,7 +231,7 @@ export default function PipelineView({
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest border-2 transition-all ${
                 showFilters || hasActiveFilters
                   ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                  : "bg-white/5 text-slate-400 border-white/10 hover:border-white/20"
               }`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -252,35 +251,35 @@ export default function PipelineView({
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Editor</label>
-                <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterEditor} onChange={e => setFilterEditor(e.target.value)}>
+               <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterEditor} onChange={e => setFilterEditor(e.target.value)}>
                   <option value="All">All Editors</option>
                   {editors.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Strategist</label>
-                <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterStrategist} onChange={e => setFilterStrategist(e.target.value)}>
+                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterStrategist} onChange={e => setFilterStrategist(e.target.value)}>
                   <option value="All">All Strategists</option>
                   {strategists.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Product</label>
-                <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterProduct} onChange={e => setFilterProduct(e.target.value)}>
+               <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterProduct} onChange={e => setFilterProduct(e.target.value)}>
                   <option value="All">All Products</option>
                   {products.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Format</label>
-                <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterFormat} onChange={e => setFilterFormat(e.target.value)}>
+                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterFormat} onChange={e => setFilterFormat(e.target.value)}>
                   <option value="All">All Formats</option>
                   {formats.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Priority</label>
-                <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
                   <option value="All">All Priorities</option>
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
@@ -289,7 +288,7 @@ export default function PipelineView({
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Ad Type</label>
-                <select className="w-full border-2 border-slate-100 bg-slate-50 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 text-slate-900" value={filterAdType} onChange={e => setFilterAdType(e.target.value)}>
+                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterAdType} onChange={e => setFilterAdType(e.target.value)}>
                   <option value="All">All Types</option>
                   <option value="New Concept">New Concept</option>
                   <option value="Iteration">Iteration</option>
@@ -306,16 +305,16 @@ export default function PipelineView({
       <div className="flex-1 p-4 md:p-8 overflow-y-auto max-w-[1200px] mx-auto w-full pb-32">
 
         {activeStage === "Completed" && (
-          <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+          <div className="bg-white/5 border-2 border-white/10 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <span className="text-xl">📦</span>
-            <p className="text-sm font-bold text-slate-500">These ads are archived. View the full Archive section for search and filters.</p>
+            <p className="text-sm font-bold text-slate-400">These ads are archived. View the full Archive section for search and filters.</p>
           </div>
         )}
 
         {activeStage === "Killed" && (
-          <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+          <div className="bg-rose-500/10 border-2 border-rose-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <span className="text-xl">💀</span>
-            <p className="text-sm font-bold text-rose-600">Killed ads are permanently deleted after 30 days.</p>
+            <p className="text-sm font-bold text-rose-400">Killed ads are permanently deleted after 30 days.</p>
           </div>
         )}
 
@@ -372,10 +371,10 @@ export default function PipelineView({
                   key={ad.id}
                   onClick={() => { if (!isSelected) setSelectedAd(ad); }}
                   className={`p-6 rounded-[24px] border-2 shadow-sm transition-all relative overflow-hidden cursor-pointer hover:scale-[1.01] hover:shadow-lg ${
-                    isSelected ? "border-indigo-400 ring-2 ring-indigo-200" :
-                    session ? "border-indigo-300 bg-indigo-50/20" :
-                    overdue ? "border-rose-300 bg-rose-50/30" :
-                    getCardColor(ad.status)
+                    isSelected ? "border-indigo-400 ring-2 ring-indigo-500/20 bg-indigo-500/10" :
+                    session ? "border-indigo-500/40 bg-indigo-500/10" :
+                    overdue ? "border-rose-500/40 bg-rose-500/10" :
+                    "border-white/10 bg-white/5 hover:border-indigo-500/30 hover:bg-white/8"
                   }`}
                 >
                   {isFounder && (
@@ -412,32 +411,30 @@ export default function PipelineView({
                   </div>
 
                   <div className="w-full">
-                    {ad.imprint_number && (
-                      <div className={`inline-flex items-center gap-1 mb-2 ${overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
-                        <span className="text-[9px] font-black text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md tracking-widest uppercase font-mono">
-                          #{String(ad.imprint_number).padStart(4, "0")}
-                        </span>
-                      </div>
-                    )}
-                    <p className={`font-black text-lg mb-3 text-slate-800 leading-snug ${ad.imprint_number ? "" : overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
+                    <p className={`font-black text-lg mb-3 text-slate-100 leading-snug ${overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
                       {ad.concept_name}
                     </p>
 
                     <div className="flex flex-wrap gap-2 mb-4">
-                      <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">{ad.ad_type}</span>
-                      <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">{ad.ad_format}</span>
+                      {ad.imprint_number && (
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-slate-900 text-amber-400 border border-slate-700 rounded-md uppercase font-mono">
+                          #{String(ad.imprint_number).padStart(4, "0")}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-black px-2 py-0.5 bg-white/10 text-slate-400 border border-white/10 rounded-md uppercase">{ad.ad_type}</span>
+                      <span className="text-[10px] font-black px-2 py-0.5 bg-white/10 text-slate-400 border border-white/10 rounded-md uppercase">{ad.ad_format}</span>
                       {ad.assigned_editor && (
-                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/10 text-slate-400 border border-white/10 rounded-md uppercase">
                           ✂️ {ad.assigned_editor}
                         </span>
                       )}
                       {ad.assigned_copywriter && (
-                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/10 text-slate-400 border border-white/10 rounded-md uppercase">
                           ✍️ {ad.assigned_copywriter}
                         </span>
                       )}
                       {ad.product && (
-                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/60 text-slate-500 border border-slate-200 rounded-md uppercase">
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-white/10 text-slate-400 border border-white/10 rounded-md uppercase">
                           📦 {ad.product}
                         </span>
                       )}
@@ -453,20 +450,20 @@ export default function PipelineView({
 
                     {ad.status === "Testing" && testingDaysLeft !== null && (
                       <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 ${
-                        testingDaysLeft <= 2 ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-700"
+                        testingDaysLeft <= 2 ? "bg-rose-500/20 text-rose-400" : "bg-emerald-500/20 text-emerald-400"
                       }`}>
                         🧪 {testingDaysLeft > 0 ? `${testingDaysLeft}d left in testing` : "Testing complete"}
                       </div>
                     )}
 
                     {isStale && (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 bg-amber-100 text-amber-700">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 bg-amber-500/20 text-amber-400">
                         ⏳ {daysInStage}d in this stage
                       </div>
                     )}
 
                     {(ad.revision_count ?? 0) > 0 && (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 bg-slate-100 text-slate-500 ml-2">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 bg-white/10 text-slate-400 ml-2">
                         🔄 {ad.revision_count} revision{(ad.revision_count ?? 0) !== 1 ? "s" : ""}
                       </div>
                     )}
@@ -486,7 +483,7 @@ export default function PipelineView({
                     )}
 
                     {/* Bottom row */}
-                    <div className="mt-4 pt-3 border-t border-slate-900/5 flex items-center justify-between">
+                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
                       <span className={`text-[10px] font-bold uppercase ${isStale ? "text-rose-600 font-black" : "text-slate-400"}`}>
                         ⏱️ {daysInStage}d in stage
                       </span>
