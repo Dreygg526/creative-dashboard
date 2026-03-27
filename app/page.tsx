@@ -51,7 +51,7 @@ export default function App() {
     updateUserRole, deactivateUser
   } = useAuth(supabase);
 
-  const currentUser = profile?.full_name || profile?.email || "User";
+  const currentUser = (profile?.full_name || profile?.email || "User").trim();
   const currentRole = profile?.role || "Editor";
 
   const isFounder = currentRole === "Founder";
@@ -193,7 +193,7 @@ export default function App() {
         console.log("🔔 TARGET:", payload.new.target_user);
         console.log("🔔 CURRENT USER:", currentUserRef.current);
         console.log("🔔 MATCH:", payload.new.target_user === currentUserRef.current);
-        if (payload.new.target_user === currentUserRef.current) {
+        if (payload.new.target_user?.trim() === currentUserRef.current?.trim()) {
           console.log("🔊 PLAYING SOUND NOW");
           playNotificationSoundRef.current();
           fetchNotificationsRef.current();
