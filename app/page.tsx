@@ -341,17 +341,18 @@ useEffect(() => {
   const stageChanged = originalAd && selectedAd.status !== originalAd.status;
 
   if (stageChanged && !isFounder) {
-    // Stop timer and notify on Done, Waiting for Approval
+    // These stages have dedicated recipients in useAds.ts — don't double-notify founder
+    const founderOnlyStages = ["In Progress", "Killed"];
+    const editorStages = ["Editor Assigned", "Ad Revision", "Brief Approved"];
+    const strategistStages = ["Brief Revision Required", "Testing", "Completed"];
+    const skipFounderNotify = [...editorStages, ...strategistStages, "Done, Waiting for Approval", "Pending Upload"];
+
     if (selectedAd.status === "Done, Waiting for Approval") {
+      // Stop timer — useAds.ts handles the notification
       const session = activeSessions[selectedAd.id];
       if (session) await finishSession(selectedAd.id);
-      await notifyFounder(
-        selectedAd.id,
-        selectedAd.concept_name,
-        `✋ ${currentUser} submitted "${selectedAd.concept_name}" — Done, Waiting for Approval`
-      );
-    } else {
-      // Notify founder on ANY stage change by non-founder
+    } else if (!skipFounderNotify.includes(selectedAd.status)) {
+      // Only notify founder for stages not already handled
       await notifyFounder(
         selectedAd.id,
         selectedAd.concept_name,
