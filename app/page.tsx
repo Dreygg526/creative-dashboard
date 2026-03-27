@@ -38,10 +38,12 @@ type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "
 export default function App() {
   const { supabase, libError } = useSupabaseClient();
   const { isAudioUnlocked, unlockAudio, playNotificationSound } = useAudio();
+
   const playNotificationSoundRef = useRef(playNotificationSound);
-useEffect(() => {
-  playNotificationSoundRef.current = playNotificationSound;
-}, [playNotificationSound]);
+  useEffect(() => {
+    playNotificationSoundRef.current = playNotificationSound;
+  }, [playNotificationSound]);
+
   const {
     user, profile, authLoading,
     signIn, signOut, resetPassword,
@@ -75,7 +77,6 @@ useEffect(() => {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  // ── PRODUCTS LIST ──
   const [products, setProducts] = useState<string[]>([]);
 
   const loadProducts = async () => {
@@ -132,6 +133,11 @@ useEffect(() => {
     markNotificationRead,
     handleClearAllNotifications
   } = useNotifications(supabase, currentUser, ads, setSelectedAd);
+
+  const fetchNotificationsRef = useRef(fetchNotifications);
+  useEffect(() => {
+    fetchNotificationsRef.current = fetchNotifications;
+  }, [fetchNotifications]);
 
   const {
     hitRate, inTesting,
@@ -190,7 +196,7 @@ useEffect(() => {
         if (payload.new.target_user === currentUserRef.current) {
           console.log("🔊 PLAYING SOUND NOW");
           playNotificationSoundRef.current();
-          fetchNotifications();
+          fetchNotificationsRef.current();
         }
       })
       .subscribe((status: string) => {
@@ -208,14 +214,14 @@ useEffect(() => {
     };
   }, [supabase, user?.id]);
 
-  useEffect(() => { if (supabase && user) fetchNotifications(); }, [currentUser, supabase, user]);
+  useEffect(() => { if (supabase && user) fetchNotificationsRef.current(); }, [currentUser, supabase, user]);
 
   const myQueue = useMemo(() => {
     const queue = ads.filter(ad => {
       if (isVA) return ad.status === "Pending Upload";
       if (isStrategist) return ["Ad Revision", "Testing", "Done, Waiting for Approval"].includes(ad.status);
       if (isContentCoord) return ["Preparing Content", "Content Revision Required"].includes(ad.status);
-     if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Done, Waiting for Approval", "Content Revision Required", "Ad Revision"].includes(ad.status);
+      if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Done, Waiting for Approval", "Content Revision Required", "Ad Revision"].includes(ad.status);
       return false;
     });
     return queue.sort((a, b) => {
@@ -316,53 +322,49 @@ useEffect(() => {
   };
 
   const notifyFounder = async (adId: string, adName: string, message?: string) => {
-  const { data: founders } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("role", "Founder")
-    .eq("is_active", true)
-    .limit(1);
-  const founderName = founders?.[0]?.full_name;
-  if (founderName) {
-    await supabase.from("notifications").insert([{
-      ad_id: adId,
-      message: message || `✅ ${currentUser} finished working on "${adName}"`,
-      target_user: founderName,
-      is_read: false
-    }]);
-  }
-};
+    const { data: founders } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("role", "Founder")
+      .eq("is_active", true)
+      .limit(1);
+    const founderName = founders?.[0]?.full_name;
+    if (founderName) {
+      await supabase.from("notifications").insert([{
+        ad_id: adId,
+        message: message || `✅ ${currentUser} finished working on "${adName}"`,
+        target_user: founderName,
+        is_read: false
+      }]);
+    }
+  };
 
   const handleUpdateAdWithSession = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!selectedAd) return;
+    e.preventDefault();
+    if (!selectedAd) return;
 
-  const originalAd = ads.find(a => a.id === selectedAd.id);
-  const stageChanged = originalAd && selectedAd.status !== originalAd.status;
+    const originalAd = ads.find(a => a.id === selectedAd.id);
+    const stageChanged = originalAd && selectedAd.status !== originalAd.status;
 
-  if (stageChanged && !isFounder) {
-    // These stages have dedicated recipients in useAds.ts — don't double-notify founder
-    const founderOnlyStages = ["In Progress", "Killed"];
-    const editorStages = ["Editor Assigned", "Ad Revision", "Brief Approved"];
-    const strategistStages = ["Brief Revision Required", "Testing", "Completed"];
-    const skipFounderNotify = [...editorStages, ...strategistStages, "Done, Waiting for Approval", "Pending Upload"];
+    if (stageChanged && !isFounder) {
+      const editorStages = ["Editor Assigned", "Ad Revision", "Brief Approved"];
+      const strategistStages = ["Brief Revision Required", "Testing", "Completed"];
+      const skipFounderNotify = [...editorStages, ...strategistStages, "Done, Waiting for Approval", "Pending Upload"];
 
-    if (selectedAd.status === "Done, Waiting for Approval") {
-      // Stop timer — useAds.ts handles the notification
-      const session = activeSessions[selectedAd.id];
-      if (session) await finishSession(selectedAd.id);
-    } else if (!skipFounderNotify.includes(selectedAd.status)) {
-      // Only notify founder for stages not already handled
-      await notifyFounder(
-        selectedAd.id,
-        selectedAd.concept_name,
-        `🔄 ${currentUser} moved "${selectedAd.concept_name}" → ${selectedAd.status}`
-      );
+      if (selectedAd.status === "Done, Waiting for Approval") {
+        const session = activeSessions[selectedAd.id];
+        if (session) await finishSession(selectedAd.id);
+      } else if (!skipFounderNotify.includes(selectedAd.status)) {
+        await notifyFounder(
+          selectedAd.id,
+          selectedAd.concept_name,
+          `🔄 ${currentUser} moved "${selectedAd.concept_name}" → ${selectedAd.status}`
+        );
+      }
     }
-  }
 
-  handleUpdateAd(e);
-};
+    handleUpdateAd(e);
+  };
 
   const navItems: ViewMode[] = isFounder
     ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
@@ -381,10 +383,10 @@ useEffect(() => {
     <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
   );
   if (!user) return (
-  <div onClick={unlockAudio} onKeyDown={unlockAudio}>
-    <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
-  </div>
-);
+    <div onClick={unlockAudio} onKeyDown={unlockAudio}>
+      <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
+    </div>
+  );
   if (!supabase) return (
     <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
   );
@@ -401,7 +403,7 @@ useEffect(() => {
 
             <div className="flex justify-between items-center w-full lg:w-auto">
               <div className="flex items-center gap-3">
-               <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">Creative Ops</h1>
+                <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">Creative Ops</h1>
                 <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
               </div>
 
@@ -507,12 +509,12 @@ useEffect(() => {
                   </div>
                   <span className={`text-[10px] transition-transform ${isUserDropdownOpen ? "rotate-180" : ""}`}>▼</span>
                   <button
-  onClick={e => { e.stopPropagation(); unlockAudio(); playNotificationSound(); }}
-  className={`ml-1 p-1 rounded-md transition-all ${isAudioUnlocked ? "text-emerald-400" : "text-slate-500 animate-pulse"}`}
-  title={isAudioUnlocked ? "Sound ON" : "Click to enable sounds"}
->
-  {isAudioUnlocked ? "🔊" : "🔇"}
-</button>
+                    onClick={e => { e.stopPropagation(); unlockAudio(); playNotificationSound(); }}
+                    className={`ml-1 p-1 rounded-md transition-all ${isAudioUnlocked ? "text-emerald-400" : "text-slate-500 animate-pulse"}`}
+                    title={isAudioUnlocked ? "Sound ON" : "Click to enable sounds"}
+                  >
+                    {isAudioUnlocked ? "🔊" : "🔇"}
+                  </button>
                 </div>
                 {isUserDropdownOpen && (
                   <div className="absolute top-full right-0 mt-2 w-48 bg-[#2a2b2c] border border-white/10 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
@@ -539,7 +541,7 @@ useEffect(() => {
               </div>
 
               <div className="hidden lg:relative lg:block">
-                <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="text-xl p-2 hover:bg-slate-100 rounded-full relative transition-colors">
+                <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="text-xl p-2 hover:bg-white/5 rounded-full relative transition-colors">
                   🔔
                   {unreadCount > 0 && (
                     <span className="absolute top-1 right-1 bg-rose-500 text-white text-[9px] min-w-[16px] h-[16px] flex items-center justify-center font-black rounded-full ring-2 ring-white animate-bounce">
