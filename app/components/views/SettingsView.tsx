@@ -14,12 +14,12 @@ interface Props {
 const ROLES = ["Founder", "Strategist", "Editor", "Graphic Designer", "Content Coordinator", "VA"];
 
 const ROLE_STYLES: Record<string, string> = {
-  "Founder": "bg-indigo-100 text-indigo-700 border-indigo-200",
-  "Strategist": "bg-violet-100 text-violet-700 border-violet-200",
-  "Editor": "bg-amber-100 text-amber-700 border-amber-200",
-  "Graphic Designer": "bg-emerald-100 text-emerald-700 border-emerald-200",
-  "Content Coordinator": "bg-rose-100 text-rose-700 border-rose-200",
-  "VA": "bg-slate-100 text-slate-600 border-slate-200",
+  "Founder": "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+  "Strategist": "bg-violet-500/20 text-violet-300 border-violet-500/30",
+  "Editor": "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  "Graphic Designer": "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  "Content Coordinator": "bg-rose-500/20 text-rose-300 border-rose-500/30",
+  "VA": "bg-white/10 text-slate-400 border-white/10",
 };
 
 export default function SettingsView({
@@ -40,7 +40,6 @@ export default function SettingsView({
   const [inviteSuccess, setInviteSuccess] = useState(false);
   const [inviteError, setInviteError] = useState("");
 
-  // Product management
   const [products, setProducts] = useState<string[]>([]);
   const [newProduct, setNewProduct] = useState("");
   const [isSavingProduct, setIsSavingProduct] = useState(false);
@@ -127,17 +126,34 @@ export default function SettingsView({
     await loadUsers();
   };
 
- const handleSaveName = async (userId: string) => {
+  const handleSaveName = async (userId: string) => {
     if (!editingNameValue.trim()) return;
     setIsSavingName(true);
+
+    const oldName = users.find(u => u.id === userId)?.full_name || "";
+    const newName = editingNameValue.trim();
+
+    // Update profile name
     await supabase
       .from("profiles")
-      .update({ full_name: editingNameValue.trim() })
+      .update({ full_name: newName })
       .eq("id", userId);
+
+    // Sync all ads that reference the old name
+    if (oldName && oldName !== newName) {
+      await supabase.from("ads").update({ assigned_editor: newName }).eq("assigned_editor", oldName);
+      await supabase.from("ads").update({ assigned_copywriter: newName }).eq("assigned_copywriter", oldName);
+    }
+
     setEditingNameId(null);
     setEditingNameValue("");
     setIsSavingName(false);
     await loadUsers();
+
+    // If founder changed their own name, reload to refresh currentUser
+    if (userId === currentProfile.id) {
+      window.location.reload();
+    }
   };
 
   return (
@@ -146,7 +162,7 @@ export default function SettingsView({
       {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 mb-1">Settings</h2>
+          <h2 className="text-3xl font-black text-white mb-1">Settings</h2>
           <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">
             Manage team accounts and access
           </p>
@@ -154,7 +170,7 @@ export default function SettingsView({
         {isFounder && (
           <button
             onClick={() => setIsInviteOpen(!isInviteOpen)}
-            className="bg-indigo-600 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm"
+            className="bg-indigo-500 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-400 transition-all shadow-sm"
           >
             + Invite User
           </button>
@@ -163,30 +179,29 @@ export default function SettingsView({
 
       {/* ── PRODUCT MANAGER ── */}
       {isFounder && (
-        <div className="bg-white border-2 border-slate-100 rounded-[28px] p-6 mb-8 shadow-sm">
+        <div className="bg-white/5 border border-white/10 rounded-[28px] p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Product List</p>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">These appear as dropdown options when creating or editing ads</p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">These appear as dropdown options when creating or editing ads</p>
             </div>
             {productMsg && (
-              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+              <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
                 ✓ {productMsg}
               </span>
             )}
           </div>
 
-          {/* Existing products */}
           <div className="flex flex-wrap gap-2 mb-4">
             {products.length === 0 ? (
-              <p className="text-[11px] text-slate-300 font-bold italic">No products added yet</p>
+              <p className="text-[11px] text-slate-600 font-bold italic">No products added yet</p>
             ) : (
               products.map(p => (
-                <div key={p} className="flex items-center gap-1.5 bg-slate-50 border-2 border-slate-100 px-3 py-1.5 rounded-xl group">
-                  <span className="text-[11px] font-black text-slate-700">{p}</span>
+                <div key={p} className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl group">
+                  <span className="text-[11px] font-black text-slate-300">{p}</span>
                   <button
                     onClick={() => handleRemoveProduct(p)}
-                    className="text-[9px] text-slate-300 hover:text-rose-500 font-black opacity-0 group-hover:opacity-100 transition-all ml-1"
+                    className="text-[9px] text-slate-600 hover:text-rose-400 font-black opacity-0 group-hover:opacity-100 transition-all ml-1"
                   >
                     ✕
                   </button>
@@ -195,12 +210,11 @@ export default function SettingsView({
             )}
           </div>
 
-          {/* Add new product */}
           <div className="flex gap-2">
             <input
               type="text"
               placeholder="Add new product (e.g. NAC)"
-              className="flex-1 border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-bold outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 text-slate-900"
+              className="flex-1 border-2 border-white/10 bg-white/5 p-3 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600 text-slate-100"
               value={newProduct}
               onChange={e => setNewProduct(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddProduct(); } }}
@@ -208,7 +222,7 @@ export default function SettingsView({
             <button
               onClick={handleAddProduct}
               disabled={!newProduct.trim() || isSavingProduct}
-              className="bg-indigo-600 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-40 shadow-sm"
+              className="bg-indigo-500 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-400 transition-all disabled:opacity-40 shadow-sm"
             >
               {isSavingProduct ? "..." : "Add"}
             </button>
@@ -218,22 +232,22 @@ export default function SettingsView({
 
       {/* Invite Form */}
       {isInviteOpen && isFounder && (
-        <form onSubmit={handleInvite} className="bg-white border-2 border-slate-100 rounded-[28px] p-6 mb-8 shadow-sm">
+        <form onSubmit={handleInvite} className="bg-white/5 border border-white/10 rounded-[28px] p-6 mb-8">
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">
             Invite New Team Member
           </p>
 
           {inviteSuccess && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-4">
-              <p className="text-emerald-600 font-black text-sm">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 mb-4">
+              <p className="text-emerald-400 font-black text-sm">
                 ✓ Invite sent! They will receive an email to set their password.
               </p>
             </div>
           )}
 
           {inviteError && (
-            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-4">
-              <p className="text-rose-600 font-bold text-sm">{inviteError}</p>
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 mb-4">
+              <p className="text-rose-400 font-bold text-sm">{inviteError}</p>
             </div>
           )}
 
@@ -244,7 +258,7 @@ export default function SettingsView({
                 required
                 type="text"
                 placeholder="John Doe"
-                className="w-full border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-medium outline-none focus:border-indigo-400 transition-all"
+                className="w-full border-2 border-white/10 bg-white/5 p-3 rounded-2xl text-sm font-medium outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600 text-slate-100"
                 value={inviteFullName}
                 onChange={e => setInviteFullName(e.target.value)}
               />
@@ -255,7 +269,7 @@ export default function SettingsView({
                 required
                 type="email"
                 placeholder="john@example.com"
-                className="w-full border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-medium outline-none focus:border-indigo-400 transition-all"
+                className="w-full border-2 border-white/10 bg-white/5 p-3 rounded-2xl text-sm font-medium outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600 text-slate-100"
                 value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
               />
@@ -263,7 +277,7 @@ export default function SettingsView({
             <div>
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Role</label>
               <select
-                className="w-full border-2 border-slate-100 bg-slate-50 p-3 rounded-2xl text-sm font-black outline-none focus:border-indigo-400 transition-all"
+                className="w-full border-2 border-white/10 bg-[#2a2b2c] p-3 rounded-2xl text-sm font-black outline-none focus:border-indigo-500 transition-all text-slate-100"
                 value={inviteRole}
                 onChange={e => setInviteRole(e.target.value)}
               >
@@ -275,14 +289,14 @@ export default function SettingsView({
             <button
               type="button"
               onClick={() => setIsInviteOpen(false)}
-              className="text-sm font-bold text-slate-400 px-4 py-2 hover:bg-slate-50 rounded-xl"
+              className="text-sm font-bold text-slate-500 px-4 py-2 hover:bg-white/5 rounded-xl"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isInviting}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50"
+              className="bg-indigo-500 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-400 transition-all disabled:opacity-50"
             >
               {isInviting ? "Sending..." : "Send Invite"}
             </button>
@@ -292,21 +306,25 @@ export default function SettingsView({
 
       {/* Users List */}
       <div className="space-y-3">
-        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">
+        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-4">
           Team Members ({users.length})
         </p>
         {users.length === 0 ? (
-          <div className="border-2 border-dashed border-slate-200 rounded-[20px] p-12 text-center text-slate-300 font-bold">
+          <div className="border-2 border-dashed border-white/10 rounded-[20px] p-12 text-center text-slate-600 font-bold">
             No team members yet
           </div>
         ) : (
           users.map(u => (
             <div
               key={u.id}
-              className={`bg-white border-2 rounded-[20px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${!u.is_active ? "opacity-50" : "border-slate-100 hover:border-slate-200"}`}
+              className={`border rounded-[20px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${
+                !u.is_active
+                  ? "opacity-50 bg-white/5 border-white/5"
+                  : "bg-white/5 border-white/10 hover:border-white/20"
+              }`}
             >
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-sm">
+                <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center font-black text-indigo-400 text-sm">
                   {u.full_name?.charAt(0)?.toUpperCase() || u.email?.charAt(0)?.toUpperCase()}
                 </div>
                 <div>
@@ -314,7 +332,7 @@ export default function SettingsView({
                     <div className="flex items-center gap-2">
                       <input
                         autoFocus
-                        className="border-2 border-indigo-400 bg-slate-50 px-3 py-1.5 rounded-xl text-sm font-black outline-none text-slate-900 w-40"
+                        className="border-2 border-indigo-500 bg-white/5 px-3 py-1.5 rounded-xl text-sm font-black outline-none text-slate-100 w-40"
                         value={editingNameValue}
                         onChange={e => setEditingNameValue(e.target.value)}
                         onKeyDown={e => {
@@ -325,24 +343,24 @@ export default function SettingsView({
                       <button
                         onClick={() => handleSaveName(u.id)}
                         disabled={isSavingName}
-                        className="text-[10px] font-black text-white bg-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-40"
+                        className="text-[10px] font-black text-white bg-indigo-500 px-3 py-1.5 rounded-xl hover:bg-indigo-400 transition-all disabled:opacity-40"
                       >
                         {isSavingName ? "..." : "Save"}
                       </button>
                       <button
                         onClick={() => { setEditingNameId(null); setEditingNameValue(""); }}
-                        className="text-[10px] font-black text-slate-400 hover:text-slate-600 px-2 py-1.5 rounded-xl"
+                        className="text-[10px] font-black text-slate-500 hover:text-slate-300 px-2 py-1.5 rounded-xl"
                       >
                         Cancel
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 group">
-                      <p className="font-black text-slate-800">{u.full_name || "No name"}</p>
+                      <p className="font-black text-slate-100">{u.full_name || "No name"}</p>
                       {isFounder && (
                         <button
                           onClick={() => { setEditingNameId(u.id); setEditingNameValue(u.full_name || ""); }}
-                          className="text-[9px] text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-all font-black"
+                          className="text-[9px] text-slate-600 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all font-black"
                           title="Edit name"
                         >
                           ✏️
@@ -350,12 +368,12 @@ export default function SettingsView({
                       )}
                     </div>
                   )}
-                  <p className="text-[11px] text-slate-400 font-medium">{u.email}</p>
+                  <p className="text-[11px] text-slate-500 font-medium">{u.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 {!u.is_active && (
-                  <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 border border-slate-200">
+                  <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-full bg-white/5 text-slate-500 border border-white/10">
                     Deactivated
                   </span>
                 )}
@@ -364,21 +382,21 @@ export default function SettingsView({
                     <select
                       value={u.role}
                       onChange={e => handleRoleChange(u.id, e.target.value)}
-                      className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 outline-none cursor-pointer ${ROLE_STYLES[u.role] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                      className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 outline-none cursor-pointer bg-[#2a2b2c] ${ROLE_STYLES[u.role] || "text-slate-400 border-white/10"}`}
                     >
                       {ROLES.map(r => <option key={r}>{r}</option>)}
                     </select>
                     {u.is_active && (
                       <button
                         onClick={() => handleDeactivate(u.id)}
-                        className="text-[10px] font-black text-slate-300 hover:text-rose-500 px-3 py-2 rounded-xl hover:bg-rose-50 transition-all uppercase tracking-widest"
+                        className="text-[10px] font-black text-slate-600 hover:text-rose-400 px-3 py-2 rounded-xl hover:bg-rose-500/10 transition-all uppercase tracking-widest"
                       >
                         Remove
                       </button>
                     )}
                   </>
                 ) : (
-                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 ${ROLE_STYLES[u.role] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 ${ROLE_STYLES[u.role] || "text-slate-400 border-white/10"}`}>
                     {u.role}
                   </span>
                 )}
