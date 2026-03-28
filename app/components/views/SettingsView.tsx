@@ -29,6 +29,9 @@ export default function SettingsView({
   const isFounder = currentProfile.role === "Founder";
 
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteFullName, setInviteFullName] = useState("");
@@ -121,6 +124,19 @@ export default function SettingsView({
   const handleDeactivate = async (userId: string) => {
     if (!confirm("Are you sure you want to deactivate this user?")) return;
     await onDeactivateUser(userId);
+    await loadUsers();
+  };
+
+ const handleSaveName = async (userId: string) => {
+    if (!editingNameValue.trim()) return;
+    setIsSavingName(true);
+    await supabase
+      .from("profiles")
+      .update({ full_name: editingNameValue.trim() })
+      .eq("id", userId);
+    setEditingNameId(null);
+    setEditingNameValue("");
+    setIsSavingName(false);
     await loadUsers();
   };
 
@@ -294,7 +310,46 @@ export default function SettingsView({
                   {u.full_name?.charAt(0)?.toUpperCase() || u.email?.charAt(0)?.toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-black text-slate-800">{u.full_name || "No name"}</p>
+                  {editingNameId === u.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        autoFocus
+                        className="border-2 border-indigo-400 bg-slate-50 px-3 py-1.5 rounded-xl text-sm font-black outline-none text-slate-900 w-40"
+                        value={editingNameValue}
+                        onChange={e => setEditingNameValue(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") handleSaveName(u.id);
+                          if (e.key === "Escape") { setEditingNameId(null); setEditingNameValue(""); }
+                        }}
+                      />
+                      <button
+                        onClick={() => handleSaveName(u.id)}
+                        disabled={isSavingName}
+                        className="text-[10px] font-black text-white bg-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-40"
+                      >
+                        {isSavingName ? "..." : "Save"}
+                      </button>
+                      <button
+                        onClick={() => { setEditingNameId(null); setEditingNameValue(""); }}
+                        className="text-[10px] font-black text-slate-400 hover:text-slate-600 px-2 py-1.5 rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 group">
+                      <p className="font-black text-slate-800">{u.full_name || "No name"}</p>
+                      {isFounder && (
+                        <button
+                          onClick={() => { setEditingNameId(u.id); setEditingNameValue(u.full_name || ""); }}
+                          className="text-[9px] text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-all font-black"
+                          title="Edit name"
+                        >
+                          ✏️
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <p className="text-[11px] text-slate-400 font-medium">{u.email}</p>
                 </div>
               </div>
