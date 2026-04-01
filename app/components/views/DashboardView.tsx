@@ -62,7 +62,7 @@ function AdCard({ ad, onClick, showDays = true, extra, session, formatTimer }: {
 }) {
   const days = daysSince(ad.stage_updated_at || ad.created_at);
   const isStale = days >= 5;
-  const overdue = isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status);
+  const overdue = isOverdue(ad.due_date) && !["Winner", "Killed"].includes(ad.status);
   const dueDate = formatDueDate(ad.due_date);
   const isActive = !!session;
 
@@ -151,7 +151,7 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
 
   useEffect(() => {
     if (!supabase) return;
-    const activeAds = ads.filter(a => !["Completed", "Killed"].includes(a.status));
+    const activeAds = ads.filter(a => !["Winner", "Killed"].includes(a.status));
     if (activeAds.length === 0) return;
 
     const fetchSessions = async () => {
@@ -176,11 +176,11 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
 
   const overdueAds = ads.filter(ad => {
     const days = daysSince(ad.stage_updated_at || ad.created_at);
-    return days >= 5 && !["Completed", "Killed", "Testing"].includes(ad.status);
+    return days >= 5 && !["Winner", "Killed", "Testing"].includes(ad.status);
   }).sort((a, b) => daysSince(b.stage_updated_at || b.created_at) - daysSince(a.stage_updated_at || a.created_at));
 
   const dueDateOverdue = ads.filter(ad =>
-    isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status)
+    isOverdue(ad.due_date) && !["Winner", "Killed"].includes(ad.status)
   );
 
   const allOverdue = Array.from(new Set([...overdueAds, ...dueDateOverdue].map(a => a.id)))
@@ -188,7 +188,7 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
     .filter(Boolean)
     .sort((a, b) => daysSince(b.stage_updated_at || b.created_at) - daysSince(a.stage_updated_at || a.created_at));
 
-  const activeAds = ads.filter(a => !["Completed", "Killed"].includes(a.status));
+  const activeAds = ads.filter(a => !["Winner", "Killed"].includes(a.status));
 
   const teamWorkload = useMemo(() => {
     if (!allProfiles) return [];
@@ -291,7 +291,7 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
           </p>
           <div className="space-y-3">
             {allOverdue.slice(0, 5).map(ad => {
-              const dueDateOverdueFlag = isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status);
+              const dueDateOverdueFlag = isOverdue(ad.due_date) && !["Winner", "Killed"].includes(ad.status);
               const stuckFlag = daysSince(ad.stage_updated_at || ad.created_at) >= 5;
               return (
                 <div
@@ -434,9 +434,9 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
   const doneWaitingApproval = ads.filter(ad => ad.status === "Done, Waiting for Approval")
     .sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
 
-  const myCompleted = ads.filter(ad => ad.status === "Completed" && ad.assigned_copywriter === currentUser);
-  const winners = myCompleted.filter(ad => ad.result === "Winner").length;
-  const hitRate = myCompleted.length > 0 ? Math.round((winners / myCompleted.length) * 100) : 0;
+  const myWinner = ads.filter(ad => ad.status === "Winner" && ad.assigned_copywriter === currentUser);
+  const winners = myWinner.filter(ad => ad.result === "Winner").length;
+  const hitRate = myWinner.length > 0 ? Math.round((winners / myWinner.length) * 100) : 0;
   const avgRevs = myAds.length > 0
     ? (myAds.reduce((sum, ad) => sum + (ad.revision_count || 0), 0) / myAds.length).toFixed(1)
     : "0.0";
@@ -460,7 +460,7 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
 
       <div className="grid grid-cols-3 gap-3 mb-8">
         {[
-          { label: "In Progress", val: myAds.filter(a => !["Completed", "Killed"].includes(a.status)).length },
+          { label: "In Progress", val: myAds.filter(a => !["Winner", "Killed"].includes(a.status)).length },
           { label: "Hit Rate", val: hitRate + "%" },
           { label: "Avg Revisions", val: avgRevs },
         ].map((s, i) => (
@@ -512,14 +512,14 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
 
   const thisMonth = new Date();
   thisMonth.setDate(1);
-  const completedThisMonth = myAds.filter(ad =>
-    ad.status === "Completed" && new Date(ad.stage_updated_at) >= thisMonth
+  const WinnerThisMonth = myAds.filter(ad =>
+    ad.status === "Winner" && new Date(ad.stage_updated_at) >= thisMonth
   ).length;
   const avgRevs = myAds.length > 0
     ? (myAds.reduce((sum, ad) => sum + (ad.revision_count || 0), 0) / myAds.length).toFixed(1)
     : "0.0";
   const overdueCount = myAds.filter(ad =>
-    isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status)
+    isOverdue(ad.due_date) && !["Winner", "Killed"].includes(ad.status)
   ).length;
   const activeSessionCount = Object.keys(activeSessions || {}).filter(adId =>
     myAds.some(ad => ad.id === adId)
@@ -534,8 +534,8 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
 
       <div className="grid grid-cols-4 gap-3 mb-8">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-          <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Completed This Month</p>
-          <p className="text-xl font-black text-white">{completedThisMonth}</p>
+          <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Winner This Month</p>
+          <p className="text-xl font-black text-white">{WinnerThisMonth}</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
           <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Avg Revision Rounds</p>

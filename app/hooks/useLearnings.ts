@@ -59,16 +59,16 @@ export function useLearnings(supabase: any, currentUser: string, ads: Ad[]) {
     fetchLearnings();
   };
 
-  const completedAdsForLearnings = useMemo(() =>
-    ads.filter(a => a.status === "Completed" || a.status === "Killed"),
+  const WinnerAdsForLearnings = useMemo(() =>
+    ads.filter(a => a.status === "Winner" || a.status === "Killed"),
   [ads]);
 
   const filteredAdSearch = useMemo(() => {
-    if (!adSearchQuery.trim()) return completedAdsForLearnings.slice(0, 8);
-    return completedAdsForLearnings
+    if (!adSearchQuery.trim()) return WinnerAdsForLearnings.slice(0, 8);
+    return WinnerAdsForLearnings
       .filter(a => a.concept_name.toLowerCase().includes(adSearchQuery.toLowerCase()))
       .slice(0, 8);
-  }, [completedAdsForLearnings, adSearchQuery]);
+  }, [WinnerAdsForLearnings, adSearchQuery]);
 
   const filteredLearnings = useMemo(() => {
     if (learningsFilter === "All") return learnings;

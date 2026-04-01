@@ -173,7 +173,7 @@ export default function PipelineView({
     const stages = [
       "Idea", "Writing Brief", "Brief Revision Required", "Brief Approved",
       "Editor Assigned", "In Progress", "Ad Revision",
-      "Pending Upload", "Testing", "Completed", "Killed"
+      "Pending Upload", "Testing", "Winner", "Killed"
     ];
     return stages.filter(s => s !== activeStage);
   }, [activeStage]);
@@ -183,7 +183,7 @@ export default function PipelineView({
       {/* Stage tabs */}
       <div className="bg-[#1e1f20] border-b border-white/10 p-3 flex justify-center flex-wrap gap-2 overflow-x-auto">
         {STAGES.map(stage => {
-          const isArchived = ["Completed", "Killed"].includes(stage);
+          const isArchived = ["Winner", "Killed"].includes(stage);
           const stageCount = ads.filter(ad => ad.status === stage).length;
           return (
             <button
@@ -304,7 +304,7 @@ export default function PipelineView({
       {/* Cards */}
       <div className="flex-1 p-4 md:p-8 overflow-y-auto max-w-[1200px] mx-auto w-full pb-32">
 
-        {activeStage === "Completed" && (
+        {activeStage === "Winner" && (
           <div className="bg-white/5 border-2 border-white/10 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <span className="text-xl">📦</span>
             <p className="text-sm font-bold text-slate-400">These ads are archived. View the full Archive section for search and filters.</p>
@@ -358,8 +358,8 @@ export default function PipelineView({
             {filteredAds.map(ad => {
               const daysInStage = Math.floor((new Date().getTime() - new Date(ad.stage_updated_at || ad.created_at).getTime()) / (1000 * 3600 * 24));
               const testingDaysLeft = getDaysLeftInTesting(ad.live_date);
-              const isStale = daysInStage >= 5 && !["Testing", "Completed", "Killed"].includes(ad.status);
-              const overdue = isOverdue(ad.due_date) && !["Completed", "Killed"].includes(ad.status);
+              const isStale = daysInStage >= 5 && !["Testing", "Winner", "Killed"].includes(ad.status);
+              const overdue = isOverdue(ad.due_date) && !["Winner", "Killed"].includes(ad.status);
               const dueDate = formatDueDate(ad.due_date);
               const isSelected = selectedIds.has(ad.id);
               const daysUntilDeletion = ad.status === "Killed" ? getDaysUntilDeletion(ad.killed_at) : null;
@@ -411,16 +411,18 @@ export default function PipelineView({
                   </div>
 
                   <div className="w-full">
-                    <p className={`font-black text-lg mb-3 text-slate-100 leading-snug ${overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
-                      {ad.concept_name}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <div className={`flex items-baseline gap-3 mb-3 ${overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
                       {ad.imprint_number && (
-                        <span className="text-[10px] font-black px-2 py-0.5 bg-slate-900 text-amber-400 border border-slate-700 rounded-md uppercase font-mono">
+                        <span className="text-sm font-black font-mono text-amber-400 bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-md shrink-0">
                           #{String(ad.imprint_number).padStart(4, "0")}
                         </span>
                       )}
+                      <p className="font-black text-lg text-slate-100 leading-snug">
+                        {ad.concept_name}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
                       <span className="text-[10px] font-black px-2 py-0.5 bg-white/10 text-slate-400 border border-white/10 rounded-md uppercase">{ad.ad_type}</span>
                       <span className="text-[10px] font-black px-2 py-0.5 bg-white/10 text-slate-400 border border-white/10 rounded-md uppercase">{ad.ad_format}</span>
                       {ad.assigned_editor && (

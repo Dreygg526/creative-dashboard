@@ -9,15 +9,15 @@ export function useKPIs(ads: Ad[]) {
 
     const volWk = adsCreatedThisWeek.length;
 
-    const completedWithResult = ads.filter(ad => ad.status === "Completed" && ad.result);
-    const winners = completedWithResult.filter(ad => ad.result === "Winner").length;
-    const hitRate = completedWithResult.length > 0
-      ? Math.round((winners / completedWithResult.length) * 100)
+    const WinnerWithResult = ads.filter(ad => ad.status === "Winner" && ad.result);
+    const winners = WinnerWithResult.filter(ad => ad.result === "Winner").length;
+    const hitRate = WinnerWithResult.length > 0
+      ? Math.round((winners / WinnerWithResult.length) * 100)
       : 0;
 
-    const completedAds = ads.filter(ad => ad.status === "Completed");
-    const avgRevs = completedAds.length > 0
-      ? (completedAds.reduce((sum, ad) => sum + (ad.revision_count || 0), 0) / completedAds.length).toFixed(1)
+    const WinnerAds = ads.filter(ad => ad.status === "Winner");
+    const avgRevs = WinnerAds.length > 0
+      ? (WinnerAds.reduce((sum, ad) => sum + (ad.revision_count || 0), 0) / WinnerAds.length).toFixed(1)
       : "0.0";
 
     const inTesting = ads.filter(ad => ad.status === "Testing").length;

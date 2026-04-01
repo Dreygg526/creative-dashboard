@@ -192,7 +192,7 @@ export default function App() {
         console.log("🔔 NOTIF FIRED", payload.new);
         console.log("🔔 TARGET:", payload.new.target_user);
         console.log("🔔 CURRENT USER:", currentUserRef.current);
-        console.log("🔔 MATCH:", payload.new.target_user === currentUserRef.current);
+        console.log("🔔 MATCH:", payload.new.target_user?.trim() === currentUserRef.current?.trim());
         if (payload.new.target_user?.trim() === currentUserRef.current?.trim()) {
           console.log("🔊 PLAYING SOUND NOW");
           playNotificationSoundRef.current();
@@ -214,7 +214,9 @@ export default function App() {
     };
   }, [supabase, user?.id]);
 
-  useEffect(() => { if (supabase && user) fetchNotificationsRef.current(); }, [currentUser, supabase, user]);
+  useEffect(() => {
+    if (supabase && user) fetchNotificationsRef.current();
+  }, [currentUser, supabase, user]);
 
   const myQueue = useMemo(() => {
     const queue = ads.filter(ad => {
@@ -245,7 +247,7 @@ export default function App() {
           ad.assigned_copywriter === p ||
           (p === "VA" && ad.status === "Pending Upload") ||
           (p === "Strategist" && ["Ad Revision", "Testing", "Done, Waiting for Approval"].includes(ad.status))) &&
-        !["Completed", "Killed"].includes(ad.status)
+        !["Winner", "Killed"].includes(ad.status)
       );
     });
     return result;
@@ -276,6 +278,12 @@ export default function App() {
       .filter(p => p.role === "Strategist" && p.is_active)
       .map((p: any) => p.full_name)
       .sort();
+  }, [allProfiles]);
+
+  const allStrategistProfiles = useMemo(() => {
+    return allProfiles
+      .filter(p => (p.role === "Strategist" || p.role === "Founder") && p.is_active)
+      .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
   }, [allProfiles]);
 
   const handleBulkReassign = async (adIds: string[], editor: string) => {
@@ -348,7 +356,7 @@ export default function App() {
 
     if (stageChanged && !isFounder) {
       const editorStages = ["Editor Assigned", "Ad Revision", "Brief Approved"];
-      const strategistStages = ["Brief Revision Required", "Testing", "Completed"];
+      const strategistStages = ["Brief Revision Required", "Testing", "Winner"];
       const skipFounderNotify = [...editorStages, ...strategistStages, "Done, Waiting for Approval", "Pending Upload"];
 
       if (selectedAd.status === "Done, Waiting for Approval") {
@@ -708,6 +716,7 @@ export default function App() {
           currentRole={currentRole}
           currentUser={currentUser}
           allEditorProfiles={allEditorProfiles}
+          allStrategistProfiles={allStrategistProfiles}
           products={products}
         />
       )}
@@ -732,11 +741,11 @@ export default function App() {
           allEditors={allEditors}
           allEditorProfiles={allEditorProfiles}
           allStrategists={allStrategists}
+          allStrategistProfiles={allStrategistProfiles}
           supabase={supabase}
           activeSession={getSessionForAd(selectedAd.id, selectedAd)}
           onFinishSession={async () => {
             await finishSession(selectedAd.id);
-            await notifyFounder(selectedAd.id, selectedAd.concept_name);
           }}
           fetchSessionsForAd={fetchSessionsForAd}
           fetchAllSessions={fetchAllSessions}
@@ -745,5 +754,5 @@ export default function App() {
         />
       )}
     </div>
-  );
+  );     
 }

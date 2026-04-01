@@ -22,6 +22,7 @@ interface Props {
   allEditors?: string[];
   allEditorProfiles?: EditorProfile[];
   allStrategists?: string[];
+  allStrategistProfiles?: EditorProfile[];
   supabase: any;
   activeSession?: { sessionId: string; elapsedSeconds: number; startedAt: string } | null;
   onFinishSession?: () => void;
@@ -316,7 +317,8 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
 export default function AdDetailModal({
   selectedAd, ads, manualLogNote, setManualLogNote,
   setSelectedAd, onUpdate, onDelete,
-  currentRole, currentUser, allEditors = [], allEditorProfiles = [], allStrategists = [], supabase,
+  currentRole, currentUser, allEditors = [], allEditorProfiles = [],
+  allStrategists = [], allStrategistProfiles = [], supabase,
   activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer,
   products = []
 }: Props) {
@@ -326,8 +328,8 @@ export default function AdDetailModal({
   const originalAd = ads.find(a => a.id === selectedAd.id);
   const originalAdStatus = originalAd?.status || selectedAd.status;
   const revisionLimitReached = originalAdStatus === "Ad Revision" && (originalAd?.revision_count || 0) >= 2;
-  const overdue = isOverdue(selectedAd.due_date) && !["Completed", "Killed"].includes(selectedAd.status);
-  const showResult = ["Testing", "Completed"].includes(originalAdStatus);
+  const overdue = isOverdue(selectedAd.due_date) && !["Winner", "Killed"].includes(selectedAd.status);
+  const showResult = ["Testing", "Winner"].includes(originalAdStatus);
 
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
@@ -339,7 +341,7 @@ export default function AdDetailModal({
 
   const getAllowedTransitions = () => {
     if (isFounder) {
-      return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Completed", "Killed"]
+      return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Winner", "Killed"]
         .filter(s => s !== originalAdStatus)
         .filter(s => !(s === "Ad Revision" && revisionLimitReached));
     }
@@ -679,7 +681,14 @@ export default function AdDetailModal({
                 {canReassign ? (
                   <select className={selectClass} value={selectedAd.assigned_copywriter || ""} onChange={e => setSelectedAd({ ...selectedAd, assigned_copywriter: e.target.value })}>
                     <option value="">— Unassigned —</option>
-                    {allStrategists.map(name => <option key={name} value={name}>{name}</option>)}
+                    {allStrategistProfiles.length > 0
+                      ? allStrategistProfiles.map(p => (
+                          <option key={p.full_name} value={p.full_name}>
+                            {p.full_name} ({p.role})
+                          </option>
+                        ))
+                      : allStrategists.map(name => <option key={name} value={name}>{name}</option>)
+                    }
                   </select>
                 ) : (
                   <input disabled className="w-full border-2 border-white/5 p-3 rounded-xl text-sm bg-white/5 font-bold text-slate-600 cursor-not-allowed" value={selectedAd.assigned_copywriter || "Unassigned"} />

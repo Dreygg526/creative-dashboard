@@ -45,25 +45,21 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
 
   if (showForgot) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-xl border border-slate-100">
+      <div className="min-h-screen bg-[#131314] flex items-center justify-center p-4">
+        <div className="bg-[#1e1f20] border border-white/10 rounded-[32px] p-8 w-full max-w-md shadow-2xl">
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-black text-slate-800 mb-2">Reset Password</h1>
-            <p className="text-slate-500 text-sm font-medium">
-              Enter your email and we'll send you a reset link
-            </p>
+            <h1 className="text-2xl font-black text-white mb-2">Reset Password</h1>
+            <p className="text-slate-500 text-sm font-medium">Enter your email and we'll send you a reset link</p>
           </div>
 
           {forgotSent ? (
             <div className="text-center">
               <div className="text-5xl mb-4">📧</div>
-              <p className="font-black text-slate-800 mb-2">Check your email!</p>
-              <p className="text-slate-500 text-sm mb-6">
-                We sent a password reset link to {forgotEmail}
-              </p>
+              <p className="font-black text-white mb-2">Check your email!</p>
+              <p className="text-slate-500 text-sm mb-6">We sent a password reset link to {forgotEmail}</p>
               <button
                 onClick={() => { setShowForgot(false); setForgotSent(false); }}
-                className="text-indigo-600 font-black text-sm hover:text-indigo-700"
+                className="text-indigo-400 font-black text-sm hover:text-indigo-300 transition-colors"
               >
                 Back to Login
               </button>
@@ -71,8 +67,8 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
           ) : (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               {error && (
-                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
-                  <p className="text-rose-600 text-sm font-bold">{error}</p>
+                <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4">
+                  <p className="text-rose-400 text-sm font-bold">{error}</p>
                 </div>
               )}
               <div>
@@ -80,7 +76,7 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
                 <input
                   required
                   type="email"
-                  className="w-full border-2 border-slate-100 bg-slate-50 p-4 rounded-2xl text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300"
+                  className="w-full border-2 border-white/10 bg-white/5 p-4 rounded-2xl text-sm font-medium text-slate-100 outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600"
                   placeholder="your@email.com"
                   value={forgotEmail}
                   onChange={e => setForgotEmail(e.target.value)}
@@ -89,14 +85,14 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
               <button
                 type="submit"
                 disabled={forgotLoading}
-                className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
+                className="w-full bg-indigo-500 text-white py-4 rounded-2xl font-black text-sm hover:bg-indigo-400 transition-all shadow-sm disabled:opacity-50"
               >
                 {forgotLoading ? "Sending..." : "Send Reset Link"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowForgot(false)}
-                className="w-full text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors"
+                className="w-full text-slate-500 font-bold text-sm hover:text-slate-300 transition-colors"
               >
                 Back to Login
               </button>
@@ -108,48 +104,38 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-xl border border-slate-100">
-
-        {/* Header */}
+    <div className="min-h-screen bg-[#131314] flex items-center justify-center p-4">
+      <div className="bg-[#1e1f20] border border-white/10 rounded-[32px] p-8 w-full max-w-md shadow-2xl">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-black text-slate-800 mb-1">Creative Ops</h1>
-          <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">
-            Sign in to your account
-          </p>
+          <h1 className="text-3xl font-black text-white mb-1">Creative Ops</h1>
+          <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Sign in to your account</p>
         </div>
 
-        {/* Error */}
         {error && (
-          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-6">
-            <p className="text-rose-600 text-sm font-bold">{error}</p>
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 mb-6">
+            <p className="text-rose-400 text-sm font-bold">{error}</p>
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">
-              Email
-            </label>
+            <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Email</label>
             <input
               required
               type="email"
-              className="w-full border-2 border-slate-100 bg-slate-50 p-4 rounded-2xl text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300"
+              className="w-full border-2 border-white/10 bg-white/5 p-4 rounded-2xl text-sm font-medium text-slate-100 outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600"
               placeholder="your@email.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">
-              Password
-            </label>
+            <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Password</label>
             <div className="relative">
               <input
                 required
                 type={showPassword ? "text" : "password"}
-                className="w-full border-2 border-slate-100 bg-slate-50 p-4 rounded-2xl text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 pr-12"
+                className="w-full border-2 border-white/10 bg-white/5 p-4 rounded-2xl text-sm font-medium text-slate-100 outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600 pr-12"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -157,7 +143,7 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               >
                 {showPassword ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,17 +162,16 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50 mt-2"
+            className="w-full bg-indigo-500 text-white py-4 rounded-2xl font-black text-sm hover:bg-indigo-400 transition-all shadow-sm disabled:opacity-50 mt-2"
           >
             {isLoading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        {/* Forgot password */}
         <div className="mt-4 text-center">
           <button
             onClick={() => { setShowForgot(true); setError(""); }}
-            className="text-slate-400 font-bold text-sm hover:text-indigo-600 transition-colors"
+            className="text-slate-500 font-bold text-sm hover:text-indigo-400 transition-colors"
           >
             Forgot your password?
           </button>

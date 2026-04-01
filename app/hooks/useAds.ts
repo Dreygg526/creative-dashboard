@@ -227,7 +227,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
             // Notify assigned strategist
             await insertNotification(selectedAd.assigned_copywriter || "", msg);
 
-          } else if (selectedAd.status === "Completed") {
+          } else if (selectedAd.status === "Winner") {
             // Notify assigned strategist
             await insertNotification(selectedAd.assigned_copywriter || "", msg);
 

@@ -76,15 +76,15 @@ export async function GET(request: Request) {
     const inTesting = ads.filter(a => a.status === "Testing").length;
     const pendingUpload = ads.filter(a => a.status === "Pending Upload").length;
 
-    const completed = ads.filter(a => a.status === "Completed");
-    const winners = completed.filter(a => a.result === "Winner").length;
-    const hitRate = completed.length > 0
-      ? Math.round((winners / completed.length) * 100)
+    const Winner = ads.filter(a => a.status === "Winner");
+    const winners = Winner.filter(a => a.result === "Winner").length;
+    const hitRate = Winner.length > 0
+      ? Math.round((winners / Winner.length) * 100)
       : 0;
 
     const overdueAds = ads.filter(ad => {
       if (!ad.due_date) return false;
-      if (["Completed", "Killed"].includes(ad.status)) return false;
+      if (["Winner", "Killed"].includes(ad.status)) return false;
       return new Date(ad.due_date) < now;
     });
 

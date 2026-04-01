@@ -9,7 +9,7 @@ export function getDaysLeftInTesting(liveDate: string): number {
 export function getCardColor(status: string): string {
   if (status.includes("Revision") || status === "Killed") return "bg-rose-50 border-rose-200";
   if (["Idea", "In Progress", "Testing", "Preparing Content"].includes(status)) return "bg-amber-50 border-amber-200";
-  if (["Completed", "Brief Approved", "Content Ready", "Pending Upload"].includes(status)) return "bg-emerald-50 border-emerald-200";
+  if (["Winner", "Brief Approved", "Content Ready", "Pending Upload"].includes(status)) return "bg-emerald-50 border-emerald-200";
   return "bg-white border-slate-200";
 }
 
