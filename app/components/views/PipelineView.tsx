@@ -108,7 +108,7 @@ export default function PipelineView({
     return ads.filter(ad => {
       if (ad.status !== activeStage) return false;
       if (search.trim()) {
-        const q = search.toLowerCase().replace(/^#/, "");
+        const q = search.toLowerCase().replace(/^#/, "").replace(/^dtc\s*/i, "");
         const imprintStr = ad.imprint_number ? String(ad.imprint_number).padStart(4, "0") : "";
         const imprintMatch = imprintStr.includes(q) || String(ad.imprint_number || "").includes(q);
         if (
@@ -251,7 +251,7 @@ export default function PipelineView({
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Editor</label>
-               <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterEditor} onChange={e => setFilterEditor(e.target.value)}>
+                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterEditor} onChange={e => setFilterEditor(e.target.value)}>
                   <option value="All">All Editors</option>
                   {editors.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
@@ -265,7 +265,7 @@ export default function PipelineView({
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Product</label>
-               <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterProduct} onChange={e => setFilterProduct(e.target.value)}>
+                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterProduct} onChange={e => setFilterProduct(e.target.value)}>
                   <option value="All">All Products</option>
                   {products.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
@@ -365,6 +365,7 @@ export default function PipelineView({
               const daysUntilDeletion = ad.status === "Killed" ? getDaysUntilDeletion(ad.killed_at) : null;
               const myTask = isMyAd(ad, currentRole, currentUser);
               const session = activeSessions?.[ad.id];
+              const isKilled = ad.status === "Killed";
 
               return (
                 <div
@@ -398,7 +399,7 @@ export default function PipelineView({
                     </div>
                   )}
 
-                  {ad.status === "Killed" && daysUntilDeletion !== null && (
+                  {isKilled && daysUntilDeletion !== null && (
                     <div className={`absolute top-0 left-0 right-0 text-white text-[9px] font-black uppercase tracking-widest text-center py-1 ${
                       daysUntilDeletion <= 5 ? "bg-rose-600" : "bg-slate-700"
                     }`}>
@@ -406,16 +407,23 @@ export default function PipelineView({
                     </div>
                   )}
 
-                  <div className={`absolute top-0 right-0 px-3 py-1 text-[9px] font-black uppercase rounded-bl-xl ${getPriorityBadge(ad.priority)}`}>
+                  <div className="absolute top-0 right-0 px-3 py-1 text-[9px] font-black uppercase rounded-bl-xl ${getPriorityBadge(ad.priority)}">
                     {ad.priority}
                   </div>
 
                   <div className="w-full">
-                    <div className={`flex items-baseline gap-3 mb-3 ${overdue || ad.status === "Killed" ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
+                    <div className={`flex items-baseline gap-3 mb-3 ${overdue || isKilled ? "mt-6" : isFounder ? "mt-2 ml-6" : "mt-2"}`}>
                       {ad.imprint_number && (
-                        <span className="text-sm font-black font-mono text-amber-400 bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-md shrink-0">
-                          #{String(ad.imprint_number).padStart(4, "0")}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-sm font-black font-mono text-amber-400 bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-md">
+                            DTC #{String(ad.imprint_number).padStart(4, "0")}
+                          </span>
+                          {isKilled && (
+                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                              KILLED
+                            </span>
+                          )}
+                        </div>
                       )}
                       <p className="font-black text-lg text-slate-100 leading-snug">
                         {ad.concept_name}
@@ -484,7 +492,6 @@ export default function PipelineView({
                       </div>
                     )}
 
-                    {/* Bottom row */}
                     <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
                       <span className={`text-[10px] font-bold uppercase ${isStale ? "text-rose-600 font-black" : "text-slate-400"}`}>
                         ⏱️ {daysInStage}d in stage

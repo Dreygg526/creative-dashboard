@@ -42,13 +42,14 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
     return data?.[0]?.full_name || "";
   };
 
-  // Gets next imprint number scoped by ad_format
-  // Video Ad #1, Static Ad #1, Native Ad #1 — each counts independently
+  // Gets next imprint number scoped by ad_format, excluding killed ads
+  // So if #0023 is killed, next new ad gets #0023 (reuses the freed number)
   const getNextImprintNumber = async (adFormat: string): Promise<number> => {
     const { data, error } = await supabase
       .from("ads")
       .select("imprint_number")
       .eq("ad_format", adFormat)
+      .neq("status", "Killed")
       .not("imprint_number", "is", null)
       .order("imprint_number", { ascending: false })
       .limit(1);
@@ -72,7 +73,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
     if (isEditor) autoAssignedEditor = currentUser;
     if (isStrategist) autoAssignedCopywriter = currentUser;
 
-    // Imprint number is per-format
     const imprintNumber = await getNextImprintNumber(newAd.ad_format || "Video Ad");
 
     const { error } = await supabase.from("ads").insert([{
@@ -108,7 +108,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       const statusChanged = originalAd.status !== selectedAd.status;
 
       if (statusChanged) {
-        // Revision cap applies to EVERYONE including Founder
         if (selectedAd.status === "Ad Revision" && (originalAd.revision_count || 0) >= 2) {
           alert("Maximum revision rounds reached. This ad cannot be sent back again.");
           return;
@@ -155,7 +154,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           if (selectedAd.status === "Killed") newKilledAt = new Date().toISOString();
           if (selectedAd.status !== "Killed") newKilledAt = null;
 
-          // Helper to get all active strategists
           const getAllStrategists = async (): Promise<string[]> => {
             const { data } = await supabase
               .from("profiles")
@@ -165,7 +163,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
             return (data || []).map((p: any) => p.full_name).filter(Boolean);
           };
 
-          // Helper to get founder name
           const getFounderName = async (): Promise<string> => {
             const { data } = await supabase
               .from("profiles")
@@ -189,50 +186,31 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           const msg = `${selectedAd.concept_name} moved to ${selectedAd.status}`;
 
           if (selectedAd.status === "Brief Revision Required") {
-            // Notify assigned strategist
             await insertNotification(selectedAd.assigned_copywriter || "", msg);
-
           } else if (selectedAd.status === "Brief Approved") {
-            // Notify assigned editor
             await insertNotification(selectedAd.assigned_editor || "", msg);
-
           } else if (selectedAd.status === "Editor Assigned") {
-            // Notify assigned editor
             await insertNotification(selectedAd.assigned_editor || "", msg);
-
           } else if (selectedAd.status === "In Progress") {
-            // Notify founder
             const founder = await getFounderName();
             await insertNotification(founder, msg);
-
           } else if (selectedAd.status === "Done, Waiting for Approval") {
-            // Notify founder + ALL active strategists
             const founder = await getFounderName();
             await insertNotification(founder, `✋ ${selectedAd.concept_name} — Done, Waiting for Approval`);
             const strategists = await getAllStrategists();
             for (const name of strategists) {
               await insertNotification(name, `✋ ${selectedAd.concept_name} — Done, Waiting for Approval`);
             }
-
           } else if (selectedAd.status === "Ad Revision") {
-            // Notify assigned editor
             await insertNotification(selectedAd.assigned_editor || "", msg);
-
           } else if (selectedAd.status === "Pending Upload") {
-            // Notify VA
             const va = await getProfileByRole("VA");
             await insertNotification(va, msg);
-
           } else if (selectedAd.status === "Testing") {
-            // Notify assigned strategist
             await insertNotification(selectedAd.assigned_copywriter || "", msg);
-
           } else if (selectedAd.status === "Winner") {
-            // Notify assigned strategist
             await insertNotification(selectedAd.assigned_copywriter || "", msg);
-
           } else if (selectedAd.status === "Killed") {
-            // Notify founder
             const founder = await getFounderName();
             await insertNotification(founder, `💀 ${selectedAd.concept_name} was killed`);
           }
@@ -250,7 +228,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           assigned_copywriter: isFounder ? selectedAd.assigned_copywriter : originalAd.assigned_copywriter,
           assigned_editor: isFounder ? selectedAd.assigned_editor : originalAd.assigned_editor,
           brief_link: selectedAd.brief_link,
-          // ALL roles can now rename the concept name
           concept_name: selectedAd.concept_name,
           content_source: selectedAd.content_source,
           due_date: selectedAd.due_date || null,
