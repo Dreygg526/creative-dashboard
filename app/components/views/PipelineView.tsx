@@ -178,6 +178,8 @@ export default function PipelineView({
     return stages.filter(s => s !== activeStage);
   }, [activeStage]);
 
+  const filterSelectClass = "w-full border-2 border-white/10 bg-[#2a2b2c] p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100";
+
   return (
     <>
       {/* Stage tabs */}
@@ -251,35 +253,35 @@ export default function PipelineView({
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Editor</label>
-                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterEditor} onChange={e => setFilterEditor(e.target.value)}>
+                <select className={filterSelectClass} value={filterEditor} onChange={e => setFilterEditor(e.target.value)}>
                   <option value="All">All Editors</option>
                   {editors.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Strategist</label>
-                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterStrategist} onChange={e => setFilterStrategist(e.target.value)}>
+                <select className={filterSelectClass} value={filterStrategist} onChange={e => setFilterStrategist(e.target.value)}>
                   <option value="All">All Strategists</option>
                   {strategists.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Product</label>
-                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterProduct} onChange={e => setFilterProduct(e.target.value)}>
+                <select className={filterSelectClass} value={filterProduct} onChange={e => setFilterProduct(e.target.value)}>
                   <option value="All">All Products</option>
                   {products.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Format</label>
-                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterFormat} onChange={e => setFilterFormat(e.target.value)}>
+                <select className={filterSelectClass} value={filterFormat} onChange={e => setFilterFormat(e.target.value)}>
                   <option value="All">All Formats</option>
                   {formats.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Priority</label>
-                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+                <select className={filterSelectClass} value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
                   <option value="All">All Priorities</option>
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
@@ -288,7 +290,7 @@ export default function PipelineView({
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Ad Type</label>
-                <select className="w-full border-2 border-white/10 bg-white/5 p-2.5 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 text-slate-100" value={filterAdType} onChange={e => setFilterAdType(e.target.value)}>
+                <select className={filterSelectClass} value={filterAdType} onChange={e => setFilterAdType(e.target.value)}>
                   <option value="All">All Types</option>
                   <option value="New Concept">New Concept</option>
                   <option value="Iteration">Iteration</option>
@@ -407,7 +409,7 @@ export default function PipelineView({
                     </div>
                   )}
 
-                  <div className="absolute top-0 right-0 px-3 py-1 text-[9px] font-black uppercase rounded-bl-xl ${getPriorityBadge(ad.priority)}">
+                  <div className="absolute top-0 right-0 px-3 py-1 text-[9px] font-black uppercase rounded-bl-xl">
                     {ad.priority}
                   </div>
 
