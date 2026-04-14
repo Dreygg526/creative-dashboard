@@ -55,7 +55,11 @@ export function MyQueueView({ currentUser, myQueue, setSelectedAd, activeSession
                 }`}
               >
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className={`w-3 h-12 rounded-full shrink-0 ${getPriorityBadge(ad.priority)}`}></div>
+                  <div className={`w-3 h-12 rounded-full shrink-0 ${
+                    ad.priority === "High" ? "priority-high" :
+                    ad.priority === "Medium" ? "priority-medium" :
+                    "priority-low"
+                  }`}></div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-black uppercase text-indigo-400 mb-1">{ad.status}</p>
                     <h3 className="text-xl font-black text-slate-100 truncate">{ad.concept_name}</h3>
@@ -123,7 +127,11 @@ export function ManagerView({ workloads, setSelectedAd }: ManagerProps) {
                 }`}>{ad.status === "Done, Waiting for Approval" ? "✋ " + ad.status : ad.status}</p>
                 <p className="font-bold text-slate-200 leading-tight">{ad.concept_name}</p>
                 <div className="mt-3 flex justify-between items-center">
-                  <div className={`w-2 h-2 rounded-full ${getPriorityBadge(ad.priority)}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${
+                    ad.priority === "High" ? "bg-rose-500" :
+                    ad.priority === "Medium" ? "bg-amber-400" :
+                    "bg-slate-500"
+                  }`}></div>
                   <p className="text-[9px] font-black text-slate-500">{Math.floor((new Date().getTime() - new Date(ad.stage_updated_at || ad.created_at).getTime()) / (1000 * 3600 * 24))}d</p>
                 </div>
               </div>

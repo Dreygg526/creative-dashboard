@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+@source "../app/**/*.{ts,tsx}";
+
+@utility priority-high {
+  background-color: rgb(239 68 68);
+  color: white;
+}
+
+@utility priority-medium {
+  background-color: rgb(251 191 36);
+  color: rgb(15 23 42);
+}
+
+@utility priority-low {
+  background-color: rgb(100 116 139);
+  color: white;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

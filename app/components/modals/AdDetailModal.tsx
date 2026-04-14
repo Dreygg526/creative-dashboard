@@ -246,7 +246,11 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
             <EditableTitle value={selectedAd.concept_name} onChange={v => setSelectedAd({ ...selectedAd, concept_name: v })} />
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full uppercase border border-indigo-500/20">{selectedAd.status}</span>
-              <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${getPriorityBadge(selectedAd.priority)}`}>{selectedAd.priority} Priority</span>
+              <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${
+                selectedAd.priority === "High" ? "priority-high" :
+                selectedAd.priority === "Medium" ? "priority-medium" :
+                "priority-low"
+              }`}>{selectedAd.priority} Priority</span>
             </div>
             <div className="bg-rose-500/10 border-2 border-rose-500/20 rounded-2xl p-4 mb-4">
               <p className="text-[11px] font-black text-rose-400 leading-relaxed">{reason}</p>
@@ -405,7 +409,11 @@ export default function AdDetailModal({
               <h2 className="text-2xl font-black text-slate-100 mb-2">{selectedAd.concept_name}</h2>
               <div className="flex flex-wrap gap-2">
                 <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full uppercase border border-indigo-500/20">{selectedAd.status}</span>
-                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${getPriorityBadge(selectedAd.priority)}`}>{selectedAd.priority} Priority</span>
+                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${
+                selectedAd.priority === "High" ? "priority-high" :
+                selectedAd.priority === "Medium" ? "priority-medium" :
+                "priority-low"
+              }`}>{selectedAd.priority} Priority</span>
                 {overdue && <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/20 animate-pulse">⚠️ Overdue</span>}
               </div>
               {selectedAd.due_date && (
@@ -590,7 +598,11 @@ export default function AdDetailModal({
             <EditableTitle value={selectedAd.concept_name} onChange={v => setSelectedAd({ ...selectedAd, concept_name: v })} />
             <div className="flex flex-wrap gap-2">
               <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full uppercase border border-indigo-500/20">{selectedAd.status}</span>
-              <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${getPriorityBadge(selectedAd.priority)}`}>{selectedAd.priority} Priority</span>
+              <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${
+                selectedAd.priority === "High" ? "priority-high" :
+                selectedAd.priority === "Medium" ? "priority-medium" :
+                "priority-low"
+              }`}>{selectedAd.priority} Priority</span>
               {overdue && <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/20 animate-pulse">⚠️ Overdue</span>}
               {["Ad Revision", "Done, Waiting for Approval"].includes(originalAdStatus) && (originalAd?.revision_count || 0) > 0 && (
                 <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${revisionLimitReached ? "bg-rose-500/20 text-rose-400 border border-rose-500/20" : "bg-amber-500/20 text-amber-400 border border-amber-500/20"}`}>
