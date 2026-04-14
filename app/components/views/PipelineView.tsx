@@ -409,7 +409,12 @@ export default function PipelineView({
                     </div>
                   )}
 
-                  <div className="absolute top-0 right-0 px-3 py-1 text-[9px] font-black uppercase rounded-bl-xl">
+                  {/* Priority badge */}
+                  <div className={`absolute top-0 right-0 px-3 py-1 text-[9px] font-black uppercase rounded-bl-xl ${
+                    ad.priority === "High" ? "bg-rose-500 text-white" :
+                    ad.priority === "Medium" ? "bg-amber-400 text-slate-900" :
+                    "bg-slate-500 text-white"
+                  }`}>
                     {ad.priority}
                   </div>
 
