@@ -17,7 +17,7 @@ import { useAdSessions, formatTimer } from "./hooks/useAdSessions";
 import NotificationDropdown from "./components/NotificationDropdown";
 import NewAdModal from "./components/modals/NewAdModal";
 import AdDetailModal from "./components/modals/AdDetailModal";
-import { PromoteIdeaModal, SpendModal } from "./components/modals/OtherModals";
+import { PromoteIdeaModal } from "./components/modals/OtherModals";
 import LoginPage from "./components/LoginPage";
 
 // Views
@@ -29,20 +29,32 @@ import LearningsView from "./components/views/LearningsView";
 import SettingsView from "./components/views/SettingsView";
 import ArchiveView from "./components/views/ArchiveView";
 
-// Constants & Utils
+// Constants
 import { PRIORITY_ORDER } from "./constants";
 import { IdeaEntry } from "./types";
 
 type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings" | "Archive";
+
+const NAV_ICONS: Record<string, string> = {
+  Dashboard: "⊞",
+  Pipeline: "◫",
+  MyQueue: "✓",
+  Manager: "⊕",
+  Reports: "▦",
+  Ideas: "💡",
+  Learnings: "🧠",
+  Members: "👥",
+  Archive: "📦",
+  Settings: "⚙️",
+  Workload: "📊",
+};
 
 export default function App() {
   const { supabase, libError } = useSupabaseClient();
   const { isAudioUnlocked, unlockAudio, playNotificationSound } = useAudio();
 
   const playNotificationSoundRef = useRef(playNotificationSound);
-  useEffect(() => {
-    playNotificationSoundRef.current = playNotificationSound;
-  }, [playNotificationSound]);
+  useEffect(() => { playNotificationSoundRef.current = playNotificationSound; }, [playNotificationSound]);
 
   const {
     user, profile, authLoading,
@@ -59,6 +71,7 @@ export default function App() {
   const isManager = isFounder || isStrategist;
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
+  const isMediaBuyer = currentRole === "Media Buyer";
   const canManageIdeas = isManager;
   const canCreateAd = true;
 
@@ -76,19 +89,13 @@ export default function App() {
   const [activeStage, setActiveStage] = useState("Idea");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [products, setProducts] = useState<string[]>([]);
 
   const loadProducts = async () => {
     if (!supabase) return;
-    const { data } = await supabase
-      .from("settings")
-      .select("value")
-      .eq("key", "products")
-      .single();
-    if (data?.value && Array.isArray(data.value)) {
-      setProducts(data.value);
-    }
+    const { data } = await supabase.from("settings").select("value").eq("key", "products").single();
+    if (data?.value && Array.isArray(data.value)) setProducts(data.value);
   };
 
   const currentUserRef = useRef(currentUser);
@@ -135,23 +142,13 @@ export default function App() {
   } = useNotifications(supabase, currentUser, ads, setSelectedAd);
 
   const fetchNotificationsRef = useRef(fetchNotifications);
-  useEffect(() => {
-    fetchNotificationsRef.current = fetchNotifications;
-  }, [fetchNotifications]);
+  useEffect(() => { fetchNotificationsRef.current = fetchNotifications; }, [fetchNotifications]);
+
+  const { hitRate, inTesting, conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend, weeklyChartData, teamOutput, pipelineVelocityData } = useKPIs(ads);
 
   const {
-    hitRate, inTesting,
-    conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
-    weeklyChartData, teamOutput, pipelineVelocityData
-  } = useKPIs(ads);
-
-  const {
-    activeSessions,
-    startSession,
-    finishSession,
-    getSessionForAd,
-    fetchSessionsForAd,
-    fetchAllSessions,
+    activeSessions, startSession, finishSession,
+    getSessionForAd, fetchSessionsForAd, fetchAllSessions,
   } = useAdSessions(supabase, currentUser, currentRole);
 
   const loadAllProfiles = async () => {
@@ -160,17 +157,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (supabase && user) {
-      loadAllProfiles();
-      loadProducts();
-    }
+    if (supabase && user) { loadAllProfiles(); loadProducts(); }
   }, [supabase, user, profile]);
 
   useEffect(() => {
     if (!supabase || !user) return;
-    fetchAds();
-    fetchIdeas();
-    fetchLearnings();
+    fetchAds(); fetchIdeas(); fetchLearnings();
 
     const adsChannel = supabase.channel("ads-main")
       .on("postgres_changes", { event: "*", schema: "public", table: "ads" }, () => fetchAds())
@@ -189,20 +181,12 @@ export default function App() {
       .subscribe();
     const notifChannel = supabase.channel("notif-realtime-v2")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
-        console.log("🔔 NOTIF FIRED", payload.new);
-        console.log("🔔 TARGET:", payload.new.target_user);
-        console.log("🔔 CURRENT USER:", currentUserRef.current);
-        console.log("🔔 MATCH:", payload.new.target_user?.trim() === currentUserRef.current?.trim());
         if (payload.new.target_user?.trim() === currentUserRef.current?.trim()) {
-          console.log("🔊 PLAYING SOUND NOW");
           playNotificationSoundRef.current();
           fetchNotificationsRef.current();
         }
       })
-      .subscribe((status: string) => {
-        console.log("📡 NOTIF CHANNEL STATUS:", status);
-        setIsSubscribed(status === "SUBSCRIBED");
-      });
+      .subscribe((status: string) => setIsSubscribed(status === "SUBSCRIBED"));
 
     return () => {
       supabase.removeChannel(adsChannel);
@@ -221,6 +205,7 @@ export default function App() {
   const myQueue = useMemo(() => {
     const queue = ads.filter(ad => {
       if (isVA) return ad.status === "Pending Upload";
+      if (isMediaBuyer) return ["Pending Upload", "Testing"].includes(ad.status);
       if (isStrategist) return ["Ad Revision", "Testing", "Done, Waiting for Approval"].includes(ad.status);
       if (isContentCoord) return ["Preparing Content", "Content Revision Required"].includes(ad.status);
       if (ad.assigned_editor === currentUser) return ["Editor Assigned", "In Progress", "Done, Waiting for Approval", "Content Revision Required", "Ad Revision"].includes(ad.status);
@@ -243,8 +228,7 @@ export default function App() {
     const result: Record<string, typeof ads> = {};
     people.forEach(p => {
       result[p] = ads.filter(ad =>
-        (ad.assigned_editor === p ||
-          ad.assigned_copywriter === p ||
+        (ad.assigned_editor === p || ad.assigned_copywriter === p ||
           (p === "VA" && ad.status === "Pending Upload") ||
           (p === "Strategist" && ["Ad Revision", "Testing", "Done, Waiting for Approval"].includes(ad.status))) &&
         !["Winner", "Killed"].includes(ad.status)
@@ -253,89 +237,37 @@ export default function App() {
     return result;
   }, [ads]);
 
-  const allEditors = useMemo(() => {
-    return allProfiles
-      .filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active)
-      .map((p: any) => p.full_name)
-      .sort();
-  }, [allProfiles]);
-
-  const allEditorProfiles = useMemo(() => {
-    return allProfiles
-      .filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active)
-      .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
-  }, [allProfiles]);
-
-  const allCopywriters = useMemo(() => {
-    return allProfiles
-      .filter(p => p.role === "Copywriter" && p.is_active)
-      .map((p: any) => p.full_name)
-      .sort();
-  }, [allProfiles]);
-
-  const allStrategists = useMemo(() => {
-    return allProfiles
-      .filter(p => p.role === "Strategist" && p.is_active)
-      .map((p: any) => p.full_name)
-      .sort();
-  }, [allProfiles]);
-
-  const allStrategistProfiles = useMemo(() => {
-    return allProfiles
-      .filter(p => (p.role === "Strategist" || p.role === "Founder") && p.is_active)
-      .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
-  }, [allProfiles]);
+  const allEditors = useMemo(() => allProfiles.filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active).map((p: any) => p.full_name).sort(), [allProfiles]);
+  const allEditorProfiles = useMemo(() => allProfiles.filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active).sort((a: any, b: any) => a.full_name.localeCompare(b.full_name)), [allProfiles]);
+  const allCopywriters = useMemo(() => allProfiles.filter(p => p.role === "Copywriter" && p.is_active).map((p: any) => p.full_name).sort(), [allProfiles]);
+  const allStrategists = useMemo(() => allProfiles.filter(p => p.role === "Strategist" && p.is_active).map((p: any) => p.full_name).sort(), [allProfiles]);
+  const allStrategistProfiles = useMemo(() => allProfiles.filter(p => (p.role === "Strategist" || p.role === "Founder") && p.is_active).sort((a: any, b: any) => a.full_name.localeCompare(b.full_name)), [allProfiles]);
 
   const handleBulkReassign = async (adIds: string[], editor: string) => {
-    for (const id of adIds) {
-      await supabase.from("ads").update({ assigned_editor: editor }).eq("id", id);
-    }
+    for (const id of adIds) await supabase.from("ads").update({ assigned_editor: editor }).eq("id", id);
     fetchAds();
   };
-
   const handleBulkPriority = async (adIds: string[], priority: string) => {
-    for (const id of adIds) {
-      await supabase.from("ads").update({ priority }).eq("id", id);
-    }
+    for (const id of adIds) await supabase.from("ads").update({ priority }).eq("id", id);
     fetchAds();
   };
-
   const handleBulkKill = async (adIds: string[]) => {
-    for (const id of adIds) {
-      await supabase.from("ads").update({
-        status: "Killed",
-        killed_at: new Date().toISOString()
-      }).eq("id", id);
-    }
+    for (const id of adIds) await supabase.from("ads").update({ status: "Killed", killed_at: new Date().toISOString() }).eq("id", id);
     fetchAds();
   };
-
   const handleBulkMove = async (adIds: string[], status: string) => {
-    for (const id of adIds) {
-      await supabase.from("ads").update({ status }).eq("id", id);
-    }
+    for (const id of adIds) await supabase.from("ads").update({ status }).eq("id", id);
     fetchAds();
   };
-
   const handleBulkDelete = async (adIds: string[]) => {
-    for (const id of adIds) {
-      await supabase.from("ads").delete().eq("id", id);
-    }
+    for (const id of adIds) await supabase.from("ads").delete().eq("id", id);
     fetchAds();
   };
 
-  const handleSelectAd = (ad: any) => {
-    setSelectedAd(ad);
-    if (ad) startSession(ad);
-  };
+  const handleSelectAd = (ad: any) => { setSelectedAd(ad); if (ad) startSession(ad); };
 
   const notifyFounder = async (adId: string, adName: string, message?: string) => {
-    const { data: founders } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("role", "Founder")
-      .eq("is_active", true)
-      .limit(1);
+    const { data: founders } = await supabase.from("profiles").select("full_name").eq("role", "Founder").eq("is_active", true).limit(1);
     const founderName = founders?.[0]?.full_name;
     if (founderName) {
       await supabase.from("notifications").insert([{
@@ -350,27 +282,17 @@ export default function App() {
   const handleUpdateAdWithSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAd) return;
-
     const originalAd = ads.find(a => a.id === selectedAd.id);
     const stageChanged = originalAd && selectedAd.status !== originalAd.status;
-
     if (stageChanged && !isFounder) {
-      const editorStages = ["Editor Assigned", "Ad Revision", "Brief Approved"];
-      const strategistStages = ["Brief Revision Required", "Testing", "Winner"];
-      const skipFounderNotify = [...editorStages, ...strategistStages, "Done, Waiting for Approval", "Pending Upload"];
-
+      const skipFounderNotify = ["Editor Assigned", "Ad Revision", "Brief Approved", "Brief Revision Required", "Testing", "Done, Waiting for Approval", "Pending Upload"];
       if (selectedAd.status === "Done, Waiting for Approval") {
         const session = activeSessions[selectedAd.id];
         if (session) await finishSession(selectedAd.id);
       } else if (!skipFounderNotify.includes(selectedAd.status)) {
-        await notifyFounder(
-          selectedAd.id,
-          selectedAd.concept_name,
-          `🔄 ${currentUser} moved "${selectedAd.concept_name}" → ${selectedAd.status}`
-        );
+        await notifyFounder(selectedAd.id, selectedAd.concept_name, `🔄 ${currentUser} moved "${selectedAd.concept_name}" → ${selectedAd.status}`);
       }
     }
-
     handleUpdateAd(e);
   };
 
@@ -382,377 +304,285 @@ export default function App() {
     ? ["Dashboard", "Pipeline"]
     : isContentCoord
     ? ["Dashboard", "Pipeline", "MyQueue", "Ideas"]
+    : isMediaBuyer
+    ? ["Dashboard", "Pipeline"]
     : ["Dashboard", "Pipeline", "MyQueue", "Ideas"];
 
-  if (libError) return (
-    <div className="min-h-screen flex items-center justify-center p-4 text-rose-600 font-bold">{libError}</div>
-  );
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Loading...</div>
-  );
+  if (libError) return <div className="min-h-screen flex items-center justify-center p-4 text-red-600 font-bold">{libError}</div>;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">Loading...</div>;
   if (!user) return (
     <div onClick={unlockAudio} onKeyDown={unlockAudio}>
       <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
     </div>
   );
-  if (!supabase) return (
-    <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Initializing...</div>
-  );
+  if (!supabase) return <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">Initializing...</div>;
 
   return (
-    <div className="min-h-screen bg-[#131314] text-slate-100 font-sans text-[13px] flex flex-col" onClick={unlockAudio}>
+    <div className="min-h-screen bg-[#f8faf9] text-gray-900 font-sans text-[13px] flex" onClick={unlockAudio}>
       <datalist id="editor-autocomplete">{allEditors.map(n => <option key={n} value={n} />)}</datalist>
       <datalist id="copywriter-autocomplete">{allCopywriters.map(n => <option key={n} value={n} />)}</datalist>
 
-      {/* ── NAV ── */}
-      <nav className="bg-[#1e1f20] border-b border-white/10 shadow-sm sticky top-0 z-40">
-        <div className="p-3 md:p-4 max-w-[1800px] mx-auto border-b border-white/5">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+      {/* ── SIDEBAR ── */}
+      <aside className={`fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-40 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? "w-16" : "w-56"}`}>
 
-            <div className="flex justify-between items-center w-full lg:w-auto">
-              <div className="flex items-center gap-3">
-                <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">Creative Ops</h1>
-                <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
-              </div>
-
-              {Object.keys(activeSessions).length > 0 && (
-                <div className="hidden lg:flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 px-3 py-1.5 rounded-xl">
-                  <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">
-                    {Object.keys(activeSessions).length} Active Session{Object.keys(activeSessions).length > 1 ? "s" : ""}
-                  </span>
-                  <span className="text-[11px] font-black text-indigo-200 font-mono">
-                    {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
-                  </span>
-                  <button
-                    onClick={async () => {
-                      if (confirm("Clear all active sessions?")) {
-                        for (const adId of Object.keys(activeSessions)) {
-                          await finishSession(adId);
-                        }
-                      }
-                    }}
-                    className="text-[9px] font-black text-indigo-400 hover:text-rose-400 uppercase tracking-widest ml-1 border-l border-indigo-500/30 pl-2 transition-colors"
-                  >
-                    Clear
-                  </button>
-                </div>
-              )}
-
-              <div className="flex items-center gap-3 lg:hidden">
-                <div className="relative">
-                  <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="text-xl p-2 relative">
-                    🔔
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] min-w-[16px] h-[16px] flex items-center justify-center font-black rounded-full ring-2 ring-white animate-bounce">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </button>
-                  {isNotifOpen && (
-                    <div className="absolute right-0 top-12">
-                      <NotificationDropdown
-                        notifications={notifications}
-                        currentUser={currentUser}
-                        unreadCount={unreadCount}
-                        onRead={markNotificationRead}
-                        onClearAll={handleClearAllNotifications}
-                      />
-                    </div>
-                  )}
-                </div>
-                {canCreateAd && (
-                  <button onClick={() => setIsNewAdOpen(true)} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium text-xs">
-                    + New
-                  </button>
-                )}
-              </div>
+        {/* Logo */}
+        <div className="flex items-center justify-between px-4 py-5 border-b border-gray-100">
+          {!isSidebarCollapsed && (
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-green-700 flex items-center justify-center text-white font-black text-xs">C</div>
+              <span className="font-black text-gray-900 text-sm">Creative Ops</span>
             </div>
+          )}
+          {isSidebarCollapsed && (
+            <div className="w-7 h-7 rounded-lg bg-green-700 flex items-center justify-center text-white font-black text-xs mx-auto">C</div>
+          )}
+          {!isSidebarCollapsed && (
+            <button onClick={() => setIsSidebarCollapsed(true)} className="text-gray-400 hover:text-gray-600 transition-colors text-xs font-black">
+              &laquo;
+            </button>
+          )}
+        </div>
 
-            <div className="flex flex-wrap items-center gap-2 md:gap-4">
-              <div className="flex bg-white/5 p-1 rounded-xl shadow-inner flex-wrap gap-1">
-                {navItems.map(v => (
-                  <button
-                    key={v}
-                    onClick={() => handleSetViewMode(v)}
-                    className={`relative px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === v ? "bg-white/10 shadow-sm text-indigo-300" : "text-slate-400 hover:text-slate-200"}`}
-                  >
-                    {v === "MyQueue" ? "My Queue" : v}
-                    {v === "Ideas" && ideaCounts.pending > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-900 text-[8px] min-w-[15px] h-[15px] flex items-center justify-center font-black rounded-full">
-                        {ideaCounts.pending}
-                      </span>
-                    )}
-                  </button>
-                ))}
-                {isFounder && (
-                  <button
-                    onClick={() => handleSetViewMode("Manager")}
-                    className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Manager" ? "bg-white/10 shadow-sm text-indigo-300" : "text-slate-400 hover:text-slate-200"}`}
-                  >
-                    Workload
-                  </button>
+        {/* Expand button when collapsed */}
+        {isSidebarCollapsed && (
+          <button onClick={() => setIsSidebarCollapsed(false)} className="py-2 text-gray-400 hover:text-gray-600 transition-colors text-center text-xs font-black">
+            &raquo;
+          </button>
+        )}
+
+        {/* Nav */}
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+          {!isSidebarCollapsed && (
+            <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest px-2 mb-2">Main</p>
+          )}
+          {navItems.map(v => {
+            const isActive = viewMode === v;
+            return (
+              <button
+                key={v}
+                onClick={() => handleSetViewMode(v)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all relative ${
+                  isActive
+                    ? "bg-green-50 text-green-800 font-black"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                }`}
+                title={isSidebarCollapsed ? (v === "MyQueue" ? "My Queue" : v) : ""}
+              >
+                <span className="text-base shrink-0">{NAV_ICONS[v] || "•"}</span>
+                {!isSidebarCollapsed && (
+                  <span>{v === "MyQueue" ? "My Queue" : v}</span>
                 )}
-                {isFounder && (
-                  <button
-                    onClick={() => handleSetViewMode("Settings")}
-                    className={`px-4 py-1.5 rounded-lg font-bold transition-all ${viewMode === "Settings" ? "bg-white/10 shadow-sm text-indigo-300" : "text-slate-400 hover:text-slate-200"}`}
-                  >
-                    Settings
-                  </button>
+                {v === "Ideas" && ideaCounts.pending > 0 && (
+                  <span className={`bg-amber-400 text-white text-[8px] min-w-[16px] h-[16px] flex items-center justify-center font-black rounded-full ${isSidebarCollapsed ? "absolute top-1 right-1" : "ml-auto"}`}>
+                    {ideaCounts.pending}
+                  </span>
                 )}
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-700 rounded-r-full" />
+                )}
+              </button>
+            );
+          })}
+
+          {/* Extra nav for founder */}
+          {isFounder && !isSidebarCollapsed && (
+            <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest px-2 mt-4 mb-2">Management</p>
+          )}
+          {isFounder && (
+            <button
+              onClick={() => handleSetViewMode("Manager")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all relative ${
+                viewMode === "Manager" ? "bg-green-50 text-green-800 font-black" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+              }`}
+              title={isSidebarCollapsed ? "Workload" : ""}
+            >
+              <span className="text-base shrink-0">{NAV_ICONS["Workload"]}</span>
+              {!isSidebarCollapsed && <span>Workload</span>}
+              {viewMode === "Manager" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-700 rounded-r-full" />}
+            </button>
+          )}
+          {isFounder && (
+            <button
+              onClick={() => handleSetViewMode("Settings")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all relative ${
+                viewMode === "Settings" ? "bg-green-50 text-green-800 font-black" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+              }`}
+              title={isSidebarCollapsed ? "Settings" : ""}
+            >
+              <span className="text-base shrink-0">{NAV_ICONS["Settings"]}</span>
+              {!isSidebarCollapsed && <span>Settings</span>}
+              {viewMode === "Settings" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-700 rounded-r-full" />}
+            </button>
+          )}
+        </nav>
+
+        {/* User section at bottom */}
+        <div className="border-t border-gray-100 p-3">
+          <div
+            onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+            className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-all relative"
+          >
+            <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center font-black text-green-700 text-[11px] shrink-0">
+              {currentUser.charAt(0).toUpperCase()}
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-gray-800 truncate leading-none">{currentUser}</p>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{currentRole}</p>
               </div>
-
-              <div className="relative">
-                <div
-                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                  className="flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1.5 rounded-lg shadow-sm hover:bg-white/10 cursor-pointer"
-                >
-                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-[10px]">
-                    {currentUser.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-slate-100 leading-none">{currentUser}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentRole}</p>
-                  </div>
-                  <span className={`text-[10px] transition-transform ${isUserDropdownOpen ? "rotate-180" : ""}`}>▼</span>
-                  <button
-                    onClick={e => { e.stopPropagation(); unlockAudio(); playNotificationSound(); }}
-                    className={`ml-1 p-1 rounded-md transition-all ${isAudioUnlocked ? "text-emerald-400" : "text-slate-500 animate-pulse"}`}
-                    title={isAudioUnlocked ? "Sound ON" : "Click to enable sounds"}
-                  >
-                    {isAudioUnlocked ? "🔊" : "🔇"}
-                  </button>
+            )}
+            {isUserDropdownOpen && (
+              <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-xs font-black text-gray-800">{currentUser}</p>
+                  <p className="text-[10px] text-gray-400">{profile?.email}</p>
                 </div>
-                {isUserDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-[#2a2b2c] border border-white/10 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
-                    <div className="px-4 py-2 border-b border-white/5">
-                      <p className="text-xs font-black text-slate-100">{currentUser}</p>
-                      <p className="text-[10px] text-slate-400">{profile?.email}</p>
-                    </div>
-                    {isFounder && (
-                      <button
-                        onClick={() => { handleSetViewMode("Settings"); setIsUserDropdownOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-white/5 text-slate-300 transition-colors"
-                      >
-                        ⚙️ Settings
-                      </button>
-                    )}
-                    <button
-                      onClick={() => { signOut(); setIsUserDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-rose-50 text-rose-500 transition-colors"
-                    >
-                      🚪 Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="hidden lg:relative lg:block">
-                <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="text-xl p-2 hover:bg-white/5 rounded-full relative transition-colors">
-                  🔔
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 bg-rose-500 text-white text-[9px] min-w-[16px] h-[16px] flex items-center justify-center font-black rounded-full ring-2 ring-white animate-bounce">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-                {isNotifOpen && (
-                  <NotificationDropdown
-                    notifications={notifications}
-                    currentUser={currentUser}
-                    unreadCount={unreadCount}
-                    onRead={markNotificationRead}
-                    onClearAll={handleClearAllNotifications}
-                  />
-                )}
-              </div>
-
-              {canCreateAd && (
                 <button
-                  onClick={() => setIsNewAdOpen(true)}
-                  className="hidden lg:block bg-indigo-500 text-white px-5 py-2 rounded-lg font-black hover:bg-indigo-400 text-sm shadow-sm transition-all"
+                  onClick={e => { e.stopPropagation(); unlockAudio(); playNotificationSound(); }}
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 text-gray-600 transition-colors"
                 >
-                  + New Ad
+                  {isAudioUnlocked ? "🔊 Sound ON" : "🔇 Enable Sound"}
                 </button>
-              )}
-            </div>
+                {isFounder && (
+                  <button
+                    onClick={() => { handleSetViewMode("Settings"); setIsUserDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 text-gray-600 transition-colors"
+                  >
+                    ⚙️ Settings
+                  </button>
+                )}
+                <button
+                  onClick={() => { signOut(); setIsUserDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-red-50 text-red-500 transition-colors"
+                >
+                  🚪 Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </nav>
+      </aside>
 
-      {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {viewMode === "Dashboard" && (
-          <DashboardView
-            ads={ads}
-            currentUser={currentUser}
-            currentRole={currentRole}
-            onSelectAd={handleSelectAd}
-            onNewAd={() => setIsNewAdOpen(true)}
-            onNavigate={handleSetViewMode}
-            allProfiles={allProfiles}
-            activeSessions={activeSessions}
-            formatTimer={formatTimer}
-            supabase={supabase}
-          />
-        )}
-        {viewMode === "Pipeline" && (
-          <PipelineView
-            ads={ads}
-            activeStage={activeStage}
-            setActiveStage={setActiveStage}
-            setSelectedAd={handleSelectAd}
-            currentRole={currentRole}
-            currentUser={currentUser}
-            allEditors={allEditors}
-            allStrategists={allStrategists}
-            onBulkReassign={handleBulkReassign}
-            onBulkPriority={handleBulkPriority}
-            onBulkKill={handleBulkKill}
-            onBulkMove={handleBulkMove}
-            onBulkDelete={handleBulkDelete}
-            activeSessions={activeSessions}
-            formatTimer={formatTimer}
-          />
-        )}
-        {viewMode === "MyQueue" && (
-          <MyQueueView
-            currentUser={currentUser}
-            myQueue={myQueue}
-            setSelectedAd={handleSelectAd}
-            activeSessions={activeSessions}
-            formatTimer={formatTimer}
-          />
-        )}
-        {viewMode === "Manager" && (isFounder || isStrategist) && (
-          <ManagerView workloads={workloads} setSelectedAd={handleSelectAd} />
-        )}
-        {viewMode === "Reports" && isManager && (
-          <ReportsView
-            ads={ads}
-            weeklyChartData={weeklyChartData}
-            avgDaysToUpload={avgDaysToUpload}
-            pipelineVelocityData={pipelineVelocityData}
-            teamOutput={teamOutput}
-            hitRate={hitRate}
-            inTesting={inTesting}
-            conceptsVsIterations={conceptsVsIterations}
-            creativeDiversity={creativeDiversity}
-            rankedSpend={rankedSpend}
-          />
-        )}
-        {viewMode === "Ideas" && (
-          <IdeasView
-            currentUser={currentUser}
-            ideas={[]}
-            filteredIdeas={filteredIdeas}
-            ideaCounts={ideaCounts}
-            ideaFilter={ideaFilter}
-            setIdeaFilter={setIdeaFilter}
-            newIdeaText={newIdeaText}
-            setNewIdeaText={setNewIdeaText}
-            newIdeaType={newIdeaType}
-            setNewIdeaType={setNewIdeaType}
-            isSubmittingIdea={isSubmittingIdea}
-            onSubmit={handleSubmitIdea}
-            onDelete={handleDeleteIdea}
-            onPromote={(idea: IdeaEntry) => setIdeaToPromote(idea)}
-            canManageIdeas={canManageIdeas}
-          />
-        )}
-        {viewMode === "Learnings" && (
-          <LearningsView
-            learnings={learnings}
-            filteredLearnings={filteredLearnings}
-            learningCounts={learningCounts}
-            learningsFilter={learningsFilter}
-            setLearningsFilter={setLearningsFilter}
-            isLearningFormOpen={isLearningFormOpen}
-            setIsLearningFormOpen={setIsLearningFormOpen}
-            newLearning={newLearning}
-            setNewLearning={setNewLearning}
-            adSearchQuery={adSearchQuery}
-            setAdSearchQuery={setAdSearchQuery}
-            filteredAdSearch={filteredAdSearch}
-            isSubmittingLearning={isSubmittingLearning}
-            onSubmit={handleSubmitLearning}
-            onDelete={handleDeleteLearning}
-            onMarkReviewed={handleMarkReviewed}
-            onUnmarkReviewed={handleUnmarkReviewed}
-            currentUser={currentUser}
-            currentRole={currentRole}
-            expandedLearning={expandedLearning}
-            setExpandedLearning={setExpandedLearning}
-          />
-        )}
-        {viewMode === "Members" && isFounder && (
-          <MembersView profiles={allProfiles} currentUser={currentUser} />
-        )}
-        {viewMode === "Archive" && isFounder && (
-          <ArchiveView ads={ads} onSelectAd={handleSelectAd} />
-        )}
-        {viewMode === "Settings" && isFounder && profile && (
-          <SettingsView
-            currentProfile={profile}
-            onInviteUser={inviteUser}
-            onUpdateRole={updateUserRole}
-            onDeactivateUser={deactivateUser}
-            getAllUsers={getAllUsers}
-            supabase={supabase}
-          />
-        )}
-      </main>
+      {/* ── MAIN WRAPPER ── */}
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? "ml-16" : "ml-56"}`}>
+
+        {/* ── TOP BAR ── */}
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-lg font-black text-gray-900 leading-none">
+                {viewMode === "MyQueue" ? "My Queue" : viewMode}
+              </h1>
+              <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                {viewMode === "Dashboard" ? `Welcome back, ${currentUser}` :
+                 viewMode === "Pipeline" ? `${ads.filter(a => !["Winner", "Killed"].includes(a.status)).length} active ads` :
+                 viewMode === "MyQueue" ? `${myQueue.length} tasks assigned to you` :
+                 viewMode === "Ideas" ? `${ideaCounts.total} ideas logged` :
+                 viewMode === "Reports" ? "Live data from your pipeline" :
+                 viewMode === "Archive" ? "Completed and killed ads" :
+                 ""}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Active sessions indicator */}
+            {Object.keys(activeSessions).length > 0 && (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">
+                  {Object.keys(activeSessions).length} Active
+                </span>
+                <span className="text-[11px] font-black text-green-600 font-mono">
+                  {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
+                </span>
+              </div>
+            )}
+
+            {/* Connection status */}
+            <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-green-500" : "bg-gray-300"}`} title={isSubscribed ? "Connected" : "Connecting..."} />
+
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500"
+              >
+                🔔
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-[8px] min-w-[14px] h-[14px] flex items-center justify-center font-black rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              {isNotifOpen && (
+                <NotificationDropdown
+                  notifications={notifications}
+                  currentUser={currentUser}
+                  unreadCount={unreadCount}
+                  onRead={markNotificationRead}
+                  onClearAll={handleClearAllNotifications}
+                />
+              )}
+            </div>
+
+            {/* New Ad button */}
+            {canCreateAd && (
+              <button
+                onClick={() => setIsNewAdOpen(true)}
+                className="bg-green-700 text-white px-4 py-2 rounded-xl font-black text-xs hover:bg-green-800 transition-all shadow-sm"
+              >
+                + New Ad
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* ── MAIN CONTENT ── */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {viewMode === "Dashboard" && (
+            <DashboardView ads={ads} currentUser={currentUser} currentRole={currentRole} onSelectAd={handleSelectAd} onNewAd={() => setIsNewAdOpen(true)} onNavigate={handleSetViewMode} allProfiles={allProfiles} activeSessions={activeSessions} formatTimer={formatTimer} supabase={supabase} />
+          )}
+          {viewMode === "Pipeline" && (
+            <PipelineView ads={ads} activeStage={activeStage} setActiveStage={setActiveStage} setSelectedAd={handleSelectAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allStrategists={allStrategists} onBulkReassign={handleBulkReassign} onBulkPriority={handleBulkPriority} onBulkKill={handleBulkKill} onBulkMove={handleBulkMove} onBulkDelete={handleBulkDelete} activeSessions={activeSessions} formatTimer={formatTimer} />
+          )}
+          {viewMode === "MyQueue" && (
+            <MyQueueView currentUser={currentUser} myQueue={myQueue} setSelectedAd={handleSelectAd} activeSessions={activeSessions} formatTimer={formatTimer} />
+          )}
+          {viewMode === "Manager" && (isFounder || isStrategist) && (
+            <ManagerView workloads={workloads} setSelectedAd={handleSelectAd} />
+          )}
+          {viewMode === "Reports" && isManager && (
+            <ReportsView ads={ads} weeklyChartData={weeklyChartData} avgDaysToUpload={avgDaysToUpload} pipelineVelocityData={pipelineVelocityData} teamOutput={teamOutput} hitRate={hitRate} inTesting={inTesting} conceptsVsIterations={conceptsVsIterations} creativeDiversity={creativeDiversity} rankedSpend={rankedSpend} />
+          )}
+          {viewMode === "Ideas" && (
+            <IdeasView currentUser={currentUser} ideas={[]} filteredIdeas={filteredIdeas} ideaCounts={ideaCounts} ideaFilter={ideaFilter} setIdeaFilter={setIdeaFilter} newIdeaText={newIdeaText} setNewIdeaText={setNewIdeaText} newIdeaType={newIdeaType} setNewIdeaType={setNewIdeaType} isSubmittingIdea={isSubmittingIdea} onSubmit={handleSubmitIdea} onDelete={handleDeleteIdea} onPromote={(idea: IdeaEntry) => setIdeaToPromote(idea)} canManageIdeas={canManageIdeas} />
+          )}
+          {viewMode === "Learnings" && (
+            <LearningsView learnings={learnings} filteredLearnings={filteredLearnings} learningCounts={learningCounts} learningsFilter={learningsFilter} setLearningsFilter={setLearningsFilter} isLearningFormOpen={isLearningFormOpen} setIsLearningFormOpen={setIsLearningFormOpen} newLearning={newLearning} setNewLearning={setNewLearning} adSearchQuery={adSearchQuery} setAdSearchQuery={setAdSearchQuery} filteredAdSearch={filteredAdSearch} isSubmittingLearning={isSubmittingLearning} onSubmit={handleSubmitLearning} onDelete={handleDeleteLearning} onMarkReviewed={handleMarkReviewed} onUnmarkReviewed={handleUnmarkReviewed} currentUser={currentUser} currentRole={currentRole} expandedLearning={expandedLearning} setExpandedLearning={setExpandedLearning} />
+          )}
+          {viewMode === "Members" && isFounder && (
+            <MembersView profiles={allProfiles} currentUser={currentUser} />
+          )}
+          {viewMode === "Archive" && isFounder && (
+            <ArchiveView ads={ads} onSelectAd={handleSelectAd} />
+          )}
+          {viewMode === "Settings" && isFounder && profile && (
+            <SettingsView currentProfile={profile} onInviteUser={inviteUser} onUpdateRole={updateUserRole} onDeactivateUser={deactivateUser} getAllUsers={getAllUsers} supabase={supabase} />
+          )}
+        </main>
+      </div>
 
       {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
-        <NewAdModal
-          newAd={newAd}
-          setNewAd={setNewAd}
-          onSubmit={handleCreateAd}
-          onClose={() => setIsNewAdOpen(false)}
-          editors={allEditors}
-          copywriters={allCopywriters}
-          currentRole={currentRole}
-          currentUser={currentUser}
-          allEditorProfiles={allEditorProfiles}
-          allStrategistProfiles={allStrategistProfiles}
-          products={products}
-        />
+        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} />
       )}
       {ideaToPromote && (
-        <PromoteIdeaModal
-          idea={ideaToPromote}
-          onConfirm={(idea) => handlePromoteIdea(idea, setNewAd, setIsNewAdOpen, handleSetViewMode)}
-          onCancel={() => setIdeaToPromote(null)}
-        />
+        <PromoteIdeaModal idea={ideaToPromote} onConfirm={(idea) => handlePromoteIdea(idea, setNewAd, setIsNewAdOpen, handleSetViewMode)} onCancel={() => setIdeaToPromote(null)} />
       )}
       {selectedAd && (
-        <AdDetailModal
-          selectedAd={selectedAd}
-          ads={ads}
-          manualLogNote={manualLogNote}
-          setManualLogNote={setManualLogNote}
-          setSelectedAd={setSelectedAd}
-          onUpdate={handleUpdateAdWithSession}
-          onDelete={handleDeleteAd}
-          currentRole={currentRole}
-          currentUser={currentUser}
-          allEditors={allEditors}
-          allEditorProfiles={allEditorProfiles}
-          allStrategists={allStrategists}
-          allStrategistProfiles={allStrategistProfiles}
-          supabase={supabase}
-          activeSession={getSessionForAd(selectedAd.id, selectedAd)}
-          onFinishSession={async () => {
-            await finishSession(selectedAd.id);
-          }}
-          fetchSessionsForAd={fetchSessionsForAd}
-          fetchAllSessions={fetchAllSessions}
-          formatTimer={formatTimer}
-          products={products}
-        />
+        <AdDetailModal selectedAd={selectedAd} ads={ads} manualLogNote={manualLogNote} setManualLogNote={setManualLogNote} setSelectedAd={setSelectedAd} onUpdate={handleUpdateAdWithSession} onDelete={handleDeleteAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allEditorProfiles={allEditorProfiles} allStrategists={allStrategists} allStrategistProfiles={allStrategistProfiles} supabase={supabase} activeSession={getSessionForAd(selectedAd.id, selectedAd)} onFinishSession={async () => { await finishSession(selectedAd.id); }} fetchSessionsForAd={fetchSessionsForAd} fetchAllSessions={fetchAllSessions} formatTimer={formatTimer} products={products} />
       )}
     </div>
-  );     
+  );
 }

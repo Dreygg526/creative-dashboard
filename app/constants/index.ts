@@ -19,6 +19,11 @@ export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "Killed": ["Idea"]
 };
 
+export const MEDIA_BUYER_TRANSITIONS: Record<string, string[]> = {
+  "Pending Upload": ["Testing"],
+  "Testing": ["Winner", "Killed"],
+};
+
 export const IDEA_TYPE_TAGS = ["Iteration", "Ideation", "Imitation", "Angle to Test"];
 
 export const PRIORITY_ORDER: Record<string, number> = {
