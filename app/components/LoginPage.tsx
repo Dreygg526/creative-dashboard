@@ -47,7 +47,11 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
     return (
       <div className="min-h-screen bg-[#f8faf9] flex">
         {/* Left panel */}
-        <div className="hidden lg:flex lg:w-1/2 bg-green-700 flex-col justify-between p-12">
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden" style={{ backgroundColor: "#166534" }}>
+          <div className="absolute inset-0 z-0">
+            <img src="/ewan.png" alt="" className="w-full h-full object-cover opacity-20" />
+          </div>
+          <div className="absolute inset-0 z-0 bg-green-800/60" />
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-black text-white text-sm">C</div>
             <span className="font-black text-white text-lg">Creative Ops</span>
@@ -128,38 +132,48 @@ export default function LoginPage({ onLogin, onForgotPassword }: Props) {
   return (
     <div className="min-h-screen bg-[#f8faf9] flex">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-green-700 flex-col justify-between p-12">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-black text-white text-sm">C</div>
-          <span className="font-black text-white text-lg">Creative Ops</span>
-        </div>
-
-        <div>
-          <div className="mb-8">
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {[
-                { label: "Active Ads", value: "24+" },
-                { label: "Hit Rate", value: "38%" },
-                { label: "Team Members", value: "8" },
-                { label: "In Testing", value: "12" },
-              ].map(stat => (
-                <div key={stat.label} className="bg-white/10 rounded-2xl p-4">
-                  <p className="text-3xl font-black text-white">{stat.value}</p>
-                  <p className="text-green-200 text-[11px] font-bold uppercase tracking-widest mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </div>
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden" style={{ backgroundColor: "#166534" }}>
+          {/* Background image */}
+          <div className="absolute inset-0 z-0">
+            <img src="/ewan.png" alt="" className="w-full h-full object-cover opacity-20" />
           </div>
-          <h2 className="text-4xl font-black text-white leading-tight mb-4">
-            Your creative<br />pipeline, simplified.
-          </h2>
-          <p className="text-green-200 font-medium text-sm leading-relaxed">
-            Manage your entire ad production workflow from brief to deployment — all in one place.
-          </p>
-        </div>
+          {/* Green overlay on top of image */}
+          <div className="absolute inset-0 z-0 bg-green-800/60" />
 
-        <p className="text-green-300 text-xs font-medium">© 2025 Creative Ops. All rights reserved.</p>
-      </div>
+          {/* All content sits on top */}
+          <div className="relative z-10 flex flex-col justify-between h-full">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-black text-white text-sm">C</div>
+              <span className="font-black text-white text-lg">Creative Ops</span>
+            </div>
+
+            <div>
+              <div className="mb-8">
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {[
+                    { label: "Active Ads", value: "24+" },
+                    { label: "Hit Rate", value: "38%" },
+                    { label: "Team Members", value: "8" },
+                    { label: "In Testing", value: "12" },
+                  ].map(stat => (
+                    <div key={stat.label} className="bg-white/10 rounded-2xl p-4">
+                      <p className="text-3xl font-black text-white">{stat.value}</p>
+                      <p className="text-green-200 text-[11px] font-bold uppercase tracking-widest mt-1">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <h2 className="text-4xl font-black text-white leading-tight mb-4">
+                Your creative<br />pipeline, simplified.
+              </h2>
+              <p className="text-green-200 font-medium text-sm leading-relaxed">
+                Manage your entire ad production workflow from brief to deployment — all in one place.
+              </p>
+            </div>
+
+            <p className="text-green-300 text-xs font-medium">© 2025 Creative Ops. All rights reserved.</p>
+          </div>
+        </div>
 
       {/* Right panel — login form */}
       <div className="flex-1 flex items-center justify-center p-8">
