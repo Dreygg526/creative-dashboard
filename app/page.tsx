@@ -144,7 +144,7 @@ export default function App() {
   const fetchNotificationsRef = useRef(fetchNotifications);
   useEffect(() => { fetchNotificationsRef.current = fetchNotifications; }, [fetchNotifications]);
 
-  const { hitRate, inTesting, conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend, weeklyChartData, teamOutput, pipelineVelocityData } = useKPIs(ads);
+ const { hitRate, inTesting, conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend, weeklyChartData, teamOutput, pipelineVelocityData, rankedHitRate } = useKPIs(ads);
 
   const {
     activeSessions, startSession, finishSession,
@@ -541,7 +541,7 @@ export default function App() {
         {/* ── MAIN CONTENT ── */}
         <main className="flex-1 flex flex-col overflow-hidden">
           {viewMode === "Dashboard" && (
-            <DashboardView ads={ads} currentUser={currentUser} currentRole={currentRole} onSelectAd={handleSelectAd} onNewAd={() => setIsNewAdOpen(true)} onNavigate={handleSetViewMode} allProfiles={allProfiles} activeSessions={activeSessions} formatTimer={formatTimer} supabase={supabase} />
+            <DashboardView ads={ads} currentUser={currentUser} currentRole={currentRole} onSelectAd={handleSelectAd} onNewAd={() => setIsNewAdOpen(true)} onNavigate={handleSetViewMode} allProfiles={allProfiles} activeSessions={activeSessions} formatTimer={formatTimer} supabase={supabase} rankedHitRate={rankedHitRate} />
           )}
           {viewMode === "Pipeline" && (
             <PipelineView ads={ads} activeStage={activeStage} setActiveStage={setActiveStage} setSelectedAd={handleSelectAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allStrategists={allStrategists} onBulkReassign={handleBulkReassign} onBulkPriority={handleBulkPriority} onBulkKill={handleBulkKill} onBulkMove={handleBulkMove} onBulkDelete={handleBulkDelete} activeSessions={activeSessions} formatTimer={formatTimer} />
@@ -553,7 +553,7 @@ export default function App() {
             <ManagerView workloads={workloads} setSelectedAd={handleSelectAd} />
           )}
           {viewMode === "Reports" && isManager && (
-            <ReportsView ads={ads} weeklyChartData={weeklyChartData} avgDaysToUpload={avgDaysToUpload} pipelineVelocityData={pipelineVelocityData} teamOutput={teamOutput} hitRate={hitRate} inTesting={inTesting} conceptsVsIterations={conceptsVsIterations} creativeDiversity={creativeDiversity} rankedSpend={rankedSpend} />
+            <ReportsView ads={ads} weeklyChartData={weeklyChartData} avgDaysToUpload={avgDaysToUpload} pipelineVelocityData={pipelineVelocityData} teamOutput={teamOutput} hitRate={hitRate} inTesting={inTesting} conceptsVsIterations={conceptsVsIterations} creativeDiversity={creativeDiversity} rankedSpend={rankedSpend} rankedHitRate={rankedHitRate} />
           )}
           {viewMode === "Ideas" && (
             <IdeasView currentUser={currentUser} ideas={[]} filteredIdeas={filteredIdeas} ideaCounts={ideaCounts} ideaFilter={ideaFilter} setIdeaFilter={setIdeaFilter} newIdeaText={newIdeaText} setNewIdeaText={setNewIdeaText} newIdeaType={newIdeaType} setNewIdeaType={setNewIdeaType} isSubmittingIdea={isSubmittingIdea} onSubmit={handleSubmitIdea} onDelete={handleDeleteIdea} onPromote={(idea: IdeaEntry) => setIdeaToPromote(idea)} canManageIdeas={canManageIdeas} />

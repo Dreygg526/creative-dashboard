@@ -160,11 +160,12 @@ interface ReportsProps {
   conceptsVsIterations: string;
   creativeDiversity: string;
   rankedSpend: [string, number][];
+  rankedHitRate?: { name: string; tested: number; winners: number; rate: number }[];
 }
 
 export function ReportsView({
   ads, weeklyChartData, avgDaysToUpload, pipelineVelocityData,
-  teamOutput, hitRate, inTesting, conceptsVsIterations, creativeDiversity, rankedSpend
+  teamOutput, hitRate, inTesting, conceptsVsIterations, creativeDiversity, rankedSpend, rankedHitRate
 }: ReportsProps) {
 
   const maxWeeklyCount = Math.max(...weeklyChartData.map(d => d.count), 1);
@@ -221,7 +222,7 @@ export function ReportsView({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Volume This Week", value: weeklyChartData[weeklyChartData.length - 1]?.count || 0, sub: "ads created", color: "text-gray-900" },
-          { label: "Hit Rate", value: `${hitRate}%`, sub: "winners / total", color: hitRate >= 50 ? "text-green-700" : hitRate >= 25 ? "text-amber-600" : "text-red-500" },
+          { label: "Overall Hit Rate", value: `${hitRate}%`, sub: "winners / total tested", color: hitRate >= 30 ? "text-green-700" : hitRate >= 15 ? "text-amber-600" : "text-red-500" },
           { label: "In Testing", value: inTesting, sub: "ads live", color: "text-blue-600" },
           { label: "Total Ad Spend", value: `$${totalSpend.toLocaleString()}`, sub: "all time", color: "text-amber-600" },
         ].map(s => (
@@ -425,7 +426,7 @@ export function ReportsView({
 
       {/* Ad Spend Rankings */}
       {rankedSpend.length > 0 && (
-        <div className={cardClass}>
+        <div className={`${cardClass} mb-6`}>
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="font-black text-gray-800">Ad Spend Rankings</h3>
@@ -455,6 +456,61 @@ export function ReportsView({
           </div>
         </div>
       )}
+
+      {/* Hit Rate Per Person */}
+      {rankedHitRate && rankedHitRate.length > 0 && (
+        <div className={cardClass}>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="font-black text-gray-800">Hit Rate Per Person</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Winners / Total Ads Tested — All Time</p>
+            </div>
+            <span className="text-2xl">🎯</span>
+          </div>
+          <div className="space-y-5">
+            {rankedHitRate.map((person, i) => (
+              <div key={person.name}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[10px] font-black w-5 ${i === 0 ? "text-amber-500" : "text-gray-400"}`}>#{i + 1}</span>
+                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center font-black text-green-700 text-[11px]">
+                      {person.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-black text-gray-700">{person.name}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tested</p>
+                      <p className="text-sm font-black text-gray-700">{person.tested}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Winners</p>
+                      <p className="text-sm font-black text-green-700">{person.winners}</p>
+                    </div>
+                    <div className="text-right min-w-[48px]">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Rate</p>
+                      <p className={`text-lg font-black ${person.rate >= 30 ? "text-green-700" : person.rate >= 15 ? "text-amber-600" : "text-red-500"}`}>
+                        {person.rate}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${person.rate >= 30 ? "bg-green-500" : person.rate >= 15 ? "bg-amber-400" : "bg-red-400"}`}
+                    style={{ width: `${Math.min(person.rate, 100)}%` }}
+                  />
+                </div>
+                <p className="text-[9px] font-bold text-gray-400 mt-1">{person.winners} winner{person.winners !== 1 ? "s" : ""} out of {person.tested} tested</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[9px] font-bold text-gray-400 mt-4 border-t border-gray-100 pt-3">
+            🟢 30%+ = Strong &nbsp;|&nbsp; 🟡 15–29% = Average &nbsp;|&nbsp; 🔴 Under 15% = Needs improvement
+          </p>
+        </div>
+      )}
+
     </div>
   );
 }

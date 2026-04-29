@@ -9,11 +9,47 @@ export function useKPIs(ads: Ad[]) {
 
     const volWk = adsCreatedThisWeek.length;
 
-    const WinnerWithResult = ads.filter(ad => ad.status === "Winner" && ad.result);
-    const winners = WinnerWithResult.filter(ad => ad.result === "Winner").length;
-    const hitRate = WinnerWithResult.length > 0
-      ? Math.round((winners / WinnerWithResult.length) * 100)
+    // ── OVERALL HIT RATE: Winners / All ads that ever went to Testing ──
+    const adsThatWentToTesting = ads.filter(ad =>
+      ["Testing", "Winner", "Killed"].includes(ad.status) ||
+      ads.some(a => {
+        try {
+          const logs: TimeLogEntry[] = JSON.parse(a.time_log || "[]");
+          return a.id === ad.id && logs.some(l => l.action?.includes("Testing"));
+        } catch { return false; }
+      })
+    );
+    const testedAds = ads.filter(ad => {
+      if (["Testing", "Winner", "Killed"].includes(ad.status)) return true;
+      try {
+        const logs: TimeLogEntry[] = JSON.parse(ad.time_log || "[]");
+        return logs.some(l => l.action?.toLowerCase().includes("testing"));
+      } catch { return false; }
+    });
+    const winnerAds = testedAds.filter(ad => ad.status === "Winner" || ad.result === "Winner");
+    const hitRate = testedAds.length > 0
+      ? Math.round((winnerAds.length / testedAds.length) * 100)
       : 0;
+
+    // ── PER PERSON HIT RATE ──
+    const personHitRate: Record<string, { tested: number; winners: number; rate: number }> = {};
+    testedAds.forEach(ad => {
+      const people = [ad.assigned_copywriter, ad.assigned_editor].filter(Boolean) as string[];
+      const isWinner = ad.status === "Winner" || ad.result === "Winner";
+      people.forEach(person => {
+        if (!personHitRate[person]) personHitRate[person] = { tested: 0, winners: 0, rate: 0 };
+        personHitRate[person].tested += 1;
+        if (isWinner) personHitRate[person].winners += 1;
+      });
+    });
+    Object.keys(personHitRate).forEach(person => {
+      const { tested, winners } = personHitRate[person];
+      personHitRate[person].rate = tested > 0 ? Math.round((winners / tested) * 100) : 0;
+    });
+    const rankedHitRate = Object.entries(personHitRate)
+      .map(([name, data]) => ({ name, ...data }))
+      .filter(p => p.tested > 0)
+      .sort((a, b) => b.rate - a.rate);
 
     const WinnerAds = ads.filter(ad => ad.status === "Winner");
     const avgRevs = WinnerAds.length > 0
@@ -98,7 +134,7 @@ export function useKPIs(ads: Ad[]) {
     return {
       volWk, hitRate, avgRevs, inTesting,
       conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend,
-      weeklyChartData,
+      weeklyChartData, rankedHitRate,
       teamOutput: Object.entries(teamOutput),
       pipelineVelocityData: { upload: avgDaysToUpload, testing: avgDaysToTesting }
     };

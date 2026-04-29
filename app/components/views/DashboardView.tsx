@@ -15,6 +15,7 @@ interface Props {
   activeSessions?: Record<string, { sessionId: string; elapsedSeconds: number; startedAt: string }>;
   formatTimer?: (seconds: number) => string;
   supabase?: any;
+  rankedHitRate?: { name: string; tested: number; winners: number; rate: number }[];
 }
 
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
@@ -28,11 +29,6 @@ function isOverdue(dateStr?: string) {
   return new Date(dateStr) < new Date();
 }
 
-function formatDueDate(dateStr?: string) {
-  if (!dateStr) return null;
-  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
 function fmtDuration(seconds: number) {
   if (!seconds) return "—";
   const h = Math.floor(seconds / 3600);
@@ -41,6 +37,24 @@ function fmtDuration(seconds: number) {
   if (h > 0) return `${h}h ${m}m`;
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
+}
+
+// ── SHARED HIT RATE CALCULATOR ──
+function calcHitRate(ads: Ad[], filterFn: (ad: Ad) => boolean): { tested: number; winners: number; rate: number } {
+  const myAds = ads.filter(filterFn);
+  const tested = myAds.filter(ad => {
+    if (["Testing", "Winner", "Killed"].includes(ad.status)) return true;
+    try {
+      const logs = JSON.parse(ad.time_log || "[]");
+      return logs.some((l: any) => l.action?.toLowerCase().includes("testing"));
+    } catch { return false; }
+  });
+  const winners = tested.filter(ad => ad.status === "Winner" || ad.result === "Winner");
+  return {
+    tested: tested.length,
+    winners: winners.length,
+    rate: tested.length > 0 ? Math.round((winners.length / tested.length) * 100) : 0
+  };
 }
 
 function StatCard({ label, value, sub, color, icon }: {
@@ -159,8 +173,6 @@ function TeamMemberModal({ person, ads, onSelectAd, onClose, activeSessions, for
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-gray-200 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center font-black text-green-700 text-sm">
@@ -182,8 +194,6 @@ function TeamMemberModal({ person, ads, onSelectAd, onClose, activeSessions, for
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all font-black">✕</button>
           </div>
         </div>
-
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {ads.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
@@ -258,8 +268,6 @@ function TeamMemberModal({ person, ads, onSelectAd, onClose, activeSessions, for
             </div>
           )}
         </div>
-
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
           <p className="text-[10px] font-bold text-gray-400 text-center">Click any ad to open it</p>
         </div>
@@ -269,7 +277,7 @@ function TeamMemberModal({ person, ads, onSelectAd, onClose, activeSessions, for
 }
 
 // ── FOUNDER DASHBOARD ──
-function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSessions, formatTimer, supabase }: Props) {
+function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSessions, formatTimer, supabase, rankedHitRate }: Props) {
   const [adSessions, setAdSessions] = useState<Record<string, any>>({});
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
 
@@ -293,8 +301,7 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
   const totalAds = activeAds.length;
   const inTesting = ads.filter(a => a.status === "Testing").length;
   const doneWaiting = ads.filter(a => a.status === "Done, Waiting for Approval").length;
-  const winnerCount = ads.filter(a => a.status === "Winner").length;
-  const hitRate = winnerCount > 0 ? Math.round((ads.filter(a => a.result === "Winner").length / winnerCount) * 100) : 0;
+  const { rate: hitRate } = calcHitRate(ads, () => true);
 
   const overdueAds = activeAds.filter(ad =>
     (daysSince(ad.stage_updated_at || ad.created_at) >= 5 && !["Testing"].includes(ad.status)) ||
@@ -332,8 +339,6 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
 
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto">
-
-      {/* Team Member Modal */}
       {selectedPerson && (
         <TeamMemberModal
           person={selectedPerson}
@@ -345,17 +350,14 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
         />
       )}
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Active" value={totalAds} sub="ads in pipeline" icon="📋" />
         <StatCard label="Done, Waiting" value={doneWaiting} sub="awaiting approval" color="text-green-700" icon="✋" />
         <StatCard label="In Testing" value={inTesting} sub="ads live" color="text-blue-600" icon="🧪" />
-        <StatCard label="Hit Rate" value={`${hitRate}%`} sub="winners vs total" color={hitRate >= 30 ? "text-green-700" : "text-red-500"} icon="🎯" />
+        <StatCard label="Hit Rate" value={`${hitRate}%`} sub="winners / total tested" color={hitRate >= 30 ? "text-green-700" : "text-red-500"} icon="🎯" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-
-        {/* Pipeline Progress */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-black text-gray-800">Pipeline Progress</h3>
@@ -371,26 +373,19 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                     <span className="text-[11px] font-black text-gray-700 ml-2">{count}</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        stage === "Done, Waiting for Approval" ? "bg-green-500" :
-                        stage === "Testing" ? "bg-blue-500" :
-                        stage === "In Progress" ? "bg-indigo-400" :
-                        "bg-gray-300"
-                      }`}
-                      style={{ width: `${pct}%` }}
-                    />
+                    <div className={`h-full rounded-full transition-all ${
+                      stage === "Done, Waiting for Approval" ? "bg-green-500" :
+                      stage === "Testing" ? "bg-blue-500" :
+                      stage === "In Progress" ? "bg-indigo-400" : "bg-gray-300"
+                    }`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
             })}
           </div>
-          {pipelineProgress.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">No active ads</p>
-          )}
+          {pipelineProgress.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No active ads</p>}
         </div>
 
-        {/* Live Sessions */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-black text-gray-800">Live Sessions</h3>
@@ -431,7 +426,6 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
           )}
         </div>
 
-        {/* Needs Attention */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-black text-gray-800">Needs Attention</h3>
@@ -463,25 +457,18 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
         </div>
       </div>
 
-      {/* Team Workload */}
       <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-black text-gray-800">Team Workload</h3>
-          <button onClick={() => onNavigate?.("Manager")} className="text-xs font-black text-green-700 hover:text-green-800 transition-colors">
-            View All →
-          </button>
+          <button onClick={() => onNavigate?.("Manager")} className="text-xs font-black text-green-700 hover:text-green-800 transition-colors">View All →</button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {teamWorkload.slice(0, 6).map(person => {
             const isActive = Object.values(adSessions).some((s: any) => s.is_active && s.user_name === person.full_name);
             return (
-              <div
-                key={person.id}
-                onClick={() => setSelectedPerson(person)}
+              <div key={person.id} onClick={() => setSelectedPerson(person)}
                 className={`border rounded-xl p-4 transition-all cursor-pointer ${
-                  isActive
-                    ? "border-green-200 bg-green-50 hover:border-green-300 hover:shadow-md"
-                    : "border-gray-100 hover:border-green-200 hover:shadow-md"
+                  isActive ? "border-green-200 bg-green-50 hover:border-green-300 hover:shadow-md" : "border-gray-100 hover:border-green-200 hover:shadow-md"
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
@@ -499,43 +486,68 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
                   </div>
                   <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${
                     person.ads.length === 0 ? "bg-gray-100 text-gray-400" :
-                    person.ads.length >= 4 ? "bg-red-100 text-red-600" :
-                    "bg-green-100 text-green-700"
-                  }`}>
-                    {person.ads.length} ads
-                  </span>
+                    person.ads.length >= 4 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
+                  }`}>{person.ads.length} ads</span>
                 </div>
                 {person.ads.length > 0 && (
                   <div className="space-y-1">
                     {person.ads.slice(0, 2).map((ad: Ad) => (
-                      <div key={ad.id} className="text-[10px] font-bold text-gray-500 truncate px-2 py-1 rounded-lg">
-                        · {ad.concept_name}
-                      </div>
+                      <div key={ad.id} className="text-[10px] font-bold text-gray-500 truncate px-2 py-1 rounded-lg">· {ad.concept_name}</div>
                     ))}
-                    {person.ads.length > 2 && (
-                      <p className="text-[9px] font-black text-green-700 px-2">+{person.ads.length - 2} more — click to see all</p>
-                    )}
+                    {person.ads.length > 2 && <p className="text-[9px] font-black text-green-700 px-2">+{person.ads.length - 2} more — click to see all</p>}
                   </div>
                 )}
-                {person.ads.length === 0 && (
-                  <p className="text-[10px] text-gray-400 font-bold text-center py-1">Idle — click to view</p>
-                )}
+                {person.ads.length === 0 && <p className="text-[10px] text-gray-400 font-bold text-center py-1">Idle — click to view</p>}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Quick Nav */}
+      {rankedHitRate && rankedHitRate.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="font-black text-gray-800">Hit Rate Per Person</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Winners / Total Tested</p>
+            </div>
+            <span className="text-2xl">🎯</span>
+          </div>
+          <div className="space-y-4">
+            {rankedHitRate.map((person, i) => (
+              <div key={person.name}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className={`text-[10px] font-black w-5 ${i === 0 ? "text-amber-500" : "text-gray-400"}`}>#{i + 1}</span>
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center font-black text-green-700 text-[10px]">
+                      {person.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-black text-gray-700">{person.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-gray-400">{person.winners}W / {person.tested} tested</span>
+                    <span className={`text-sm font-black ${person.rate >= 30 ? "text-green-700" : person.rate >= 15 ? "text-amber-600" : "text-red-500"}`}>
+                      {person.rate}%
+                    </span>
+                  </div>
+                </div>
+                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${person.rate >= 30 ? "bg-green-500" : person.rate >= 15 ? "bg-amber-400" : "bg-red-400"}`}
+                    style={{ width: `${Math.min(person.rate, 100)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Output Report", icon: "📊", view: "Reports" as DashboardViewMode, sub: "Charts & analytics" },
           { label: "Ideas Library", icon: "💡", view: "Ideas" as DashboardViewMode, sub: "Log & promote ideas" },
           { label: "Learnings Log", icon: "🧠", view: "Learnings" as DashboardViewMode, sub: "What worked & why" },
         ].map(s => (
-          <button
-            key={s.view}
-            onClick={() => onNavigate?.(s.view)}
+          <button key={s.view} onClick={() => onNavigate?.(s.view)}
             className="bg-white border border-gray-100 rounded-2xl p-5 text-left hover:border-green-200 hover:shadow-md transition-all group"
           >
             <div className="text-2xl mb-2">{s.icon}</div>
@@ -555,8 +567,8 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
   const awaitingReview = myAds.filter(ad => ["Brief Approved", "Pending Upload"].includes(ad.status)).sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
   const revisionRequested = myAds.filter(ad => ["Brief Revision Required", "Ad Revision"].includes(ad.status)).sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
   const doneWaiting = ads.filter(ad => ad.status === "Done, Waiting for Approval").sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
-  const myWinner = ads.filter(ad => ad.status === "Winner" && ad.assigned_copywriter === currentUser);
-  const hitRate = myWinner.length > 0 ? Math.round((myWinner.filter(ad => ad.result === "Winner").length / myWinner.length) * 100) : 0;
+
+  const { tested, winners, rate: hitRate } = calcHitRate(ads, ad => ad.assigned_copywriter === currentUser);
 
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto">
@@ -566,18 +578,20 @@ function StrategistDashboard({ ads, currentUser, onSelectAd, onNewAd, onNavigate
           <p className="text-gray-400 text-sm font-medium mt-0.5">Strategist view</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => onNavigate?.("Ideas")} className="text-xs font-black text-green-700 bg-green-50 px-4 py-2 rounded-xl hover:bg-green-100 transition-all border border-green-200">
-            + Log Idea
-          </button>
-          <button onClick={onNewAd} className="text-xs font-black text-white bg-green-700 px-4 py-2 rounded-xl hover:bg-green-800 transition-all shadow-sm">
-            + New Ad
-          </button>
+          <button onClick={() => onNavigate?.("Ideas")} className="text-xs font-black text-green-700 bg-green-50 px-4 py-2 rounded-xl hover:bg-green-100 transition-all border border-green-200">+ Log Idea</button>
+          <button onClick={onNewAd} className="text-xs font-black text-white bg-green-700 px-4 py-2 rounded-xl hover:bg-green-800 transition-all shadow-sm">+ New Ad</button>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard label="In Progress" value={myAds.filter(a => !["Winner", "Killed"].includes(a.status)).length} sub="active ads" icon="🎯" />
-        <StatCard label="Hit Rate" value={`${hitRate}%`} sub="winners" color={hitRate >= 30 ? "text-green-700" : "text-red-500"} icon="🏆" />
+        <StatCard
+          label="Hit Rate"
+          value={`${hitRate}%`}
+          sub={tested > 0 ? `${winners}W / ${tested} tested` : "no ads tested yet"}
+          color={hitRate >= 30 ? "text-green-700" : hitRate >= 15 ? "text-amber-600" : "text-red-500"}
+          icon="🏆"
+        />
         <StatCard label="Pending Review" value={doneWaiting.length} sub="awaiting approval" color="text-amber-600" icon="✋" />
       </div>
 
@@ -622,6 +636,8 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
   const winnerThisMonth = myAds.filter(ad => ad.status === "Winner" && new Date(ad.stage_updated_at) >= thisMonth).length;
   const overdueCount = myAds.filter(ad => isOverdue(ad.due_date) && !["Winner", "Killed"].includes(ad.status)).length;
 
+  const { tested, winners, rate: hitRate } = calcHitRate(ads, ad => ad.assigned_editor === currentUser);
+
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto">
       <div className="mb-6">
@@ -629,9 +645,15 @@ function EditorDashboard({ ads, currentUser, onSelectAd, activeSessions, formatT
         <p className="text-gray-400 text-sm font-medium mt-0.5">Editor view</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatCard label="Winners This Month" value={winnerThisMonth} icon="🏆" color="text-green-700" />
-        <StatCard label="In Progress" value={currentlyEditing.length} icon="✏️" color="text-indigo-600" />
+        <StatCard
+          label="Hit Rate"
+          value={`${hitRate}%`}
+          sub={tested > 0 ? `${winners}W / ${tested} tested` : "no ads tested yet"}
+          color={hitRate >= 30 ? "text-green-700" : hitRate >= 15 ? "text-amber-600" : "text-red-500"}
+          icon="🎯"
+        />
         <StatCard label="Overdue" value={overdueCount} icon="⚠️" color={overdueCount > 0 ? "text-red-500" : "text-gray-400"} />
         <StatCard label="Waiting For Me" value={waitingForMe.length} icon="📥" color={waitingForMe.length > 0 ? "text-amber-600" : "text-gray-400"} />
       </div>
@@ -744,6 +766,8 @@ function MediaBuyerDashboard({ ads, onSelectAd, activeSessions, formatTimer }: P
   const pendingAds = ads.filter(ad => ad.status === "Pending Upload").sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   const testingAds = ads.filter(ad => ad.status === "Testing").sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
+  const { tested, winners, rate: hitRate } = calcHitRate(ads, () => true);
+
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-[900px]">
       <div className="mb-6">
@@ -751,7 +775,7 @@ function MediaBuyerDashboard({ ads, onSelectAd, activeSessions, formatTimer }: P
         <p className="text-gray-400 text-sm font-medium mt-0.5">Upload ads and manage testing results</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Pending Upload</p>
           <p className="text-3xl font-black text-amber-600">{pendingAds.length}</p>
@@ -762,9 +786,13 @@ function MediaBuyerDashboard({ ads, onSelectAd, activeSessions, formatTimer }: P
           <p className="text-3xl font-black text-blue-600">{testingAds.length}</p>
           <p className="text-[11px] text-gray-400 font-medium mt-1">ads live — set results</p>
         </div>
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Overall Hit Rate</p>
+          <p className={`text-3xl font-black ${hitRate >= 30 ? "text-green-700" : hitRate >= 15 ? "text-amber-600" : "text-red-500"}`}>{hitRate}%</p>
+          <p className="text-[11px] text-gray-400 font-medium mt-1">{tested > 0 ? `${winners}W / ${tested} tested` : "no ads tested yet"}</p>
+        </div>
       </div>
 
-      {/* Pending Upload */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -804,7 +832,6 @@ function MediaBuyerDashboard({ ads, onSelectAd, activeSessions, formatTimer }: P
         )}
       </div>
 
-      {/* Testing — Set Results */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-blue-400" />
@@ -840,9 +867,7 @@ function MediaBuyerDashboard({ ads, onSelectAd, activeSessions, formatTimer }: P
                       ad.result === "Winner" ? "bg-green-100 text-green-700" :
                       ad.result === "Loser" ? "bg-red-100 text-red-600" :
                       "bg-gray-100 text-gray-400"
-                    }`}>
-                      {ad.result || "No Result"}
-                    </span>
+                    }`}>{ad.result || "No Result"}</span>
                     <span className="text-xs font-black text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl">Set Result →</span>
                   </div>
                 </div>
