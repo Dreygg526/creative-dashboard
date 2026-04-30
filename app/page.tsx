@@ -91,11 +91,20 @@ export default function App() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [products, setProducts] = useState<string[]>([]);
+  const [whitelistPages, setWhitelistPages] = useState<string[]>([]);
 
   const loadProducts = async () => {
     if (!supabase) return;
     const { data } = await supabase.from("settings").select("value").eq("key", "products").single();
     if (data?.value && Array.isArray(data.value)) setProducts(data.value);
+  };
+
+  const loadWhitelistPages = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "whitelisting_pages").single();
+      if (data?.value && Array.isArray(data.value)) setWhitelistPages(data.value);
+    } catch { setWhitelistPages([]); }
   };
 
   const currentUserRef = useRef(currentUser);
@@ -108,6 +117,12 @@ export default function App() {
     manualLogNote, setManualLogNote,
     fetchAds, handleCreateAd, handleUpdateAd, handleDeleteAd
   } = useAds(supabase, currentUser, currentRole);
+
+  // ── destinationUrls must be AFTER useAds so ads is available ──
+  const destinationUrls = useMemo(() => {
+    const urls = ads.map(a => a.destination_url).filter((u): u is string => !!u);
+    return Array.from(new Set(urls));
+  }, [ads]);
 
   const {
     fetchIdeas,
@@ -144,7 +159,7 @@ export default function App() {
   const fetchNotificationsRef = useRef(fetchNotifications);
   useEffect(() => { fetchNotificationsRef.current = fetchNotifications; }, [fetchNotifications]);
 
- const { hitRate, inTesting, conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend, weeklyChartData, teamOutput, pipelineVelocityData, rankedHitRate } = useKPIs(ads);
+  const { hitRate, inTesting, conceptsVsIterations, avgDaysToUpload, creativeDiversity, rankedSpend, weeklyChartData, teamOutput, pipelineVelocityData, rankedHitRate } = useKPIs(ads);
 
   const {
     activeSessions, startSession, finishSession,
@@ -157,7 +172,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (supabase && user) { loadAllProfiles(); loadProducts(); }
+    if (supabase && user) { loadAllProfiles(); loadProducts(); loadWhitelistPages(); }
   }, [supabase, user, profile]);
 
   useEffect(() => {
@@ -177,7 +192,7 @@ export default function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => loadAllProfiles())
       .subscribe();
     const settingsChannel = supabase.channel("settings-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => loadProducts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => { loadProducts(); loadWhitelistPages(); })
       .subscribe();
     const notifChannel = supabase.channel("notif-realtime-v2")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
@@ -401,7 +416,7 @@ export default function App() {
               {viewMode === "Manager" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-700 rounded-r-full" />}
             </button>
           )}
-          {isFounder && (
+          {(isFounder || isStrategist || isMediaBuyer) && (
             <button
               onClick={() => handleSetViewMode("Settings")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all relative ${
@@ -486,7 +501,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Active sessions indicator */}
             {Object.keys(activeSessions).length > 0 && (
               <div className="flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -498,11 +512,7 @@ export default function App() {
                 </span>
               </div>
             )}
-
-            {/* Connection status */}
             <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-green-500" : "bg-gray-300"}`} title={isSubscribed ? "Connected" : "Connecting..."} />
-
-            {/* Notifications */}
             <div className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
@@ -525,8 +535,6 @@ export default function App() {
                 />
               )}
             </div>
-
-            {/* New Ad button */}
             {canCreateAd && (
               <button
                 onClick={() => setIsNewAdOpen(true)}
@@ -567,7 +575,7 @@ export default function App() {
           {viewMode === "Archive" && isFounder && (
             <ArchiveView ads={ads} onSelectAd={handleSelectAd} />
           )}
-          {viewMode === "Settings" && isFounder && profile && (
+          {viewMode === "Settings" && (isFounder || isStrategist || isMediaBuyer) && profile && (
             <SettingsView currentProfile={profile} onInviteUser={inviteUser} onUpdateRole={updateUserRole} onDeactivateUser={deactivateUser} getAllUsers={getAllUsers} supabase={supabase} />
           )}
         </main>
@@ -575,13 +583,13 @@ export default function App() {
 
       {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
-        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} />
+        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} />
       )}
       {ideaToPromote && (
         <PromoteIdeaModal idea={ideaToPromote} onConfirm={(idea) => handlePromoteIdea(idea, setNewAd, setIsNewAdOpen, handleSetViewMode)} onCancel={() => setIdeaToPromote(null)} />
       )}
       {selectedAd && (
-        <AdDetailModal selectedAd={selectedAd} ads={ads} manualLogNote={manualLogNote} setManualLogNote={setManualLogNote} setSelectedAd={setSelectedAd} onUpdate={handleUpdateAdWithSession} onDelete={handleDeleteAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allEditorProfiles={allEditorProfiles} allStrategists={allStrategists} allStrategistProfiles={allStrategistProfiles} supabase={supabase} activeSession={getSessionForAd(selectedAd.id, selectedAd)} onFinishSession={async () => { await finishSession(selectedAd.id); }} fetchSessionsForAd={fetchSessionsForAd} fetchAllSessions={fetchAllSessions} formatTimer={formatTimer} products={products} />
+        <AdDetailModal selectedAd={selectedAd} ads={ads} manualLogNote={manualLogNote} setManualLogNote={setManualLogNote} setSelectedAd={setSelectedAd} onUpdate={handleUpdateAdWithSession} onDelete={handleDeleteAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allEditorProfiles={allEditorProfiles} allStrategists={allStrategists} allStrategistProfiles={allStrategistProfiles} supabase={supabase} activeSession={getSessionForAd(selectedAd.id, selectedAd)} onFinishSession={async () => { await finishSession(selectedAd.id); }} fetchSessionsForAd={fetchSessionsForAd} fetchAllSessions={fetchAllSessions} formatTimer={formatTimer} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} />
       )}
     </div>
   );

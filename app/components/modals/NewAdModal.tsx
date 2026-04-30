@@ -17,12 +17,14 @@ interface Props {
   allEditorProfiles?: EditorProfile[];
   allStrategistProfiles?: EditorProfile[];
   products?: string[];
+  whitelistPages?: string[];
+  destinationUrls?: string[];
 }
 
 export default function NewAdModal({
   newAd, setNewAd, onSubmit, onClose,
   editors, currentRole, currentUser, allEditorProfiles = [],
-  allStrategistProfiles = [], products = []
+  allStrategistProfiles = [],  products = [], whitelistPages = [], destinationUrls = []
 }: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
@@ -135,12 +137,18 @@ export default function NewAdModal({
 
             <div className="md:col-span-2">
               <label className={labelClass}>Destination URL <span className="text-gray-300 normal-case font-medium">(landing page for the ad)</span></label>
-              <input type="url" className={inputClass} placeholder="https://..." value={newAd.destination_url || ""} onChange={e => setNewAd({ ...newAd, destination_url: e.target.value })} />
+              <input type="url" list="destination-url-suggestions" className={inputClass} placeholder="https://..." value={newAd.destination_url || ""} onChange={e => setNewAd({ ...newAd, destination_url: e.target.value })} />
+              <datalist id="destination-url-suggestions">
+                {(destinationUrls || []).map(url => <option key={url} value={url} />)}
+              </datalist>
             </div>
 
             <div className="md:col-span-2">
               <label className={labelClass}>Whitelisting Page <span className="text-gray-300 normal-case font-medium">(Facebook/Instagram page to run from)</span></label>
-              <input type="text" className={inputClass} placeholder="e.g. Health 40+" value={newAd.whitelisting_page || ""} onChange={e => setNewAd({ ...newAd, whitelisting_page: e.target.value })} />
+              <select className={selectClass} value={newAd.whitelisting_page || ""} onChange={e => setNewAd({ ...newAd, whitelisting_page: e.target.value })}>
+                <option value="">— Select Whitelisting Page —</option>
+                {whitelistPages.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
 
           </div>

@@ -30,6 +30,8 @@ interface Props {
   fetchAllSessions?: () => Promise<any[]>;
   formatTimer?: (seconds: number) => string;
   products?: string[];
+  whitelistPages?: string[];
+  destinationUrls?: string[];
 }
 
 function formatDate(dateStr?: string) {
@@ -321,7 +323,9 @@ export default function AdDetailModal({
   currentRole, currentUser, allEditors = [], allEditorProfiles = [],
   allStrategists = [], allStrategistProfiles = [], supabase,
   activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer,
-  products = []
+  products = [],
+  whitelistPages = [],
+  destinationUrls = []
 }: Props) {
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
   const isLocked = selectedAd.status === "Testing" && daysLeft > 0;
@@ -844,11 +848,17 @@ export default function AdDetailModal({
               </div>
               <div>
                 <label className={labelClass}>Destination URL <span className="text-gray-300 normal-case font-medium">(landing page)</span></label>
-                <input type="url" className={inputClass} placeholder="https://..." value={selectedAd.destination_url || ""} onChange={e => setSelectedAd({ ...selectedAd, destination_url: e.target.value })} />
+                <input type="url" list="destination-url-suggestions" className={inputClass} placeholder="https://..." value={selectedAd.destination_url || ""} onChange={e => setSelectedAd({ ...selectedAd, destination_url: e.target.value })} />
+                <datalist id="destination-url-suggestions">
+                  {(destinationUrls || []).map(url => <option key={url} value={url} />)}
+                </datalist>
               </div>
               <div>
                 <label className={labelClass}>Whitelisting Page <span className="text-gray-300 normal-case font-medium">(FB/IG page to run from)</span></label>
-                <input type="text" className={inputClass} placeholder="e.g. Health 40+" value={selectedAd.whitelisting_page || ""} onChange={e => setSelectedAd({ ...selectedAd, whitelisting_page: e.target.value })} />
+                <select className={selectClass} value={selectedAd.whitelisting_page || ""} onChange={e => setSelectedAd({ ...selectedAd, whitelisting_page: e.target.value })}>
+                  <option value="">— Select Whitelisting Page —</option>
+                  {whitelistPages.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
               </div>
               <div>
                 <label className={labelClass}>Notes</label>
