@@ -30,7 +30,9 @@ export interface Ad {
   killed_at?: string;
   time_tracking?: string;
   created_at: string;
-  imprint_number?: number; // ← Digital imprint receipt number
+  imprint_number?: number;
+  destination_url?: string;
+  whitelisting_page?: string;
 }
 
 export interface Notification {
@@ -83,4 +85,6 @@ export interface NewAdForm {
   assigned_copywriter: string;
   brief_link: string;
   due_date?: string;
+  destination_url?: string;
+  whitelisting_page?: string;
 }

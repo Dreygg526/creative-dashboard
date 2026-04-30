@@ -242,6 +242,8 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           stage_updated_at: newStageUpdatedDate,
           time_log: JSON.stringify(updatedTimeLog),
           imprint_number: isFounder ? selectedAd.imprint_number : originalAd.imprint_number,
+          destination_url: selectedAd.destination_url ?? originalAd.destination_url ?? null,
+          whitelisting_page: selectedAd.whitelisting_page ?? originalAd.whitelisting_page ?? null,
         })
         .eq("id", selectedAd.id)
         .select();

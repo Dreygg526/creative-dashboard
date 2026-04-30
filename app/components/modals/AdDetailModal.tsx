@@ -213,6 +213,32 @@ function CloseButton({ onClose }: { onClose: () => void }) {
   );
 }
 
+function AdSetNameBar({ selectedAd }: { selectedAd: Ad }) {
+  const adSetName = [
+    selectedAd.imprint_number ? `DTC #${String(selectedAd.imprint_number).padStart(4, "0")}` : "",
+    selectedAd.ad_format || "",
+    selectedAd.product || "",
+    selectedAd.assigned_editor ? `Editor: ${selectedAd.assigned_editor}` : "",
+    selectedAd.assigned_copywriter ? `Strategist: ${selectedAd.assigned_copywriter}` : "",
+  ].filter(Boolean).join(" || ");
+
+  return (
+    <div className="px-4 py-2.5 border-b border-gray-100">
+      <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">📋 Ad Set Name — Click to Select & Copy</p>
+      <div className="inline-block bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 max-w-full">
+        <input
+          readOnly
+          onFocus={e => e.target.select()}
+          onClick={e => (e.target as HTMLInputElement).select()}
+          className="text-[11px] font-black text-amber-700 bg-transparent outline-none cursor-pointer font-mono max-w-full"
+          style={{ width: `${adSetName.length}ch` }}
+          value={adSetName}
+        />
+      </div>
+    </div>
+  );
+}
+
 function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser, currentRole, supabase, reason }: {
   selectedAd: Ad; setSelectedAd: (ad: Ad | null) => void; setManualLogNote: (v: string) => void;
   currentUser: string; currentRole: string; supabase: any; reason: string;
@@ -225,8 +251,8 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
       <div className="relative w-full max-w-3xl">
         <CloseButton onClose={() => { setSelectedAd(null); setManualLogNote(""); }} />
         <div className="bg-white rounded-2xl w-full shadow-2xl flex flex-col md:flex-row overflow-hidden max-h-[90vh] border border-gray-200">
-          <div className="flex-1 p-6 overflow-y-auto border-r border-gray-100">
-            <div className="mb-6">
+          <div className="flex-1 overflow-y-auto border-r border-gray-100">
+            <div className="p-6">
               {selectedAd.imprint_number && (
                 <div className="mb-3 bg-amber-50 rounded-xl px-3 py-2 border border-amber-200">
                   <p className="text-[10px] font-black font-mono text-amber-700 whitespace-nowrap tracking-wide">
@@ -264,9 +290,9 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Comments</p>
                 <CommentsSection adId={selectedAd.id} adName={selectedAd.concept_name} assignedEditor={selectedAd.assigned_editor} assignedCopywriter={selectedAd.assigned_copywriter} currentUser={currentUser} currentRole={currentRole} supabase={supabase} />
               </div>
-            </div>
-            <div className="pt-4 border-t border-gray-100">
-              <button type="button" onClick={() => { setSelectedAd(null); setManualLogNote(""); }} className="text-xs font-black text-gray-400 uppercase tracking-widest px-4 py-2 hover:bg-gray-100 rounded-xl">Close</button>
+              <div className="pt-4 border-t border-gray-100 mt-4">
+                <button type="button" onClick={() => { setSelectedAd(null); setManualLogNote(""); }} className="text-xs font-black text-gray-400 uppercase tracking-widest px-4 py-2 hover:bg-gray-100 rounded-xl">Close</button>
+              </div>
             </div>
           </div>
           <div className="w-full md:w-64 bg-gray-50 p-5 flex flex-col max-h-full">
@@ -310,6 +336,7 @@ export default function AdDetailModal({
   const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
+  const isMediaBuyer = currentRole === "Media Buyer";
 
   const { allowed, reason } = canUserModify(selectedAd, originalAdStatus, currentRole, currentUser);
 
@@ -334,7 +361,6 @@ export default function AdDetailModal({
   const [activeTab, setActiveTab] = useState<"log" | "comments" | "monitoring">("log");
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); if (!allowed) { alert(reason); return; } onUpdate(e); };
-
   const handleClose = () => { setSelectedAd(null); setManualLogNote(""); };
 
   const inputClass = "w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-bold outline-none focus:border-green-500 text-gray-800";
@@ -448,129 +474,166 @@ export default function AdDetailModal({
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="relative w-full max-w-lg">
           <CloseButton onClose={handleClose} />
-          <div className="bg-white rounded-2xl w-full shadow-2xl p-6 border border-gray-200">
-            <h2 className="text-xl font-black text-gray-900 mb-2">{selectedAd.concept_name}</h2>
-            <div className="flex gap-2 mb-5">
-              <span className="text-[10px] font-black text-green-700 bg-green-100 px-3 py-1 rounded-full uppercase border border-green-200">{selectedAd.status}</span>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <TimerBlock />
-              {selectedAd.review_link && (
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Review File</p>
-                  <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800">Open Review File ↗</a>
+          <div className="bg-white rounded-2xl w-full shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="p-6">
+              <h2 className="text-xl font-black text-gray-900 mb-2">{selectedAd.concept_name}</h2>
+              <div className="flex gap-2 mb-5">
+                <span className="text-[10px] font-black text-green-700 bg-green-100 px-3 py-1 rounded-full uppercase border border-green-200">{selectedAd.status}</span>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <TimerBlock />
+                {selectedAd.review_link && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Review File</p>
+                    <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800">Open Review File ↗</a>
+                  </div>
+                )}
+                <div>
+                  <label className={labelClass}>Move Stage</label>
+                  <select className={selectClass} value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
+                    <option value="Pending Upload">Pending Upload (Current)</option>
+                    <option value="Testing">Testing</option>
+                  </select>
                 </div>
-              )}
-              <div>
-                <label className={labelClass}>Move Stage</label>
-                <select className={selectClass} value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
-                  <option value="Pending Upload">Pending Upload (Current)</option>
-                  <option value="Testing">Testing</option>
-                </select>
-              </div>
-              <div className="bg-green-50 p-4 rounded-2xl border border-green-200">
-                <label className="block text-[10px] font-black text-green-700 uppercase tracking-widest mb-2">Upload Note</label>
-                <textarea rows={2} className="w-full border border-green-200 p-3 rounded-xl text-sm outline-none focus:border-green-500 bg-white font-medium text-gray-800" placeholder="Log upload details..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />
-              </div>
-              <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                <button type="button" onClick={handleClose} className="text-xs font-black text-gray-400 uppercase tracking-widest px-4 py-2 hover:bg-gray-100 rounded-xl">Close</button>
-                <button type="submit" className="bg-green-700 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 shadow-sm">Mark as Uploaded</button>
-              </div>
-            </form>
+                <div className="bg-green-50 p-4 rounded-2xl border border-green-200">
+                  <label className="block text-[10px] font-black text-green-700 uppercase tracking-widest mb-2">Upload Note</label>
+                  <textarea rows={2} className="w-full border border-green-200 p-3 rounded-xl text-sm outline-none focus:border-green-500 bg-white font-medium text-gray-800" placeholder="Log upload details..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                  <button type="button" onClick={handleClose} className="text-xs font-black text-gray-400 uppercase tracking-widest px-4 py-2 hover:bg-gray-100 rounded-xl">Close</button>
+                  <button type="submit" className="bg-green-700 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 shadow-sm">Mark as Uploaded</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-
-
-
   // ── MEDIA BUYER VIEW ──
-  const isMediaBuyer = currentRole === "Media Buyer";
   if (isMediaBuyer) {
     return (
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="relative w-full max-w-lg">
+        <div className="relative w-full max-w-2xl">
           <CloseButton onClose={handleClose} />
-          <div className="bg-white rounded-2xl w-full shadow-2xl p-6 border border-gray-200">
-            <h2 className="text-xl font-black text-gray-900 mb-2">{selectedAd.concept_name}</h2>
-            <div className="flex flex-wrap gap-2 mb-5">
-              <span className="text-[10px] font-black text-green-700 bg-green-100 px-3 py-1 rounded-full uppercase border border-green-200">{selectedAd.status}</span>
-              <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${
-                selectedAd.priority === "High" ? "bg-red-100 text-red-600 border-red-200" :
-                selectedAd.priority === "Medium" ? "bg-amber-100 text-amber-600 border-amber-200" :
-                "bg-gray-100 text-gray-500 border-gray-200"
-              }`}>{selectedAd.priority} Priority</span>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <TimerBlock />
-              {selectedAd.review_link && (
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Review File</p>
-                  <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800">Open Review File ↗</a>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                {[
-                  { label: "Format", value: selectedAd.ad_format },
-                  { label: "Product", value: selectedAd.product },
-                  { label: "Editor", value: selectedAd.assigned_editor },
-                  { label: "Ad Type", value: selectedAd.ad_type },
-                ].map(item => (
-                  <div key={item.label}>
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{item.label}</p>
-                    <p className="text-sm font-black text-gray-700">{item.value || "—"}</p>
+          <div className="bg-white rounded-2xl w-full shadow-2xl border border-gray-200 overflow-hidden max-h-[90vh] flex flex-col">
+
+            {/* ── AD SET NAME BAR — very top, above everything ── */}
+            <AdSetNameBar selectedAd={selectedAd} />
+
+            {/* ── SCROLLABLE CONTENT ── */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <h2 className="text-xl font-black text-gray-900 mb-2">{selectedAd.concept_name}</h2>
+              <div className="flex flex-wrap gap-2 mb-5">
+                <span className="text-[10px] font-black text-green-700 bg-green-100 px-3 py-1 rounded-full uppercase border border-green-200">{selectedAd.status}</span>
+                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${
+                  selectedAd.priority === "High" ? "bg-red-100 text-red-600 border-red-200" :
+                  selectedAd.priority === "Medium" ? "bg-amber-100 text-amber-600 border-amber-200" :
+                  "bg-gray-100 text-gray-500 border-gray-200"
+                }`}>{selectedAd.priority} Priority</span>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <TimerBlock />
+
+                {selectedAd.review_link && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Review File</p>
+                    <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800">Open Review File ↗</a>
                   </div>
-                ))}
-              </div>
-              <div>
-                <label className={labelClass}>Move Stage</label>
-                <select className={selectClass} value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
-                  <option value={originalAdStatus}>{originalAdStatus} (Current)</option>
-                  {originalAdStatus === "Pending Upload" && <option value="Testing">Testing</option>}
-                  {originalAdStatus === "Testing" && <>
-                    <option value="Winner">Winner</option>
-                    <option value="Killed">Killed</option>
-                  </>}
-                </select>
-              </div>
-              {originalAdStatus === "Testing" && (
-                <div>
-                  <label className={labelClass}>Result</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {["Winner", "Loser", "Inconclusive"].map(r => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setSelectedAd({ ...selectedAd, result: r })}
-                        className={`py-3 rounded-xl font-black text-xs uppercase tracking-widest border-2 transition-all ${
-                          selectedAd.result === r
-                            ? r === "Winner" ? "bg-green-600 text-white border-green-600"
-                            : r === "Loser" ? "bg-red-500 text-white border-red-500"
-                            : "bg-gray-500 text-white border-gray-500"
-                            : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
-                        }`}
-                      >
-                        {r === "Winner" ? "🏆" : r === "Loser" ? "❌" : "❓"} {r}
-                      </button>
+                )}
+
+                {/* Upload Info */}
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-3">
+                  <p className="text-[9px] font-black text-green-700 uppercase tracking-widest">Upload Info</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Strategist", value: selectedAd.assigned_copywriter },
+                      { label: "Editor", value: selectedAd.assigned_editor },
+                      { label: "Format", value: selectedAd.ad_format },
+                      { label: "Product", value: selectedAd.product },
+                    ].map(item => (
+                      <div key={item.label}>
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{item.label}</p>
+                        <p className="text-sm font-black text-gray-700">{item.value || "—"}</p>
+                      </div>
                     ))}
                   </div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Destination URL (PDP)</p>
+                    {selectedAd.destination_url ? (
+                      <a href={selectedAd.destination_url} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800 break-all">
+                        {selectedAd.destination_url} ↗
+                      </a>
+                    ) : (
+                      <p className="text-sm font-black text-red-400">⚠️ No destination URL set — ask the Strategist</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Whitelisting Page</p>
+                    {selectedAd.whitelisting_page ? (
+                      <a href={selectedAd.whitelisting_page} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800 break-all">
+                        {selectedAd.whitelisting_page} ↗
+                      </a>
+                    ) : (
+                      <p className="text-sm font-black text-red-400">⚠️ No whitelisting page set — ask the Strategist</p>
+                    )}
+                  </div>
                 </div>
-              )}
-              <div>
-                <label className={labelClass}>Ad Spend ($)</label>
-                <input type="number" min="0" step="0.01" className={inputClass} placeholder="0.00" value={selectedAd.ad_spend || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })} />
-              </div>
-              <div className="bg-green-50 p-4 rounded-2xl border border-green-200">
-                <label className="block text-[10px] font-black text-green-700 uppercase tracking-widest mb-2">Note</label>
-                <textarea rows={2} className="w-full border border-green-200 p-3 rounded-xl text-sm outline-none focus:border-green-500 bg-white font-medium text-gray-800" placeholder="Add a note..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />
-              </div>
-              <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                <button type="button" onClick={handleClose} className="text-xs font-black text-gray-400 uppercase tracking-widest px-4 py-2 hover:bg-gray-100 rounded-xl">Close</button>
-                <button type="submit" className="bg-green-700 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 shadow-sm">Save Changes</button>
-              </div>
-            </form>
+
+                <div>
+                  <label className={labelClass}>Move Stage</label>
+                  <select className={selectClass} value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
+                    <option value={originalAdStatus}>{originalAdStatus} (Current)</option>
+                    {originalAdStatus === "Pending Upload" && <option value="Testing">Testing</option>}
+                    {originalAdStatus === "Testing" && <>
+                      <option value="Winner">Winner</option>
+                      <option value="Killed">Killed</option>
+                    </>}
+                  </select>
+                </div>
+
+                {originalAdStatus === "Testing" && (
+                  <div>
+                    <label className={labelClass}>Result</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["Winner", "Loser", "Inconclusive"].map(r => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setSelectedAd({ ...selectedAd, result: r })}
+                          className={`py-3 rounded-xl font-black text-xs uppercase tracking-widest border-2 transition-all ${
+                            selectedAd.result === r
+                              ? r === "Winner" ? "bg-green-600 text-white border-green-600"
+                              : r === "Loser" ? "bg-red-500 text-white border-red-500"
+                              : "bg-gray-500 text-white border-gray-500"
+                              : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
+                          }`}
+                        >
+                          {r === "Winner" ? "🏆" : r === "Loser" ? "❌" : "❓"} {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className={labelClass}>Ad Spend ($)</label>
+                  <input type="number" min="0" step="0.01" className={inputClass} placeholder="0.00" value={selectedAd.ad_spend || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })} />
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-2xl border border-green-200">
+                  <label className="block text-[10px] font-black text-green-700 uppercase tracking-widest mb-2">Note</label>
+                  <textarea rows={2} className="w-full border border-green-200 p-3 rounded-xl text-sm outline-none focus:border-green-500 bg-white font-medium text-gray-800" placeholder="Add a note..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                  <button type="button" onClick={handleClose} className="text-xs font-black text-gray-400 uppercase tracking-widest px-4 py-2 hover:bg-gray-100 rounded-xl">Close</button>
+                  <button type="submit" className="bg-green-700 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 shadow-sm">Save Changes</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -657,7 +720,6 @@ export default function AdDetailModal({
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <TimerBlock />
-
               {isLocked && !isFounder && (
                 <div className="bg-red-50 border border-red-200 p-4 rounded-2xl flex items-start gap-3">
                   <span className="text-xl">🔒</span>
@@ -673,7 +735,6 @@ export default function AdDetailModal({
                   <p className="text-sm font-black text-amber-700">Founder Override — Testing lock bypassed</p>
                 </div>
               )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Move Stage</label>
@@ -689,7 +750,6 @@ export default function AdDetailModal({
                   </select>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Product</label>
@@ -705,7 +765,6 @@ export default function AdDetailModal({
                   </select>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Ad Type</label>
@@ -724,7 +783,6 @@ export default function AdDetailModal({
                   </div>
                 )}
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Strategist {!canReassign && <span className="text-gray-300 normal-case">(locked)</span>}</label>
@@ -755,7 +813,6 @@ export default function AdDetailModal({
                   )}
                 </div>
               </div>
-
               {showResult && (
                 <div>
                   <label className={labelClass}>Result</label>
@@ -765,7 +822,6 @@ export default function AdDetailModal({
                   </select>
                 </div>
               )}
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Ad Spend ($)</label>
@@ -776,7 +832,6 @@ export default function AdDetailModal({
                   <input type="url" className={inputClass} placeholder="Optional" value={selectedAd.review_link || ""} onChange={e => setSelectedAd({ ...selectedAd, review_link: e.target.value })} />
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Brief Link (Milanote)</label>
@@ -787,17 +842,22 @@ export default function AdDetailModal({
                   <input type="date" className={`${inputClass} ${overdue ? "border-red-300 bg-red-50" : ""}`} value={formatDate(selectedAd.due_date)} onChange={e => setSelectedAd({ ...selectedAd, due_date: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
                 </div>
               </div>
-
+              <div>
+                <label className={labelClass}>Destination URL <span className="text-gray-300 normal-case font-medium">(landing page)</span></label>
+                <input type="url" className={inputClass} placeholder="https://..." value={selectedAd.destination_url || ""} onChange={e => setSelectedAd({ ...selectedAd, destination_url: e.target.value })} />
+              </div>
+              <div>
+                <label className={labelClass}>Whitelisting Page <span className="text-gray-300 normal-case font-medium">(FB/IG page to run from)</span></label>
+                <input type="text" className={inputClass} placeholder="e.g. Health 40+" value={selectedAd.whitelisting_page || ""} onChange={e => setSelectedAd({ ...selectedAd, whitelisting_page: e.target.value })} />
+              </div>
               <div>
                 <label className={labelClass}>Notes</label>
                 <textarea rows={1} className={`${inputClass} resize-none`} placeholder="Optional notes..." value={selectedAd.notes || ""} onChange={e => setSelectedAd({ ...selectedAd, notes: e.target.value })} />
               </div>
-
               <div className="bg-green-50 p-4 rounded-2xl border border-green-200">
                 <label className="block text-[10px] font-black text-green-700 uppercase tracking-widest mb-2">Internal Note (Appends to Log)</label>
                 <textarea rows={2} className="w-full border border-green-200 p-3 rounded-xl text-sm outline-none focus:border-green-500 bg-white font-medium text-gray-800" placeholder="Explain action taken..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />
               </div>
-
               <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                 <div className="flex gap-2">
                   <button type="button" onClick={handleClose} className="text-xs font-black text-gray-400 uppercase tracking-widest px-4 py-2 hover:bg-gray-100 rounded-xl">Close</button>
@@ -807,8 +867,6 @@ export default function AdDetailModal({
               </div>
             </form>
           </div>
-
-          {/* Right panel */}
           <div className="w-full md:w-72 bg-gray-50 border-l border-gray-100 p-5 flex flex-col max-h-full">
             <div className="flex bg-white border border-gray-200 p-1 rounded-xl mb-4">
               <button onClick={() => setActiveTab("log")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "log" ? "bg-green-700 text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>Log</button>
@@ -817,7 +875,6 @@ export default function AdDetailModal({
                 <button onClick={() => setActiveTab("monitoring")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "monitoring" ? "bg-green-700 text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>Sessions</button>
               )}
             </div>
-
             {activeTab === "log" && (
               <div className="flex-1 overflow-y-auto space-y-4">
                 {[...activityLog].reverse().map((log, idx) => (
@@ -831,13 +888,11 @@ export default function AdDetailModal({
                 ))}
               </div>
             )}
-
             {activeTab === "comments" && (
               <div className="flex-1 overflow-y-auto">
                 <CommentsSection adId={selectedAd.id} adName={selectedAd.concept_name} assignedEditor={selectedAd.assigned_editor} assignedCopywriter={selectedAd.assigned_copywriter} currentUser={currentUser} currentRole={currentRole} supabase={supabase} />
               </div>
             )}
-
             {activeTab === "monitoring" && isFounder && (
               <MonitoringTab adId={selectedAd.id} fetchSessionsForAd={fetchSessionsForAd} />
             )}

@@ -133,6 +133,16 @@ export default function NewAdModal({
               <input type="url" className={inputClass} placeholder="Optional" value={newAd.brief_link} onChange={e => setNewAd({ ...newAd, brief_link: e.target.value })} />
             </div>
 
+            <div className="md:col-span-2">
+              <label className={labelClass}>Destination URL <span className="text-gray-300 normal-case font-medium">(landing page for the ad)</span></label>
+              <input type="url" className={inputClass} placeholder="https://..." value={newAd.destination_url || ""} onChange={e => setNewAd({ ...newAd, destination_url: e.target.value })} />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className={labelClass}>Whitelisting Page <span className="text-gray-300 normal-case font-medium">(Facebook/Instagram page to run from)</span></label>
+              <input type="text" className={inputClass} placeholder="e.g. Health 40+" value={newAd.whitelisting_page || ""} onChange={e => setNewAd({ ...newAd, whitelisting_page: e.target.value })} />
+            </div>
+
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <button type="button" onClick={onClose} className="text-sm font-bold text-gray-400 px-4 py-2.5 hover:bg-gray-100 rounded-xl transition-all">Cancel</button>
