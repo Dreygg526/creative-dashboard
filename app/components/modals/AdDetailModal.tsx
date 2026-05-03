@@ -220,6 +220,7 @@ function AdSetNameBar({ selectedAd }: { selectedAd: Ad }) {
     selectedAd.imprint_number ? `DTC #${String(selectedAd.imprint_number).padStart(4, "0")}` : "",
     selectedAd.ad_format || "",
     selectedAd.product || "",
+    (selectedAd.whitelisting_page || []).length > 0 ? (selectedAd.whitelisting_page || []).join(" & ") : "",
     selectedAd.assigned_editor ? `Editor: ${selectedAd.assigned_editor}` : "",
     selectedAd.assigned_copywriter ? `Strategist: ${selectedAd.assigned_copywriter}` : "",
   ].filter(Boolean).join(" || ");
