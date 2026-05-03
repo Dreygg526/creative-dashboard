@@ -565,21 +565,27 @@ export default function AdDetailModal({
                     ))}
                   </div>
                   <div>
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Destination URL (PDP)</p>
-                    {selectedAd.destination_url ? (
-                      <a href={selectedAd.destination_url} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800 break-all">
-                        {selectedAd.destination_url} ↗
-                      </a>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Destination URLs (PDP)</p>
+                    {(selectedAd.destination_url || []).length > 0 ? (
+                      <div className="space-y-1">
+                        {(selectedAd.destination_url || []).map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block text-sm font-black text-green-700 hover:text-green-800 break-all">
+                            {i + 1}. {url} ↗
+                          </a>
+                        ))}
+                      </div>
                     ) : (
                       <p className="text-sm font-black text-red-400">⚠️ No destination URL set — ask the Strategist</p>
                     )}
                   </div>
                   <div>
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Whitelisting Page</p>
-                    {selectedAd.whitelisting_page ? (
-                      <a href={selectedAd.whitelisting_page} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800 break-all">
-                        {selectedAd.whitelisting_page} ↗
-                      </a>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Whitelisting Pages</p>
+                    {(selectedAd.whitelisting_page || []).length > 0 ? (
+                      <div className="space-y-1">
+                        {(selectedAd.whitelisting_page || []).map((page, i) => (
+                          <p key={i} className="text-sm font-black text-gray-700">{i + 1}. {page}</p>
+                        ))}
+                      </div>
                     ) : (
                       <p className="text-sm font-black text-red-400">⚠️ No whitelisting page set — ask the Strategist</p>
                     )}
@@ -847,18 +853,62 @@ export default function AdDetailModal({
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Destination URL <span className="text-gray-300 normal-case font-medium">(landing page)</span></label>
-                <input type="url" list="destination-url-suggestions" className={inputClass} placeholder="https://..." value={selectedAd.destination_url || ""} onChange={e => setSelectedAd({ ...selectedAd, destination_url: e.target.value })} />
-                <datalist id="destination-url-suggestions">
-                  {(destinationUrls || []).map(url => <option key={url} value={url} />)}
-                </datalist>
+                <label className={labelClass}>Destination URLs <span className="text-gray-300 normal-case font-medium">(add multiple for A/B test)</span></label>
+                <div className="space-y-2">
+                  {(selectedAd.destination_url || []).map((url, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        type="url"
+                        list="destination-url-suggestions"
+                        className={inputClass}
+                        placeholder="https://..."
+                        value={url}
+                        onChange={e => {
+                          const updated = [...(selectedAd.destination_url || [])];
+                          updated[i] = e.target.value;
+                          setSelectedAd({ ...selectedAd, destination_url: updated });
+                        }}
+                      />
+                      <button type="button" onClick={() => {
+                        const updated = (selectedAd.destination_url || []).filter((_, idx) => idx !== i);
+                        setSelectedAd({ ...selectedAd, destination_url: updated });
+                      }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
+                    </div>
+                  ))}
+                  <datalist id="destination-url-suggestions">
+                    {(destinationUrls || []).map(url => <option key={url} value={url} />)}
+                  </datalist>
+                  <button type="button" onClick={() => setSelectedAd({ ...selectedAd, destination_url: [...(selectedAd.destination_url || []), ""] })}
+                    className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">
+                    + Add URL
+                  </button>
+                </div>
               </div>
+
               <div>
-                <label className={labelClass}>Whitelisting Page <span className="text-gray-300 normal-case font-medium">(FB/IG page to run from)</span></label>
-                <select className={selectClass} value={selectedAd.whitelisting_page || ""} onChange={e => setSelectedAd({ ...selectedAd, whitelisting_page: e.target.value })}>
-                  <option value="">— Select Whitelisting Page —</option>
-                  {whitelistPages.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
+                <label className={labelClass}>Whitelisting Pages <span className="text-gray-300 normal-case font-medium">(add multiple for A/B test)</span></label>
+                <div className="space-y-2">
+                  {(selectedAd.whitelisting_page || []).map((page, i) => (
+                    <div key={i} className="flex gap-2">
+                      <select className={selectClass} value={page} onChange={e => {
+                        const updated = [...(selectedAd.whitelisting_page || [])];
+                        updated[i] = e.target.value;
+                        setSelectedAd({ ...selectedAd, whitelisting_page: updated });
+                      }}>
+                        <option value="">— Select Page —</option>
+                        {whitelistPages.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                      <button type="button" onClick={() => {
+                        const updated = (selectedAd.whitelisting_page || []).filter((_, idx) => idx !== i);
+                        setSelectedAd({ ...selectedAd, whitelisting_page: updated });
+                      }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setSelectedAd({ ...selectedAd, whitelisting_page: [...(selectedAd.whitelisting_page || []), ""] })}
+                    className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">
+                    + Add Page
+                  </button>
+                </div>
               </div>
               <div>
                 <label className={labelClass}>Notes</label>

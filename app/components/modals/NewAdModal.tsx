@@ -136,19 +136,62 @@ export default function NewAdModal({
             </div>
 
             <div className="md:col-span-2">
-              <label className={labelClass}>Destination URL <span className="text-gray-300 normal-case font-medium">(landing page for the ad)</span></label>
-              <input type="url" list="destination-url-suggestions" className={inputClass} placeholder="https://..." value={newAd.destination_url || ""} onChange={e => setNewAd({ ...newAd, destination_url: e.target.value })} />
-              <datalist id="destination-url-suggestions">
-                {(destinationUrls || []).map(url => <option key={url} value={url} />)}
-              </datalist>
+              <label className={labelClass}>Destination URLs <span className="text-gray-300 normal-case font-medium">(landing pages — add multiple for A/B test)</span></label>
+              <div className="space-y-2">
+                {(newAd.destination_url || []).map((url, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="url"
+                      list="destination-url-suggestions"
+                      className={inputClass}
+                      placeholder="https://..."
+                      value={url}
+                      onChange={e => {
+                        const updated = [...(newAd.destination_url || [])];
+                        updated[i] = e.target.value;
+                        setNewAd({ ...newAd, destination_url: updated });
+                      }}
+                    />
+                    <button type="button" onClick={() => {
+                      const updated = (newAd.destination_url || []).filter((_, idx) => idx !== i);
+                      setNewAd({ ...newAd, destination_url: updated });
+                    }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
+                  </div>
+                ))}
+                <datalist id="destination-url-suggestions">
+                  {(destinationUrls || []).map(url => <option key={url} value={url} />)}
+                </datalist>
+                <button type="button" onClick={() => setNewAd({ ...newAd, destination_url: [...(newAd.destination_url || []), ""] })}
+                  className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">
+                  + Add URL
+                </button>
+              </div>
             </div>
 
             <div className="md:col-span-2">
-              <label className={labelClass}>Whitelisting Page <span className="text-gray-300 normal-case font-medium">(Facebook/Instagram page to run from)</span></label>
-              <select className={selectClass} value={newAd.whitelisting_page || ""} onChange={e => setNewAd({ ...newAd, whitelisting_page: e.target.value })}>
-                <option value="">— Select Whitelisting Page —</option>
-                {whitelistPages.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <label className={labelClass}>Whitelisting Pages <span className="text-gray-300 normal-case font-medium">(FB/IG pages — add multiple for A/B test)</span></label>
+              <div className="space-y-2">
+                {(newAd.whitelisting_page || []).map((page, i) => (
+                  <div key={i} className="flex gap-2">
+                    <select className={selectClass} value={page} onChange={e => {
+                      const updated = [...(newAd.whitelisting_page || [])];
+                      updated[i] = e.target.value;
+                      setNewAd({ ...newAd, whitelisting_page: updated });
+                    }}>
+                      <option value="">— Select Page —</option>
+                      {whitelistPages.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <button type="button" onClick={() => {
+                      const updated = (newAd.whitelisting_page || []).filter((_, idx) => idx !== i);
+                      setNewAd({ ...newAd, whitelisting_page: updated });
+                    }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setNewAd({ ...newAd, whitelisting_page: [...(newAd.whitelisting_page || []), ""] })}
+                  className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">
+                  + Add Page
+                </button>
+              </div>
             </div>
 
           </div>

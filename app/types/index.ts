@@ -31,8 +31,8 @@ export interface Ad {
   time_tracking?: string;
   created_at: string;
   imprint_number?: number;
-  destination_url?: string;
-  whitelisting_page?: string;
+  destination_url?: string[];
+  whitelisting_page?: string[];
 }
 
 export interface Notification {
@@ -85,6 +85,6 @@ export interface NewAdForm {
   assigned_copywriter: string;
   brief_link: string;
   due_date?: string;
-  destination_url?: string;
-  whitelisting_page?: string;
+  destination_url?: string[];
+  whitelisting_page?: string[];
 }

@@ -120,7 +120,7 @@ export default function App() {
 
   // ── destinationUrls must be AFTER useAds so ads is available ──
   const destinationUrls = useMemo(() => {
-    const urls = ads.map(a => a.destination_url).filter((u): u is string => !!u);
+    const urls = ads.flatMap(a => a.destination_url || []).filter(Boolean);
     return Array.from(new Set(urls));
   }, [ads]);
 
