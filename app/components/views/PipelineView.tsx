@@ -416,7 +416,7 @@ export default function PipelineView({
                       <span className={`text-[10px] font-bold ${isStale ? "text-red-500 font-black" : "text-gray-400"}`}>
                         ⏱️ {daysInStage}d in stage
                       </span>
-                      {myTask && session && formatTimer && (
+                      {myTask && session && formatTimer && currentRole !== "Strategist" && currentRole !== "Founder" && (
                         <div className="flex items-center gap-1.5 bg-green-600 text-white px-2.5 py-1 rounded-lg">
                           <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                           <span className="text-[9px] font-black uppercase">Active</span>

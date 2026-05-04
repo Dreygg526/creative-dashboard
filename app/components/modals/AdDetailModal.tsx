@@ -373,7 +373,7 @@ export default function AdDetailModal({
   const selectClass = "w-full border border-gray-200 bg-white p-3 rounded-xl text-sm font-bold outline-none focus:border-green-500 text-gray-700";
 
   const TimerBlock = () => (
-    activeSession ? (
+    activeSession && !isStrategist && !isFounder ? (
       <div className="bg-green-700 rounded-2xl p-4 flex items-center justify-between mb-2">
         <div>
           <p className="text-[9px] font-black text-green-200 uppercase tracking-widest mb-1">⏱️ Session Active</p>
