@@ -346,7 +346,7 @@ export default function AdDetailModal({
   const { allowed, reason } = canUserModify(selectedAd, originalAdStatus, currentRole, currentUser);
 
   const getAllowedTransitions = () => {
-    if (isFounder) {
+    if (isFounder || isStrategist) {
       return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Winner", "Killed"]
         .filter(s => s !== originalAdStatus)
         .filter(s => !(s === "Ad Revision" && revisionLimitReached));
@@ -357,7 +357,7 @@ export default function AdDetailModal({
 
   const canDelete = isFounder;
   const canReassign = isFounder;
-  const stageMovable = !isLocked || isFounder;
+  const stageMovable = !isLocked || isFounder || isStrategist;
   const allowedTransitions = getAllowedTransitions();
 
   let activityLog: TimeLogEntry[] = [];

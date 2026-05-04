@@ -113,7 +113,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           return;
         }
 
-        if (!isFounder) {
+        if (!isFounder && !isStrategist) {
           const daysLeft = getDaysLeftInTesting(originalAd.live_date);
           if (originalAd.status === "Testing" && daysLeft > 0) {
             alert(`Cannot move from Testing yet. ${daysLeft} days remaining.`);
