@@ -120,8 +120,13 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                           {item.input_type === "image" ? "🖼 Image" : item.input_type === "url" ? "🔗 URL" : "📝 Describe"}
                         </span>
                       )}
+                      {item.ad_format && (
+                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600">
+                          {item.ad_format === "Video Ad" ? "🎥" : item.ad_format === "Static Ad" ? "🖼" : "📰"} {item.ad_format}
+                        </span>
+                      )}
                       <p className="text-[10px] text-gray-400 font-medium">
-                        by {item.generated_by} · {new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        by {item.generated_by}{item.generated_by_role ? ` (${item.generated_by_role})` : ""} · {new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
                     {item.input_type === "describe" && item.input_preview && (
@@ -377,12 +382,14 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
         ad_id: selectedAdId || null,
         ad_name: selectedAd?.concept_name || conceptDesc || creativeUrl || "Image input",
         generated_by: currentUser,
+        generated_by_role: currentRole,
         hooks: result.hooks,
         copies: result.copies,
         body: result.body,
         control_copy: controlCopy || null,
         input_type: inputTab,
         input_preview: inputPreview,
+        ad_format: format || null,
       });
 
       if (historyError) {
