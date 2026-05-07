@@ -28,12 +28,13 @@ import MembersView from "./components/views/MembersView";
 import LearningsView from "./components/views/LearningsView";
 import SettingsView from "./components/views/SettingsView";
 import ArchiveView from "./components/views/ArchiveView";
+import CopyAgentView from "./components/views/CopyAgentView";
 
 // Constants
 import { PRIORITY_ORDER } from "./constants";
 import { IdeaEntry } from "./types";
 
-type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings" | "Archive";
+type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings" | "Archive" | "CopyAgent";
 
 const NAV_ICONS: Record<string, string> = {
   Dashboard: "⊞",
@@ -47,6 +48,7 @@ const NAV_ICONS: Record<string, string> = {
   Archive: "📦",
   Settings: "⚙️",
   Workload: "📊",
+  CopyAgent: "✍️",
 };
 
 export default function App() {
@@ -72,6 +74,7 @@ export default function App() {
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
   const isMediaBuyer = currentRole === "Media Buyer";
+  const isCopyAgent = isFounder || isStrategist || isMediaBuyer;
   const canManageIdeas = isManager;
   const canCreateAd = true;
 
@@ -118,7 +121,6 @@ export default function App() {
     fetchAds, handleCreateAd, handleUpdateAd, handleDeleteAd
   } = useAds(supabase, currentUser, currentRole);
 
-  // ── destinationUrls must be AFTER useAds so ads is available ──
   const destinationUrls = useMemo(() => {
     const urls = ads.flatMap(a => a.destination_url || []).filter(Boolean);
     return Array.from(new Set(urls));
@@ -312,15 +314,15 @@ export default function App() {
   };
 
   const navItems: ViewMode[] = isFounder
-    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive"]
+    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive", "CopyAgent"]
     : isStrategist
-    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Manager"]
+    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Manager", "CopyAgent"]
     : isVA
     ? ["Dashboard", "Pipeline"]
     : isContentCoord
     ? ["Dashboard", "Pipeline", "MyQueue", "Ideas"]
     : isMediaBuyer
-    ? ["Dashboard", "Pipeline"]
+    ? ["Dashboard", "Pipeline", "CopyAgent"]
     : ["Dashboard", "Pipeline", "MyQueue", "Ideas"];
 
   if (libError) return <div className="min-h-screen flex items-center justify-center p-4 text-red-600 font-bold">{libError}</div>;
@@ -339,8 +341,6 @@ export default function App() {
 
       {/* ── SIDEBAR ── */}
       <aside className={`fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-40 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? "w-16" : "w-56"}`}>
-
-        {/* Logo */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-100">
           {!isSidebarCollapsed && (
             <div className="flex items-center gap-2">
@@ -352,20 +352,14 @@ export default function App() {
             <div className="w-7 h-7 rounded-lg bg-green-700 flex items-center justify-center text-white font-black text-xs mx-auto">C</div>
           )}
           {!isSidebarCollapsed && (
-            <button onClick={() => setIsSidebarCollapsed(true)} className="text-gray-400 hover:text-gray-600 transition-colors text-xs font-black">
-              &laquo;
-            </button>
+            <button onClick={() => setIsSidebarCollapsed(true)} className="text-gray-400 hover:text-gray-600 transition-colors text-xs font-black">&laquo;</button>
           )}
         </div>
 
-        {/* Expand button when collapsed */}
         {isSidebarCollapsed && (
-          <button onClick={() => setIsSidebarCollapsed(false)} className="py-2 text-gray-400 hover:text-gray-600 transition-colors text-center text-xs font-black">
-            &raquo;
-          </button>
+          <button onClick={() => setIsSidebarCollapsed(false)} className="py-2 text-gray-400 hover:text-gray-600 transition-colors text-center text-xs font-black">&raquo;</button>
         )}
 
-        {/* Nav */}
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {!isSidebarCollapsed && (
             <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest px-2 mb-2">Main</p>
@@ -377,15 +371,13 @@ export default function App() {
                 key={v}
                 onClick={() => handleSetViewMode(v)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all relative ${
-                  isActive
-                    ? "bg-green-50 text-green-800 font-black"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                  isActive ? "bg-green-50 text-green-800 font-black" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                 }`}
-                title={isSidebarCollapsed ? (v === "MyQueue" ? "My Queue" : v) : ""}
+                title={isSidebarCollapsed ? (v === "MyQueue" ? "My Queue" : v === "CopyAgent" ? "Copy Agent" : v) : ""}
               >
                 <span className="text-base shrink-0">{NAV_ICONS[v] || "•"}</span>
                 {!isSidebarCollapsed && (
-                  <span>{v === "MyQueue" ? "My Queue" : v}</span>
+                  <span>{v === "MyQueue" ? "My Queue" : v === "CopyAgent" ? "Copy Agent" : v}</span>
                 )}
                 {v === "Ideas" && ideaCounts.pending > 0 && (
                   <span className={`bg-amber-400 text-white text-[8px] min-w-[16px] h-[16px] flex items-center justify-center font-black rounded-full ${isSidebarCollapsed ? "absolute top-1 right-1" : "ml-auto"}`}>
@@ -399,7 +391,6 @@ export default function App() {
             );
           })}
 
-          {/* Extra nav for founder */}
           {isFounder && !isSidebarCollapsed && (
             <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest px-2 mt-4 mb-2">Management</p>
           )}
@@ -431,7 +422,6 @@ export default function App() {
           )}
         </nav>
 
-        {/* User section at bottom */}
         <div className="border-t border-gray-100 p-3">
           <div
             onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
@@ -486,7 +476,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-lg font-black text-gray-900 leading-none">
-                {viewMode === "MyQueue" ? "My Queue" : viewMode}
+                {viewMode === "MyQueue" ? "My Queue" : viewMode === "CopyAgent" ? "Copy Agent" : viewMode}
               </h1>
               <p className="text-[10px] text-gray-400 font-medium mt-0.5">
                 {viewMode === "Dashboard" ? `Welcome back, ${currentUser}` :
@@ -495,6 +485,7 @@ export default function App() {
                  viewMode === "Ideas" ? `${ideaCounts.total} ideas logged` :
                  viewMode === "Reports" ? "Live data from your pipeline" :
                  viewMode === "Archive" ? "Completed and killed ads" :
+                 viewMode === "CopyAgent" ? "Generate 3:3:1 challenger ad copy with Claude" :
                  ""}
               </p>
             </div>
@@ -577,6 +568,9 @@ export default function App() {
           )}
           {viewMode === "Settings" && (isFounder || isStrategist || isMediaBuyer) && profile && (
             <SettingsView currentProfile={profile} onInviteUser={inviteUser} onUpdateRole={updateUserRole} onDeactivateUser={deactivateUser} getAllUsers={getAllUsers} supabase={supabase} />
+          )}
+          {viewMode === "CopyAgent" && isCopyAgent && (
+            <CopyAgentView ads={ads} currentUser={currentUser} currentRole={currentRole} supabase={supabase} />
           )}
         </main>
       </div>

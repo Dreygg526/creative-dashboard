@@ -840,13 +840,23 @@ export default function AdDetailModal({
                 </div>
                 <div>
                   <label className={labelClass}>Review Link (Frame.io)</label>
-                  <input type="url" className={inputClass} placeholder="Optional" value={selectedAd.review_link || ""} onChange={e => setSelectedAd({ ...selectedAd, review_link: e.target.value })} />
+                  <div className="relative">
+                    <input type="url" className={inputClass} placeholder="Optional" value={selectedAd.review_link || ""} onChange={e => setSelectedAd({ ...selectedAd, review_link: e.target.value })} />
+                    {selectedAd.review_link && (
+                      <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-green-700 hover:text-green-800 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">Open ↗</a>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Brief Link (Milanote)</label>
-                  <input type="url" className={inputClass} placeholder="Optional" value={selectedAd.brief_link || ""} onChange={e => setSelectedAd({ ...selectedAd, brief_link: e.target.value })} />
+                  <div className="relative">
+                    <input type="url" className={inputClass} placeholder="Optional" value={selectedAd.brief_link || ""} onChange={e => setSelectedAd({ ...selectedAd, brief_link: e.target.value })} />
+                    {selectedAd.brief_link && (
+                      <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-green-700 hover:text-green-800 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">Open ↗</a>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className={labelClass}>Due Date</label>
@@ -858,18 +868,23 @@ export default function AdDetailModal({
                 <div className="space-y-2">
                   {(selectedAd.destination_url || []).map((url, i) => (
                     <div key={i} className="flex gap-2">
-                      <input
-                        type="url"
-                        list="destination-url-suggestions"
-                        className={inputClass}
-                        placeholder="https://..."
-                        value={url}
-                        onChange={e => {
-                          const updated = [...(selectedAd.destination_url || [])];
-                          updated[i] = e.target.value;
-                          setSelectedAd({ ...selectedAd, destination_url: updated });
-                        }}
-                      />
+                      <div className="relative flex-1">
+                        <input
+                          type="url"
+                          list="destination-url-suggestions"
+                          className={inputClass}
+                          placeholder="https://..."
+                          value={url}
+                          onChange={e => {
+                            const updated = [...(selectedAd.destination_url || [])];
+                            updated[i] = e.target.value;
+                            setSelectedAd({ ...selectedAd, destination_url: updated });
+                          }}
+                        />
+                        {url && (
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-green-700 hover:text-green-800 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">Open ↗</a>
+                        )}
+                      </div>
                       <button type="button" onClick={() => {
                         const updated = (selectedAd.destination_url || []).filter((_, idx) => idx !== i);
                         setSelectedAd({ ...selectedAd, destination_url: updated });

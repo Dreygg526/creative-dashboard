@@ -33,6 +33,14 @@ export interface Ad {
   imprint_number?: number;
   destination_url?: string[];
   whitelisting_page?: string[];
+  generated_copy?: {
+    hooks: string[];
+    copies: string[];
+    body: string;
+    generated_by: string;
+    generated_at: string;
+    control_copy?: string;
+  } | null;
 }
 
 export interface Notification {
