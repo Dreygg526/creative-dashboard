@@ -282,9 +282,9 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
     setSaved(false);
 
     try {
-      const contextInfo = `Our Product: ${product || "Not specified"}
-Ad Format: ${format || "Not specified"}
-Target Audience: ${targetAudience || "Not specified"}
+      const contextInfo = `Our Product: ${product || "same product category as the competitor ad"}
+Ad Format: ${format || "same format as the competitor ad"}
+Target Audience: ${targetAudience || "same target audience as the competitor ad"}
 ${controlCopy ? `Our Previous Winning Copy (make sure new copy is different enough): ${controlCopy}` : ""}`;
 
       const systemPrompt = `You are a senior Meta ads copywriter specializing in direct-response advertising and competitive analysis.
