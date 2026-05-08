@@ -30,7 +30,7 @@ function CopyCard({ label, content, color }: { label: string; content: string; c
           {copied ? "✓ Copied" : "Copy"}
         </button>
       </div>
-      <p className="text-sm text-gray-800 font-medium leading-relaxed">{content}</p>
+      <p className="text-sm text-gray-800 font-medium leading-relaxed whitespace-pre-wrap">{content}</p>
     </div>
   );
 }
@@ -110,7 +110,7 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                   )}
                   <div>
                     <p className="font-black text-gray-800 text-sm">{item.ad_name || "Untitled"}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
                       {item.input_type && (
                         <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${
                           item.input_type === "image" ? "bg-blue-50 text-blue-600" :
@@ -148,8 +148,8 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                 <div className="border-t border-gray-100 p-4 space-y-4">
                   {item.control_copy && (
                     <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Control Copy</p>
-                      <p className="text-sm text-gray-600 font-medium">{item.control_copy}</p>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Previous Winning Copy</p>
+                      <p className="text-sm text-gray-600 font-medium whitespace-pre-wrap">{item.control_copy}</p>
                     </div>
                   )}
                   <div>
@@ -157,7 +157,7 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                     <div className="space-y-2">
                       {(item.hooks || []).map((hook: string, i: number) => (
                         <div key={i} className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                          <p className="text-sm text-gray-800 font-medium flex-1">{hook}</p>
+                          <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{hook}</p>
                           <button onClick={() => navigator.clipboard.writeText(hook)} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
                         </div>
                       ))}
@@ -168,7 +168,7 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                     <div className="space-y-2">
                       {(item.copies || []).map((copy: string, i: number) => (
                         <div key={i} className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                          <p className="text-sm text-gray-800 font-medium flex-1">{copy}</p>
+                          <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{copy}</p>
                           <button onClick={() => navigator.clipboard.writeText(copy)} className="text-[9px] font-black text-gray-400 hover:text-amber-600 uppercase shrink-0">Copy</button>
                         </div>
                       ))}
@@ -177,7 +177,7 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                   <div>
                     <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-2">📄 Body Copy</p>
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                      <p className="text-sm text-gray-800 font-medium flex-1">{item.body}</p>
+                      <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.body}</p>
                       <button onClick={() => navigator.clipboard.writeText(item.body)} className="text-[9px] font-black text-gray-400 hover:text-blue-600 uppercase shrink-0">Copy</button>
                     </div>
                   </div>
@@ -273,27 +273,47 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   };
 
   const handleGenerate = async () => {
-    if (inputTab === "describe" && !conceptDesc.trim()) { setError("Please describe the concept first."); return; }
+    if (inputTab === "describe" && !conceptDesc.trim()) { setError("Please paste the competitor's ad copy first."); return; }
     if (inputTab === "url" && !creativeUrl.trim()) { setError("Please paste a URL."); return; }
-    if (inputTab === "image" && !imageBase64) { setError("Please upload an image."); return; }
+    if (inputTab === "image" && !imageBase64) { setError("Please upload the competitor's ad image."); return; }
     setError("");
     setIsGenerating(true);
     setResult(null);
     setSaved(false);
 
     try {
-      const contextInfo = `Product: ${product || "Not specified"}
+      const contextInfo = `Our Product: ${product || "Not specified"}
 Ad Format: ${format || "Not specified"}
 Target Audience: ${targetAudience || "Not specified"}
-${controlCopy ? `Control Copy (write challengers to beat this): ${controlCopy}` : ""}`;
+${controlCopy ? `Our Previous Winning Copy (make sure new copy is different enough): ${controlCopy}` : ""}`;
 
-      const systemPrompt = `You are a senior Meta ads copywriter specializing in direct-response advertising.
-Generate challenger ad copy in the 3:3:1 structure.
+      const systemPrompt = `You are a senior Meta ads copywriter specializing in direct-response advertising and competitive analysis.
+
+Your job is to analyze competitor ads and rewrite them for a different product while preserving what makes them work.
+
+When given a competitor ad (image, text, or both):
+1. Identify the winning formula — the hook style, emotional angle, tone, structure, and persuasion technique
+2. Extract what makes it effective — curiosity, urgency, social proof, fear, aspiration, etc.
+3. Rewrite it completely for the provided product — same winning formula, new brand/product
+
 Output ONLY valid JSON, no markdown, no preamble:
 {"hooks":["h1","h2","h3"],"copies":["c1","c2","c3"],"body":"b"}
-hooks: 3 scroll-stopping opening lines (5-12 words each). Use different angles: curiosity, urgency, social proof.
-copies: 3 primary ad copy variants (2-3 sentences each). Angle 1: problem-focused. Angle 2: transformation/aspiration. Angle 3: proof/credibility.
-body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the definitive challenger version.`;
+
+hooks: 3 scroll-stopping opening lines (5-12 words each) — modeled after the competitor's hook style but for our product.
+copies: 3 ad copy variants (2-3 sentences each) — same emotional angle and structure as the competitor but rewritten for our product. Angle 1: mirror competitor's primary angle. Angle 2: same tone, different benefit. Angle 3: same persuasion technique, stronger proof.
+body: 1 detailed body copy (4-5 sentences) with a strong CTA — captures the competitor's narrative flow but positions our product as the clear choice.
+
+Never mention the competitor. Never copy exact phrases. Capture the style, not the words.
+
+Pay close attention to formatting style:
+- If the competitor uses emojis, use emojis in the same positions and frequency
+- If they use ALL CAPS for emphasis, do the same
+- If they use line breaks between sentences, mirror that structure
+- If they use bullet points or numbered lists, replicate that format
+- If the tone is casual and conversational, match that energy
+- If the tone is clinical and authoritative, match that too
+
+The goal is: someone should read our output and feel the same emotional pull as the competitor's ad — just for our product.`;
 
       let messages: any[] = [];
 
@@ -303,18 +323,21 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
-            { type: "text", text: `Analyze this ad creative and generate 3:3:1 challenger copy.\n${contextInfo}\nConcept context: ${conceptDesc || "Based on the image"}` }
+            {
+              type: "text",
+              text: `This is a competitor's winning static ad. Analyze their hook style, emotional angle, tone, emoji usage, formatting, and persuasion technique. Then rewrite it completely for our product.\n\nCompetitor's ad copy/headline (if any): ${conceptDesc || "See image only"}\n\n${contextInfo}\n\nCapture exactly what makes this competitor ad work and apply that winning formula to our product.`
+            }
           ]
         }];
       } else if (inputTab === "url") {
         messages = [{
           role: "user",
-          content: `Analyze this ad creative URL and generate 3:3:1 challenger copy.\nURL: ${creativeUrl}\n${contextInfo}\nConcept context: ${conceptDesc || "Based on the URL"}`
+          content: `This is a competitor's winning ad URL. Analyze their style, tone, hook structure, emoji usage, and persuasion angle. Rewrite it completely for our product.\n\nURL: ${creativeUrl}\n\nCompetitor's ad copy/headline (if provided): ${conceptDesc || "See URL"}\n\n${contextInfo}\n\nCapture what makes this competitor ad work and apply it to our product.`
         }];
       } else {
         messages = [{
           role: "user",
-          content: `Generate 3:3:1 challenger ad copy for this concept:\n\nConcept: ${conceptDesc}\n${contextInfo}`
+          content: `This is a competitor's winning ad copy. Analyze their style, tone, hook structure, emoji usage, formatting, and persuasion angle. Rewrite it completely for our product.\n\nCompetitor's ad copy:\n${conceptDesc}\n\n${contextInfo}\n\nCapture what makes this competitor ad work — the emotional trigger, the formatting, the emoji style — and apply that winning formula to our product.`
         }];
       }
 
@@ -328,7 +351,7 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-5",
-          max_tokens: 1000,
+          max_tokens: 1500,
           system: systemPrompt,
           messages,
         }),
@@ -362,12 +385,10 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
         control_copy: controlCopy || null,
       };
 
-      // Save to ad itself
       if (selectedAdId) {
         await supabase.from("ads").update({ generated_copy: copyData }).eq("id", selectedAdId);
       }
 
-      // Build preview
       let inputPreview: string | null = null;
       if (inputTab === "url" && creativeUrl.trim()) {
         inputPreview = creativeUrl.trim();
@@ -377,7 +398,6 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
         inputPreview = conceptDesc.trim();
       }
 
-      // Save to history
       const { error: historyError } = await supabase.from("copy_history").insert({
         ad_id: selectedAdId || null,
         ad_name: selectedAd?.concept_name || conceptDesc || creativeUrl || "Image input",
@@ -422,7 +442,7 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
 
         <div className="mb-8">
           <h2 className="text-2xl font-black text-gray-900">Copy Agent</h2>
-          <p className="text-gray-400 text-sm font-medium mt-0.5">Generate 3:3:1 challenger ad copy powered by Claude</p>
+          <p className="text-gray-400 text-sm font-medium mt-0.5">Analyze competitor ads and rewrite them for your product</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -430,52 +450,23 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
           {/* Left — Input */}
           <div className="space-y-4">
 
-            {/* Pick Ad */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">1. Pick an Ad (Optional)</p>
-              <select
-                className="w-full border border-gray-200 bg-white p-3 rounded-xl text-sm font-bold outline-none focus:border-green-500 text-gray-700"
-                value={selectedAdId}
-                onChange={e => handleAdSelect(e.target.value)}
-              >
-                <option value="">— Select an ad to auto-fill —</option>
-                {activeAds.map(ad => (
-                  <option key={ad.id} value={ad.id}>
-                    {ad.imprint_number ? `DTC #${String(ad.imprint_number).padStart(4, "0")} — ` : ""}{ad.concept_name}
-                  </option>
-                ))}
-              </select>
-              {selectedAd && (
-                <div className="mt-3 space-y-2">
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="text-[9px] font-black px-2 py-0.5 bg-green-50 text-green-700 rounded-md uppercase">{selectedAd.status}</span>
-                    <span className="text-[9px] font-black px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md uppercase">{selectedAd.ad_format}</span>
-                    <span className="text-[9px] font-black px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md uppercase">{selectedAd.product}</span>
-                  </div>
-                  {selectedAd.review_link && (
-                    <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-                      <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">✅ Review link auto-loaded</span>
-                      <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-green-700 hover:text-green-800 ml-auto">Open ↗</a>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
 
-            {/* Creative Input */}
+
+            {/* Competitor Ad Input */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">2. Creative Input</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">1. Competitor Ad Input</span>
+              <p className="text-[10px] text-gray-400 font-medium mb-4">Upload or paste the competitor's winning ad — Claude will copy their style for your product</p>
               <div className="flex gap-2 mb-4">
-                <button className={tabClass("describe")} onClick={() => setInputTab("describe")}>Describe</button>
+                <button className={tabClass("describe")} onClick={() => setInputTab("describe")}>Paste Text</button>
                 <button className={tabClass("url")} onClick={() => setInputTab("url")}>URL / Video</button>
                 <button className={tabClass("image")} onClick={() => setInputTab("image")}>Image</button>
               </div>
 
               {inputTab === "describe" && (
                 <textarea
-                  rows={4}
+                  rows={5}
                   className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800 resize-none"
-                  placeholder="Describe the ad creative — the visual, emotion, narrative, and what makes it compelling..."
+                  placeholder="Paste the competitor's ad copy, headline, body text here — include emojis and formatting exactly as they appear..."
                   value={conceptDesc}
                   onChange={e => setConceptDesc(e.target.value)}
                 />
@@ -485,7 +476,7 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
                 <input
                   type="url"
                   className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800"
-                  placeholder="Paste image URL, YouTube, TikTok, Facebook, or Vimeo video URL..."
+                  placeholder="Paste competitor's ad URL, YouTube, TikTok, Facebook, or Vimeo link..."
                   value={creativeUrl}
                   onChange={e => setCreativeUrl(e.target.value)}
                 />
@@ -511,7 +502,7 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
                       <svg className="w-8 h-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
-                      <p className="text-sm font-black text-gray-500">Drop an image or click to upload</p>
+                      <p className="text-sm font-black text-gray-500">Drop competitor's ad image or click to upload</p>
                       <p className="text-[10px] text-gray-400 mt-1">PNG, JPG, WEBP · Max 5MB</p>
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageInput} />
                     </label>
@@ -522,21 +513,10 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
 
             {/* Context */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">3. Context</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Product</label>
-                  <input type="text" className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800" placeholder="e.g. NAC" value={product} onChange={e => setProduct(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Format</label>
-                  <select className="w-full border border-gray-200 bg-white p-3 rounded-xl text-sm font-bold outline-none focus:border-green-500 text-gray-700" value={format} onChange={e => setFormat(e.target.value)}>
-                    <option value="">— Select —</option>
-                    <option>Video Ad</option>
-                    <option>Static Ad</option>
-                    <option>Native Ad</option>
-                  </select>
-                </div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">2. Your Product Context</p>
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Your Product</label>
+                <input type="text" className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800" placeholder="e.g. NAC" value={product} onChange={e => setProduct(e.target.value)} />
               </div>
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Target Audience</label>
@@ -544,14 +524,14 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
               </div>
             </div>
 
-            {/* Control Copy */}
+            {/* Previous Winning Copy */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">4. Control Copy (Optional)</p>
-              <p className="text-[10px] text-gray-400 font-medium mb-3">Paste your current winning copy — Claude will write challengers to beat it</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">3. Your Previous Winning Copy (Optional)</p>
+              <p className="text-[10px] text-gray-400 font-medium mb-3">Paste your own previous winner — Claude will make sure the new copy is different enough</p>
               <textarea
                 rows={3}
                 className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800 resize-none"
-                placeholder="Paste existing winning copy here..."
+                placeholder="Paste your previous winning copy here..."
                 value={controlCopy}
                 onChange={e => setControlCopy(e.target.value)}
               />
@@ -570,9 +550,9 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  Generating...
+                  Analyzing & Rewriting...
                 </span>
-              ) : "✍️ Generate 3:3:1 Copy"}
+              ) : "🕵️ Analyze & Rewrite for Our Product"}
             </button>
           </div>
 
@@ -580,20 +560,24 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
           <div className="space-y-4">
             {!result && !isGenerating && (
               <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center h-full min-h-[300px]">
-                <span className="text-5xl mb-4">✍️</span>
-                <p className="font-black text-gray-600 text-lg">Ready to generate</p>
-                <p className="text-sm text-gray-400 mt-1">Fill in the concept details and hit Generate</p>
+                <span className="text-5xl mb-4">🕵️</span>
+                <p className="font-black text-gray-600 text-lg">Ready to analyze</p>
+                <p className="text-sm text-gray-400 mt-1">Paste or upload a competitor's winning ad and hit Analyze</p>
               </div>
             )}
             {isGenerating && (
               <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center h-full min-h-[300px]">
                 <div className="w-12 h-12 border-4 border-green-200 border-t-green-700 rounded-full animate-spin mb-4" />
-                <p className="font-black text-gray-600">Claude is writing your copy...</p>
-                <p className="text-xs text-gray-400 mt-1">This takes about 10 seconds</p>
+                <p className="font-black text-gray-600">Claude is analyzing the competitor ad...</p>
+                <p className="text-xs text-gray-400 mt-1">Capturing their winning formula for your product</p>
               </div>
             )}
             {result && (
               <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center gap-2">
+                  <span className="text-sm">🕵️</span>
+                  <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Competitor style captured — rewritten for your product</p>
+                </div>
                 <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                   <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">🪝 Hooks (3)</p>
                   <div className="space-y-2">
@@ -628,7 +612,7 @@ body: 1 detailed body copy (4-5 sentences) with a strong CTA. This is the defini
                   onClick={() => { setResult(null); setSaved(false); }}
                   className="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                 >
-                  Generate Again
+                  Analyze Another
                 </button>
               </div>
             )}
