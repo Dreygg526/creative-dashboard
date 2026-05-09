@@ -13,6 +13,8 @@ interface GeneratedCopy {
   hooks: string[];
   copies: string[];
   body: string;
+  benefit_bullets: string[];
+  comparison: { them: string; us: string }[];
 }
 
 function CopyCard({ label, content, color }: { label: string; content: string; color: string }) {
@@ -181,6 +183,35 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                       <button onClick={() => navigator.clipboard.writeText(item.body)} className="text-[9px] font-black text-gray-400 hover:text-blue-600 uppercase shrink-0">Copy</button>
                     </div>
                   </div>
+
+                  {item.benefit_bullets && item.benefit_bullets.length > 0 && (
+                    <div>
+                      <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">✅ Benefit Bullets</p>
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start justify-between gap-2">
+                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.benefit_bullets.join("\n")}</p>
+                        <button onClick={() => navigator.clipboard.writeText(item.benefit_bullets.join("\n"))} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {item.comparison && item.comparison.length > 0 && (
+                    <div>
+                      <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-2">⚔️ Comparison</p>
+                      <div className="space-y-2">
+                        {item.comparison.map((c: any, i: number) => (
+                          <div key={i} className="rounded-xl border border-gray-100 overflow-hidden">
+                            <div className="bg-red-50 border-b border-gray-100 px-3 py-2">
+                              <p className="text-sm text-gray-700 font-medium">{c.them}</p>
+                            </div>
+                            <div className="bg-green-50 px-3 py-2">
+                              <p className="text-sm text-gray-700 font-medium">{c.us}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {isFounder && (
                     <button
                       onClick={async () => {
@@ -289,31 +320,43 @@ ${controlCopy ? `Our Previous Winning Copy (make sure new copy is different enou
 
       const systemPrompt = `You are a senior Meta ads copywriter specializing in direct-response advertising and competitive analysis.
 
-Your job is to analyze competitor ads and rewrite them for a different product while preserving what makes them work.
+Your job is to analyze competitor ads and rewrite them for a different product while preserving what makes them work — INCLUDING THE EXACT FORMATTING STRUCTURE.
 
-When given a competitor ad (image, text, or both):
-1. Identify the winning formula — the hook style, emotional angle, tone, structure, and persuasion technique
-2. Extract what makes it effective — curiosity, urgency, social proof, fear, aspiration, etc.
-3. Rewrite it completely for the provided product — same winning formula, new brand/product
+## STEP 1 — EXTRACT THE FORMAT (this is critical)
+Before writing anything, identify:
+- Does the copy use line breaks between sentences? → Mirror that exactly using \\n
+- Does it use emoji bullets (✅ 🔥 💊 etc) on their own lines? → Each bullet on its own line with \\n between them
+- Does it use ALL CAPS for certain words or phrases? → Match that
+- Are there short punchy lines followed by longer explanatory lines? → Keep that rhythm
+- Is there a [hook line] → [benefit list] → [social proof] → [CTA] structure? → Follow it exactly
+- Are paragraphs 1 sentence or 3-4 sentences? → Match the paragraph length
+- Does it use spacing between sections or is it dense? → Mirror the spacing
+
+## STEP 2 — REWRITE WITH IDENTICAL STRUCTURE
+Every output field must use the SAME formatting structure as the competitor ad.
+
+If the competitor uses:
+✅ Short benefit line
+✅ Another short benefit line
+✅ Third benefit line
+
+Then your copies and body must use \\n between each line — not one paragraph.
+
+hooks: 3 scroll-stopping opening lines (5-12 words each) — same hook STYLE and FORMAT as competitor
+copies: 3 ad copy variants — same emotional angle, structure, AND formatting as competitor. Use \\n for line breaks between sentences/sections when the competitor uses them. Use \\n\\n between paragraphs.
+body: 1 detailed body copy with strong CTA — mirrors the competitor's EXACT narrative structure and line-break pattern.
+benefit_bullets: array of 4-6 strings. Each string is ONE benefit line exactly as it would appear (e.g. "✅ Supports healthy vaginal pH & odor"). Do NOT combine into one string.
+comparison: array of 3-4 objects. "them" starts with ❌, "us" starts with ✅. Punchy, 8-12 words max.
 
 Output ONLY valid JSON, no markdown, no preamble:
-{"hooks":["h1","h2","h3"],"copies":["c1","c2","c3"],"body":"b"}
+{"hooks":["h1","h2","h3"],"copies":["c1","c2","c3"],"body":"b","benefit_bullets":["✅ benefit 1","✅ benefit 2","✅ benefit 3","✅ benefit 4"],"comparison":[{"them":"❌ them 1","us":"✅ us 1"},{"them":"❌ them 2","us":"✅ us 2"},{"them":"❌ them 3","us":"✅ us 3"}]}
 
-hooks: 3 scroll-stopping opening lines (5-12 words each) — modeled after the competitor's hook style but for our product.
-copies: 3 ad copy variants (2-3 sentences each) — same emotional angle and structure as the competitor but rewritten for our product. Angle 1: mirror competitor's primary angle. Angle 2: same tone, different benefit. Angle 3: same persuasion technique, stronger proof.
-body: 1 detailed body copy (4-5 sentences) with a strong CTA — captures the competitor's narrative flow but positions our product as the clear choice.
-
-Never mention the competitor. Never copy exact phrases. Capture the style, not the words.
-
-Pay close attention to formatting style:
-- If the competitor uses emojis, use emojis in the same positions and frequency
-- If they use ALL CAPS for emphasis, do the same
-- If they use line breaks between sentences, mirror that structure
-- If they use bullet points or numbered lists, replicate that format
-- If the tone is casual and conversational, match that energy
-- If the tone is clinical and authoritative, match that too
-
-The goal is: someone should read our output and feel the same emotional pull as the competitor's ad — just for our product.`;
+CRITICAL RULES:
+- Never mention the competitor brand by name
+- Never copy exact phrases
+- The formatting structure IS the style — if you change the formatting, you have failed
+- \\n in JSON strings renders as real line breaks in the UI
+- If competitor uses one sentence per line, your output must do the same`;
 
       let messages: any[] = [];
 
@@ -406,6 +449,8 @@ The goal is: someone should read our output and feel the same emotional pull as 
         hooks: result.hooks,
         copies: result.copies,
         body: result.body,
+        benefit_bullets: result.benefit_bullets || [],
+        comparison: result.comparison || [],
         control_copy: controlCopy || null,
         input_type: inputTab,
         input_preview: inputPreview,
@@ -598,6 +643,46 @@ The goal is: someone should read our output and feel the same emotional pull as 
                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3">📄 Body Copy (1)</p>
                   <CopyCard label="Body" content={result.body} color="border-blue-200" />
                 </div>
+
+                {result.benefit_bullets && result.benefit_bullets.length > 0 && (
+                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                    <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">✅ Benefit Bullet List</p>
+                    <CopyCard
+                      label="Bullets"
+                      content={result.benefit_bullets.join("\n")}
+                      color="border-green-200"
+                    />
+                  </div>
+                )}
+
+                {result.comparison && result.comparison.length > 0 && (
+                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-3">⚔️ Comparison Copy</p>
+                    <div className="space-y-3">
+                      {result.comparison.map((item, i) => (
+                        <div key={i} className="rounded-xl border border-gray-100 overflow-hidden">
+                          <div className="bg-red-50 border-b border-gray-100 px-3 py-2 flex items-start justify-between gap-2">
+                            <p className="text-sm text-gray-700 font-medium flex-1">{item.them}</p>
+                            <button onClick={() => navigator.clipboard.writeText(item.them)} className="text-[9px] font-black text-gray-400 hover:text-red-500 uppercase shrink-0">Copy</button>
+                          </div>
+                          <div className="bg-green-50 px-3 py-2 flex items-start justify-between gap-2">
+                            <p className="text-sm text-gray-700 font-medium flex-1">{item.us}</p>
+                            <button onClick={() => navigator.clipboard.writeText(item.us)} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => navigator.clipboard.writeText(
+                          result.comparison.map(c => `${c.them}\n${c.us}`).join("\n\n")
+                        )}
+                        className="text-[9px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest"
+                      >
+                        Copy All Comparisons
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={handleSave}
                   disabled={isSaving || saved}
