@@ -16,7 +16,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
   const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
-  const canDelete = isFounder;
+  const canDelete = isFounder || (isStrategist && selectedAd?.assigned_copywriter === currentUser);
 
   const fetchAds = useCallback(async () => {
     if (!supabase) return;
@@ -266,7 +266,8 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
 
   const handleDeleteAd = async () => {
     if (!supabase || !selectedAd) return;
-    if (!canDelete) {
+    const canDeleteThis = isFounder || (isStrategist && selectedAd?.assigned_copywriter === currentUser);
+    if (!canDeleteThis) {
       alert("Only the Founder can delete ads.");
       return;
     }
