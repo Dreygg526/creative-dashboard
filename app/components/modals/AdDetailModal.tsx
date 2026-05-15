@@ -77,7 +77,7 @@ function EditableTitle({ value, onChange }: { value: string; onChange: (v: strin
 function canUserModify(ad: Ad, originalStatus: string, currentRole: string, currentUser: string): { allowed: boolean; reason: string } {
   if (currentRole === "Founder") return { allowed: true, reason: "" };
   if (currentRole === "Strategist") {
-    if (ad.assigned_copywriter === currentUser || ["Ad Revision", "Testing", "Writing Brief", "Brief Revision Required", "Done, Waiting for Approval"].includes(originalStatus)) return { allowed: true, reason: "" };
+    if (ad.assigned_copywriter === currentUser) return { allowed: true, reason: "" };
     return { allowed: false, reason: `⛔ Access Denied — You are not the assigned strategist for this ad.` };
   }
   if (currentRole === "Editor" || currentRole === "Graphic Designer") {
