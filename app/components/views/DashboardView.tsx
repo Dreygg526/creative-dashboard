@@ -142,6 +142,42 @@ function SectionHeader({ title, count, color }: { title: string; count: number; 
   );
 }
 
+// ── AD SET NAME COPY ──
+function AdSetNameCopy({ ad }: { ad: Ad }) {
+  const [copied, setCopied] = useState(false);
+  const adSetName = [
+    ad.imprint_number ? `DTC #${String(ad.imprint_number).padStart(4, "0")}` : "",
+    ad.ad_format || "",
+    ad.product || "",
+    (ad.whitelisting_page || []).length > 0 ? (ad.whitelisting_page || []).join(" & ") : "",
+    ad.assigned_editor ? `Editor: ${ad.assigned_editor}` : "",
+    ad.assigned_copywriter ? `Strategist: ${ad.assigned_copywriter}` : "",
+  ].filter(Boolean).join(" || ");
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(adSetName);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="mt-2 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+      <div className="bg-amber-50 border border-amber-200 rounded-full px-3 py-1 flex-1 min-w-0">
+        <p className="text-[10px] font-black text-amber-700 font-mono truncate">{adSetName}</p>
+      </div>
+      <button
+        onClick={handleCopy}
+        className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg shrink-0 transition-all ${
+          copied ? "bg-green-100 text-green-700 border border-green-200" : "bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200"
+        }`}
+      >
+        {copied ? "✓ Copied" : "Copy"}
+      </button>
+    </div>
+  );
+}
+
 // ── TEAM MEMBER MODAL ──
 function TeamMemberModal({ person, ads, onSelectAd, onClose, activeSessions, formatTimer }: {
   person: any;
@@ -858,8 +894,15 @@ function MediaBuyerDashboard({ ads, onSelectAd, activeSessions, formatTimer }: P
                       <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md">{ad.product}</span>
                       <span className="text-[9px] font-black text-gray-400">{days}d in testing</span>
                     </div>
+                    <AdSetNameCopy ad={ad} />
                     {ad.review_link && (
                       <a href={ad.review_link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] font-black text-green-700 hover:text-green-800 mt-1 block">View Ad ↗</a>
+                    )}
+                    {session && formatTimer && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 bg-green-600 text-white px-2.5 py-1 rounded-lg">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        <span className="text-[9px] font-black">{formatTimer(session.elapsedSeconds)}</span>
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1.5 ml-4 shrink-0">
