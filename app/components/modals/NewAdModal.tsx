@@ -63,8 +63,9 @@ export default function NewAdModal({
               <div>
                 <label className={labelClass}>Priority</label>
                 <select className={selectClass} value={newAd.priority} onChange={e => setNewAd({ ...newAd, priority: e.target.value })}>
-                  <option value="Medium">Normal</option>
                   <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
                 </select>
               </div>
             )}

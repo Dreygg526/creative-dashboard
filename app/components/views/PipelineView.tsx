@@ -372,6 +372,11 @@ export default function PipelineView({
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       <span className="text-[9px] font-black px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md uppercase">{ad.ad_type}</span>
                       <span className="text-[9px] font-black px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md uppercase">{ad.ad_format}</span>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase ${
+                        ad.priority === "High" ? "bg-red-100 text-red-600" :
+                        ad.priority === "Medium" ? "bg-amber-100 text-amber-600" :
+                        "bg-gray-100 text-gray-400"
+                      }`}>{ad.priority || "Medium"}</span>
                       {ad.assigned_editor && (
                         <span className="text-[9px] font-black px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md uppercase">✂️ {ad.assigned_editor}</span>
                       )}
