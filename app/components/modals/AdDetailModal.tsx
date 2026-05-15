@@ -355,7 +355,7 @@ export default function AdDetailModal({
     return transitions.filter(s => !(s === "Ad Revision" && revisionLimitReached)).filter(s => s !== "Killed");
   };
 
-  const canDelete = isFounder;
+  const canDelete = isFounder || (isStrategist && selectedAd.assigned_copywriter === currentUser);
   const canReassign = isFounder;
   const stageMovable = !isLocked || isFounder || isStrategist;
   const allowedTransitions = getAllowedTransitions();
