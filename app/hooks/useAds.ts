@@ -234,7 +234,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           killed_at: newKilledAt,
           live_date: newLiveDate,
           notes: selectedAd.notes,
-          priority: isFounder ? selectedAd.priority : originalAd.priority,
+          priority: (isFounder || isStrategist) ? selectedAd.priority : originalAd.priority,
           product: selectedAd.product,
           result: isFounder || isStrategist ? selectedAd.result : originalAd.result,
           review_link: selectedAd.review_link,

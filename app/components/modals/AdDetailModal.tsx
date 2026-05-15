@@ -785,7 +785,7 @@ export default function AdDetailModal({
                     <option value="Imitation">Imitation</option>
                   </select>
                 </div>
-                {isFounder && (
+                {(isFounder || isStrategist) && (
                   <div>
                     <label className={labelClass}>Priority</label>
                     <select className={selectClass} value={selectedAd.priority || "Medium"} onChange={e => setSelectedAd({ ...selectedAd, priority: e.target.value })}>
