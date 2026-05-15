@@ -59,13 +59,12 @@ export default function NewAdModal({
               </select>
             </div>
 
-            {isFounder && (
+            {(isFounder || isStrategist) && (
               <div>
                 <label className={labelClass}>Priority</label>
                 <select className={selectClass} value={newAd.priority} onChange={e => setNewAd({ ...newAd, priority: e.target.value })}>
-                  <option>Low</option>
-                  <option>Medium</option>
-                  <option>High</option>
+                  <option value="Medium">Normal</option>
+                  <option value="High">High</option>
                 </select>
               </div>
             )}

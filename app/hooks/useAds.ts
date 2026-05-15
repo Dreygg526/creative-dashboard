@@ -79,7 +79,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       ...newAd,
       status: "Idea",
       revision_count: 0,
-      priority: isFounder ? (newAd.priority || "Medium") : "Medium",
+      priority: (isFounder || isStrategist) ? (newAd.priority || "Medium") : "Medium",
       stage_updated_at: new Date().toISOString(),
       time_log: JSON.stringify(initialLog),
       assigned_editor: autoAssignedEditor,
