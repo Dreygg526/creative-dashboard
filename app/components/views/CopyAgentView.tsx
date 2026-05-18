@@ -462,7 +462,7 @@ EXAMPLE OF CORRECT OUTPUT:
         }];
       } else if (inputTab === "video" && videoBase64) {
         // Step 1: Upload video to Gemini Files API
-        const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyBWK2PL7ThBPyvNOk_xgx_i8qc0ZOkgY0Y";
+        const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 
         // Detect mime type from file name
         const mimeType = videoFileName?.endsWith(".mov") ? "video/quicktime" :
