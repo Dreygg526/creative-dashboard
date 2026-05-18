@@ -219,11 +219,11 @@ function AdSetNameBar({ selectedAd }: { selectedAd: Ad }) {
   const adSetName = [
     selectedAd.imprint_number ? `DTC #${String(selectedAd.imprint_number).padStart(4, "0")}` : "",
     selectedAd.ad_format || "",
-    selectedAd.product || "",
     (selectedAd.whitelisting_page || []).length > 0 ? (selectedAd.whitelisting_page || []).join(" & ") : "",
     selectedAd.assigned_editor ? `Editor: ${selectedAd.assigned_editor}` : "",
     selectedAd.assigned_copywriter ? `Strategist: ${selectedAd.assigned_copywriter}` : "",
-  ].filter(Boolean).join(" || ");
+    (selectedAd.destination_url || []).length > 0 ? (selectedAd.destination_url || [])[0] : "",
+  ].filter(Boolean).join(" | ");
 
   return (
     <div className="px-4 py-2.5 border-b border-gray-100">
@@ -783,6 +783,7 @@ export default function AdDetailModal({
                     <option value="Iteration">Iteration</option>
                     <option value="Ideation">Ideation</option>
                     <option value="Imitation">Imitation</option>
+                    <option value="New">New</option>
                   </select>
                 </div>
                 {(isFounder || isStrategist) && (

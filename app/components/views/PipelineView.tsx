@@ -103,7 +103,7 @@ export default function PipelineView({
       if (ad.status !== activeStage) return false;
       if (search.trim()) {
         const q = search.toLowerCase().replace(/^#/, "").replace(/^dtc\s*/i, "");
-        const imprintStr = ad.imprint_number ? String(ad.imprint_number).padStart(4, "0") : "";
+        const imprintStr = ad.imprint_number ? String(ad.imprint_number) : "";
         const imprintMatch = imprintStr.includes(q) || String(ad.imprint_number || "").includes(q);
         if (!imprintMatch && !ad.concept_name.toLowerCase().includes(q) && !(ad.product || "").toLowerCase().includes(q) && !(ad.assigned_editor || "").toLowerCase().includes(q) && !(ad.assigned_copywriter || "").toLowerCase().includes(q)) return false;
       }
@@ -356,7 +356,7 @@ export default function PipelineView({
                       {ad.imprint_number && (
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-xs font-black font-mono text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                            DTC #{String(ad.imprint_number).padStart(4, "0")}
+                            DTC #{String(ad.imprint_number)}
                           </span>
                           {isKilled && (
                             <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-red-100 text-red-500 border border-red-200">

@@ -146,13 +146,13 @@ function SectionHeader({ title, count, color }: { title: string; count: number; 
 function AdSetNameCopy({ ad }: { ad: Ad }) {
   const [copied, setCopied] = useState(false);
   const adSetName = [
-    ad.imprint_number ? `DTC #${String(ad.imprint_number).padStart(4, "0")}` : "",
+    ad.imprint_number ? `DTC #${String(ad.imprint_number)}` : "",
     ad.ad_format || "",
-    ad.product || "",
     (ad.whitelisting_page || []).length > 0 ? (ad.whitelisting_page || []).join(" & ") : "",
     ad.assigned_editor ? `Editor: ${ad.assigned_editor}` : "",
     ad.assigned_copywriter ? `Strategist: ${ad.assigned_copywriter}` : "",
-  ].filter(Boolean).join(" || ");
+    (ad.destination_url || []).length > 0 ? (ad.destination_url || [])[0] : "",
+  ].filter(Boolean).join(" | ");
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -290,7 +290,7 @@ function TeamMemberModal({ person, ads, onSelectAd, onClose, activeSessions, for
                                 </span>
                                 {ad.imprint_number && (
                                   <span className="text-[9px] font-black font-mono text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                                    DTC #{String(ad.imprint_number).padStart(4, "0")}
+                                    DTC #{String(ad.imprint_number)}
                                   </span>
                                 )}
                               </div>

@@ -56,6 +56,7 @@ export default function NewAdModal({
                 <option>Iteration</option>
                 <option>Ideation</option>
                 <option>Imitation</option>
+                <option>New</option>
               </select>
             </div>
 
