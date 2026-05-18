@@ -10,8 +10,8 @@ interface Props {
 }
 
 interface GeneratedCopy {
-  headline: string;
-  ad_copy: string;
+  headlines: string[];
+  ad_copies: string[];
 }
 
 function CopyCard({ label, content, color }: { label: string; content: string; color: string }) {
@@ -145,8 +145,8 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                     <div>
                       <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">📢 Headline</p>
                       <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.headline || item.hooks?.[0]}</p>
-                        <button onClick={() => navigator.clipboard.writeText(item.headline || item.hooks?.[0])} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.hooks?.join("\n\n") || item.headline}</p>
+        <button onClick={() => navigator.clipboard.writeText(item.hooks?.join("\n\n") || item.headline)} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
                       </div>
                     </div>
                   )}
@@ -154,8 +154,8 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                     <div>
                       <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📝 Ad Copy</p>
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.ad_copy || item.body}</p>
-                        <button onClick={() => navigator.clipboard.writeText(item.ad_copy || item.body)} className="text-[9px] font-black text-gray-400 hover:text-amber-600 uppercase shrink-0">Copy</button>
+                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.copies?.join("\n\n---\n\n") || item.ad_copy || item.body}</p>
+        <button onClick={() => navigator.clipboard.writeText(item.copies?.join("\n\n---\n\n") || item.ad_copy || item.body)} className="text-[9px] font-black text-gray-400 hover:text-amber-600 uppercase shrink-0">Copy</button>
                       </div>
                     </div>
                   )}
@@ -435,12 +435,12 @@ CRITICAL OUTPUT RULES:
 - Output ONLY a raw JSON object. Nothing before it. Nothing after it.
 - No markdown. No backticks. No "Here is..." preamble. No explanation.
 - The entire response must be parseable by JSON.parse()
-- Format: {"headline":"your headline here","ad_copy":"your full ad copy here with \\n line breaks"}
+- Format: {"headlines":["headline 1","headline 2","headline 3"],"ad_copies":["full ad copy 1","full ad copy 2","full ad copy 3"]}
 - Never mention competitor brands by name.
 - If you write anything outside the JSON object, you have failed.
 
 EXAMPLE OF CORRECT OUTPUT:
-{"headline":"Natural Support for Men Over 35","ad_copy":"You're not just tired.\\n\\nYour body is fighting a war it wasn't designed for..."}`;
+{"headlines":["Natural Support for Men Over 35","Your Body Needs This One Thing","Stop Guessing. Start Recovering."],"ad_copies":["You're not just tired.\\n\\nYour body is fighting a war it wasn't designed for...","Most supplements promise everything.\\n\\nThis one does one thing perfectly...","You've tried the rest.\\n\\nHere's what actually works..."]}`;
 
       let messages: any[] = [];
 
@@ -655,11 +655,11 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
         ad_name: selectedAd?.concept_name || conceptDesc || creativeUrl || videoFileName || "Image input",
         generated_by: currentUser,
         generated_by_role: currentRole,
-        headline: result.headline,
-        ad_copy: result.ad_copy,
-        hooks: [result.headline],
-        copies: [result.ad_copy],
-        body: result.ad_copy,
+        headline: result.headlines[0],
+        ad_copy: result.ad_copies[0],
+        hooks: result.headlines,
+        copies: result.ad_copies,
+        body: result.ad_copies[0],
         control_copy: controlCopy || null,
         input_type: inputTab,
         input_preview: inputPreview,
@@ -876,13 +876,21 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                 </div>
 
                 <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                  <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">📢 Headline</p>
-                  <CopyCard label="Headline" content={result.headline} color="border-green-200" />
+                  <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">📢 Headlines (3)</p>
+                  <div className="space-y-2">
+                    {result.headlines.map((h, i) => (
+                      <CopyCard key={i} label={`Headline ${i + 1}`} content={h} color="border-green-200" />
+                    ))}
+                  </div>
                 </div>
 
                 <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3">📝 Ad Copy</p>
-                  <CopyCard label="Ad Copy" content={result.ad_copy} color="border-amber-200" />
+                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3">📝 Ad Copies (3)</p>
+                  <div className="space-y-2">
+                    {result.ad_copies.map((c, i) => (
+                      <CopyCard key={i} label={`Copy ${i + 1}`} content={c} color="border-amber-200" />
+                    ))}
+                  </div>
                 </div>
 
                 <button
