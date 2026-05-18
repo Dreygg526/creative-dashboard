@@ -141,7 +141,6 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                       <p className="text-sm text-gray-600 font-medium whitespace-pre-wrap">{item.control_copy}</p>
                     </div>
                   )}
-                  {/* Headline */}
                   {(item.headline || (item.hooks && item.hooks[0])) && (
                     <div>
                       <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">📢 Headline</p>
@@ -151,7 +150,6 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                       </div>
                     </div>
                   )}
-                  {/* Ad Copy */}
                   {(item.ad_copy || item.body) && (
                     <div>
                       <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📝 Ad Copy</p>
@@ -331,7 +329,7 @@ PETLAB CO.: Dog symptom specificity (joint pain, gut health, coat) → vet-formu
 
 **APPAREL / ACCESSORIES:**
 
-MFUNDIES / MEUNDIES: Comfort identity → "softest underwear you'll ever wear" → fabric science (MicroModal) → matching sets/couples angle → first pair discount. Tone: playful, comfort-obsessed, couples/gift friendly.
+MEUNDIES: Comfort identity → "softest underwear you'll ever wear" → fabric science (MicroModal) → matching sets/couples angle → first pair discount. Tone: playful, comfort-obsessed, couples/gift friendly.
 
 FABLETICS: VIP membership value → "get 2 leggings for $24" → celebrity founder credibility → style + performance combo → quiz/personalization hook. Tone: aspirational fitness lifestyle, value-forward, membership community.
 
@@ -355,8 +353,6 @@ BOBBIE: Infant formula trust rebuilding → "made to EU standards" → ingredien
 
 GROUNDING WELL: Earthing/grounding science novelty → "you're disconnected from the earth" → inflammation reduction claim → product as reconnection tool → skeptic-friendly explanation. Tone: alternative wellness, curious-skeptic, nature-reconnection.
 
-AFTER.COM: Afterpay/BNPL model → "get it now, pay later" → impulse purchase enablement → product showcase → zero interest framing. Tone: financial accessibility, instant gratification, modern payment.
-
 LOOP EARPLUGS: Noise reduction without isolation → "hear what matters, filter what doesn't" → specific use cases (concerts, focus, sleep, parenting) → style + function → starter pack. Tone: modern lifestyle, sensory wellness, design-forward.
 
 HIKE FOOTWEAR: Trail running performance → "built for the mountain, worn in the city" → crossover lifestyle → technical specs in plain language → adventure identity. Tone: outdoor identity, performance crossover, adventure-aspirational.
@@ -365,7 +361,7 @@ CITY BEAUTY: Age-reversal specificity → "clinically shown to reduce [specific 
 
 PRIMAL QUEEN: Women's hormonal health specifically → perimenopause/menopause validation → "finally someone made something for us" → natural hormone support → community belonging. Tone: women's health advocacy, validation, age-positive power.
 
-NOVA CERAMICS (from real ad): Lifestyle upgrade angle → "your daily [thing] deserves better" → artisan quality story → emoji benefit bullets → urgency discount CTA. Tone: lifestyle elevation, artisan pride, limited-time value.
+NOVA CERAMICS: Lifestyle upgrade angle → "your daily [thing] deserves better" → artisan quality story → emoji benefit bullets → urgency discount CTA. Tone: lifestyle elevation, artisan pride, limited-time value.
 
 ## CORE COPY FORMULAS (apply within any brand style):
 
@@ -461,15 +457,12 @@ EXAMPLE OF CORRECT OUTPUT:
           ]
         }];
       } else if (inputTab === "video" && videoBase64) {
-        // Step 1: Upload video to Gemini Files API
         const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 
-        // Detect mime type from file name
         const mimeType = videoFileName?.endsWith(".mov") ? "video/quicktime" :
                          videoFileName?.endsWith(".avi") ? "video/avi" :
                          videoFileName?.endsWith(".webm") ? "video/webm" : "video/mp4";
 
-        // Convert base64 to blob for upload
         const byteCharacters = atob(videoBase64);
         const byteNumbers = new Array(byteCharacters.length).fill(0).map((_, i) => byteCharacters.charCodeAt(i));
         const byteArray = new Uint8Array(byteNumbers);
@@ -497,12 +490,32 @@ EXAMPLE OF CORRECT OUTPUT:
 
         const uploadData = await uploadResponse.json();
         const fileUri = uploadData.file?.uri;
-        if (!fileUri) throw new Error("Gemini did not return a file URI");
+        const fileName = uploadData.file?.name; // e.g. "files/abc123"
+        if (!fileUri || !fileName) throw new Error("Gemini did not return a file URI");
 
-        // Wait for file to be processed
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Poll until file is ACTIVE using the full file name path
+        let fileActive = false;
+        let pollAttempts = 0;
+        while (!fileActive && pollAttempts < 20) {
+          await new Promise(resolve => setTimeout(resolve, 4000));
+          try {
+            const statusRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${GEMINI_API_KEY}`
+            );
+            const statusData = await statusRes.json();
+            console.log(`Poll attempt ${pollAttempts + 1} — state: ${statusData.state}`);
+            if (statusData.state === "ACTIVE") {
+              fileActive = true;
+            }
+          } catch (pollErr) {
+            console.warn("Poll error:", pollErr);
+          }
+          pollAttempts++;
+        }
 
-        // Step 2: Ask Gemini to analyze the video
+        if (!fileActive) throw new Error("Video processing timed out. Try a shorter video.");
+
+        // Ask Gemini to analyze the video
         const geminiResponse = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
           {
@@ -511,12 +524,7 @@ EXAMPLE OF CORRECT OUTPUT:
             body: JSON.stringify({
               contents: [{
                 parts: [
-                  {
-                    file_data: {
-                      mime_type: mimeType,
-                      file_uri: fileUri,
-                    }
-                  },
+                  { file_data: { mime_type: mimeType, file_uri: fileUri } },
                   {
                     text: `You are analyzing a competitor's video ad. Watch it carefully and extract:
 1. The hook style (how does it open? what's the first 3 seconds?)
@@ -542,14 +550,13 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
 
         const geminiData = await geminiResponse.json();
         const videoAnalysis = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
         if (!videoAnalysis) throw new Error("Gemini returned empty analysis");
 
-        // Step 3: Feed Gemini's analysis into Claude to write the copy
         messages = [{
           role: "user",
           content: `A competitor's winning video ad has been analyzed by Gemini AI. Here is the detailed analysis:\n\n${videoAnalysis}\n\nAdditional context from user: ${conceptDesc || "None"}\n\n${contextInfo}\n\nUsing this analysis, pick the best proven copy formula and write a headline and full ad copy for our product that captures the same winning formula.`
         }];
+
       } else if (inputTab === "url") {
         messages = [{
           role: "user",
@@ -579,10 +586,20 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
       });
 
       const data = await response.json();
+      console.log("Claude full response:", JSON.stringify(data));
       const raw = data.content?.[0]?.text || "";
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No valid JSON in response");
-      const parsed = JSON.parse(jsonMatch[0]);
+      if (!jsonMatch) {
+        console.error("No JSON found in:", raw);
+        throw new Error("No valid JSON in response");
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch (parseErr) {
+        console.error("JSON parse error:", parseErr);
+        throw new Error("Failed to parse JSON from response");
+      }
       setResult(parsed);
     } catch (err: any) {
       setError("Failed to generate copy. Try again.");
@@ -610,7 +627,6 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
         generated_by_role: currentRole,
         headline: result.headline,
         ad_copy: result.ad_copy,
-        // legacy fields for backward compat
         hooks: [result.headline],
         copies: [result.ad_copy],
         body: result.ad_copy,
@@ -663,7 +679,6 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
           {/* Left — Input */}
           <div className="space-y-4">
 
-            {/* Competitor Ad Input */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">1. Competitor Ad Input</span>
               <p className="text-[10px] text-gray-400 font-medium mb-4">Upload or paste the competitor's winning ad — Claude will copy their style for your product</p>
@@ -760,7 +775,6 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
               )}
             </div>
 
-            {/* Context */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-3">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">2. Your Product Context</p>
               <div>
@@ -773,7 +787,6 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
               </div>
             </div>
 
-            {/* Previous Winning Copy */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">3. Previous Winning Copy (Optional)</p>
               <p className="text-[10px] text-gray-400 font-medium mb-3">Paste your own previous winner — Claude will make sure the new copy is different enough</p>
@@ -799,7 +812,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  Analyzing & Writing...
+                  {inputTab === "video" ? "Uploading & Analyzing Video..." : "Analyzing & Writing..."}
                 </span>
               ) : "🕵️ Analyze & Write Copy"}
             </button>
@@ -832,13 +845,11 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                   <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Competitor formula captured — rewritten for your product</p>
                 </div>
 
-                {/* Headline */}
                 <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                   <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">📢 Headline</p>
                   <CopyCard label="Headline" content={result.headline} color="border-green-200" />
                 </div>
 
-                {/* Ad Copy */}
                 <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                   <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3">📝 Ad Copy</p>
                   <CopyCard label="Ad Copy" content={result.ad_copy} color="border-amber-200" />
