@@ -10,11 +10,8 @@ interface Props {
 }
 
 interface GeneratedCopy {
-  hooks: string[];
-  copies: string[];
-  body: string;
-  benefit_bullets: string[];
-  comparison: { them: string; us: string }[];
+  headline: string;
+  ad_copy: string;
 }
 
 function CopyCard({ label, content, color }: { label: string; content: string; color: string }) {
@@ -89,6 +86,11 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                 <div className="flex items-center gap-3">
                   {item.input_type === "image" && item.input_preview ? (
                     <img src={item.input_preview} alt="Creative" className="w-12 h-12 object-cover rounded-xl border border-gray-200 shrink-0" />
+                  ) : item.input_type === "video" && item.input_preview ? (
+                    <div className="w-12 h-12 rounded-xl border border-gray-200 bg-gray-50 flex flex-col items-center justify-center shrink-0">
+                      <span className="text-lg">🎥</span>
+                      <span className="text-[8px] font-black text-gray-400 uppercase">Video</span>
+                    </div>
                   ) : item.input_type === "url" && item.input_preview ? (
                     <div className="w-12 h-12 rounded-xl border border-gray-200 bg-gray-50 flex flex-col items-center justify-center shrink-0 overflow-hidden">
                       {item.input_preview.includes("youtube.com") || item.input_preview.includes("youtu.be") ? (
@@ -116,35 +118,20 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                       {item.input_type && (
                         <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${
                           item.input_type === "image" ? "bg-blue-50 text-blue-600" :
-                          item.input_type === "url" ? "bg-purple-50 text-purple-600" :
+                          item.input_type === "video" ? "bg-purple-50 text-purple-600" :
+                          item.input_type === "url" ? "bg-green-50 text-green-600" :
                           "bg-gray-100 text-gray-500"
                         }`}>
-                          {item.input_type === "image" ? "🖼 Image" : item.input_type === "url" ? "🔗 URL" : "📝 Describe"}
-                        </span>
-                      )}
-                      {item.ad_format && (
-                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600">
-                          {item.ad_format === "Video Ad" ? "🎥" : item.ad_format === "Static Ad" ? "🖼" : "📰"} {item.ad_format}
+                          {item.input_type === "image" ? "🖼 Image" : item.input_type === "video" ? "🎥 Video" : item.input_type === "url" ? "🔗 URL" : "📝 Text"}
                         </span>
                       )}
                       <p className="text-[10px] text-gray-400 font-medium">
                         by {item.generated_by}{item.generated_by_role ? ` (${item.generated_by_role})` : ""} · {new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
-                    {item.input_type === "describe" && item.input_preview && (
-                      <p className="text-[10px] text-gray-400 font-medium mt-0.5 truncate max-w-[200px]">{item.input_preview}</p>
-                    )}
-                    {item.input_type === "url" && item.input_preview && (
-                      <a href={item.input_preview} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] font-black text-green-700 hover:text-green-800 truncate max-w-[200px] block">
-                        {item.input_preview.length > 40 ? item.input_preview.slice(0, 40) + "..." : item.input_preview} ↗
-                      </a>
-                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-black px-2 py-1 bg-green-50 text-green-700 rounded-lg border border-green-200">3:3:1</span>
-                  <span className="text-gray-400 text-xs">{expanded === item.id ? "▲" : "▼"}</span>
-                </div>
+                <span className="text-gray-400 text-xs">{expanded === item.id ? "▲" : "▼"}</span>
               </div>
               {expanded === item.id && (
                 <div className="border-t border-gray-100 p-4 space-y-4">
@@ -154,64 +141,26 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                       <p className="text-sm text-gray-600 font-medium whitespace-pre-wrap">{item.control_copy}</p>
                     </div>
                   )}
-                  <div>
-                    <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">🪝 Hooks</p>
-                    <div className="space-y-2">
-                      {(item.hooks || []).map((hook: string, i: number) => (
-                        <div key={i} className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                          <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{hook}</p>
-                          <button onClick={() => navigator.clipboard.writeText(hook)} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📝 Ad Copies</p>
-                    <div className="space-y-2">
-                      {(item.copies || []).map((copy: string, i: number) => (
-                        <div key={i} className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                          <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{copy}</p>
-                          <button onClick={() => navigator.clipboard.writeText(copy)} className="text-[9px] font-black text-gray-400 hover:text-amber-600 uppercase shrink-0">Copy</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-2">📄 Body Copy</p>
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                      <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.body}</p>
-                      <button onClick={() => navigator.clipboard.writeText(item.body)} className="text-[9px] font-black text-gray-400 hover:text-blue-600 uppercase shrink-0">Copy</button>
-                    </div>
-                  </div>
-
-                  {item.benefit_bullets && item.benefit_bullets.length > 0 && (
+                  {/* Headline */}
+                  {(item.headline || (item.hooks && item.hooks[0])) && (
                     <div>
-                      <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">✅ Benefit Bullets</p>
+                      <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">📢 Headline</p>
                       <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.benefit_bullets.join("\n")}</p>
-                        <button onClick={() => navigator.clipboard.writeText(item.benefit_bullets.join("\n"))} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.headline || item.hooks?.[0]}</p>
+                        <button onClick={() => navigator.clipboard.writeText(item.headline || item.hooks?.[0])} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
                       </div>
                     </div>
                   )}
-
-                  {item.comparison && item.comparison.length > 0 && (
+                  {/* Ad Copy */}
+                  {(item.ad_copy || item.body) && (
                     <div>
-                      <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-2">⚔️ Comparison</p>
-                      <div className="space-y-2">
-                        {item.comparison.map((c: any, i: number) => (
-                          <div key={i} className="rounded-xl border border-gray-100 overflow-hidden">
-                            <div className="bg-red-50 border-b border-gray-100 px-3 py-2">
-                              <p className="text-sm text-gray-700 font-medium">{c.them}</p>
-                            </div>
-                            <div className="bg-green-50 px-3 py-2">
-                              <p className="text-sm text-gray-700 font-medium">{c.us}</p>
-                            </div>
-                          </div>
-                        ))}
+                      <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📝 Ad Copy</p>
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start justify-between gap-2">
+                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.ad_copy || item.body}</p>
+                        <button onClick={() => navigator.clipboard.writeText(item.ad_copy || item.body)} className="text-[9px] font-black text-gray-400 hover:text-amber-600 uppercase shrink-0">Copy</button>
                       </div>
                     </div>
                   )}
-
                   {isFounder && (
                     <button
                       onClick={async () => {
@@ -237,7 +186,6 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   const [selectedAdId, setSelectedAdId] = useState("");
   const [conceptDesc, setConceptDesc] = useState("");
   const [product, setProduct] = useState("");
-  const [format, setFormat] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const [controlCopy, setControlCopy] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -247,38 +195,18 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   const [isSaving, setIsSaving] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
 
-  const [inputTab, setInputTab] = useState<"describe" | "url" | "image">("describe");
+  const [inputTab, setInputTab] = useState<"describe" | "url" | "image" | "video">("describe");
   const [creativeUrl, setCreativeUrl] = useState("");
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoBase64, setVideoBase64] = useState<string | null>(null);
+  const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-
-  const activeAds = useMemo(() =>
-    ads.filter(a => !["Winner", "Killed"].includes(a.status))
-      .sort((a, b) => a.concept_name.localeCompare(b.concept_name)),
-    [ads]
-  );
 
   const selectedAd = useMemo(() =>
     ads.find(a => a.id === selectedAdId),
     [ads, selectedAdId]
   );
-
-  const handleAdSelect = (adId: string) => {
-    setSelectedAdId(adId);
-    setResult(null);
-    setSaved(false);
-    const ad = ads.find(a => a.id === adId);
-    if (ad) {
-      setConceptDesc(ad.concept_name || "");
-      setProduct(ad.product || "");
-      setFormat(ad.ad_format || "");
-      if (ad.review_link) {
-        setInputTab("url");
-        setCreativeUrl(ad.review_link);
-      }
-    }
-  };
 
   const handleImageDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -303,60 +231,115 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
     reader.readAsDataURL(file);
   };
 
+  const handleVideoDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processVideo(file);
+  }, []);
+
+  const handleVideoInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processVideo(file);
+  };
+
+  const processVideo = (file: File) => {
+    if (file.size > 20 * 1024 * 1024) { setError("Video too large — max 20MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = reader.result as string;
+      setVideoFileName(file.name);
+      setVideoBase64(res.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const PROVEN_COPY_FORMULAS = `
+You have deep knowledge of these proven direct-response ad copy formulas used by top DTC brands. Rotate and apply them based on context:
+
+1. GRANDFATHER CONTRAST: "Your grandfather had more T at 60 than you do at 35. He didn't have: ❌ [modern problem 1] ❌ [modern problem 2]. You're not weak. You're poisoned. [Brand] was built to fight back."
+
+2. PROBLEM-AGITATE-SOLVE: State the problem bluntly → twist the knife → reveal the solution as the only logical choice.
+
+3. STORY-BRIDGE: First-person story → "I was tired of [X], so I built [product]" → one simple formula → proof → CTA.
+
+4. PERMISSION SLIP: "You're not 'just getting old.' Your [system] crashed. Here's how I restored mine in [timeframe]..."
+
+5. STILL LIST: "✅ Still [enjoy normal thing] ✅ Still [enjoy normal thing] ✅ No more [bad thing]" — shows life doesn't have to change, just gets better.
+
+6. VILLAIN FRAME: "Most [category] options leave you hanging. Either [bad option A] or [bad option B]. I was tired of the scams, so..."
+
+7. COMPARISON EMBED: ❌ [what competitors do wrong] then immediately ✅ [what we do right] — woven INTO the ad copy, not a separate section.
+
+8. SCIENTIFIC AUTHORITY: "One simple formula. [N] clinically-dosed ingredients. The only stack that [bold claim]."
+
+9. SOCIAL PROOF EMBED: "It's what thousands of [target] are using for [benefit 1], [benefit 2], [benefit 3]..."
+
+10. RISK REVERSAL CTA: "Try [product] 100% risk-free, [X]-day guarantee" — at the end, after the emotional peak.
+
+11. URGENCY + IDENTITY: "Stop blaming yourself. Start fighting back." / "Stop settling. Start [thriving]."
+
+12. HOLIDAY/SEASONAL ANGLE: If context mentions a holiday or season, open with that angle: "This [holiday], don't give them [generic gift]. Give them [benefit]..."
+
+13. FEAR + RELIEF: Open with a scary truth → relieve it with the product → close with transformation.
+
+14. BEFORE/AFTER CONTRAST: Paint the before (pain) vividly → then the after (transformation) → bridge is the product.
+
+15. MOMENTUM BUILDER: Short punchy sentences that build speed. "Fix your gut. Fix everything. When your gut works, your whole system follows."
+
+FORMATTING RULES you must follow:
+- Short sentences. One idea per line when impactful.
+- Use ❌ and ✅ for contrast lists INSIDE the copy, not as separate sections.
+- Use line breaks (\\n) between paragraphs for breathing room.
+- Match the tone of the input (aggressive, clinical, empathetic, casual).
+- End with a strong CTA embedded naturally.
+- Disclaimer like "*Individual results may vary" if making health claims.
+`;
+
   const handleGenerate = async () => {
     if (inputTab === "describe" && !conceptDesc.trim()) { setError("Please paste the competitor's ad copy first."); return; }
     if (inputTab === "url" && !creativeUrl.trim()) { setError("Please paste a URL."); return; }
-    if (inputTab === "image" && !imageBase64) { setError("Please upload the competitor's ad image."); return; }
+    if (inputTab === "image" && !imageBase64) { setError("Please upload an image."); return; }
+    if (inputTab === "video" && !videoBase64) { setError("Please upload a video."); return; }
     setError("");
     setIsGenerating(true);
     setResult(null);
     setSaved(false);
 
     try {
-      const contextInfo = `Our Product: ${product || "same product category as the competitor ad"}
-Ad Format: ${format || "same format as the competitor ad"}
+      const contextInfo = `Product: ${product || "same product category as the competitor ad"}
 Target Audience: ${targetAudience || "same target audience as the competitor ad"}
-${controlCopy ? `Our Previous Winning Copy (make sure new copy is different enough): ${controlCopy}` : ""}`;
+${controlCopy ? `Previous Winning Copy (make new copy different enough): ${controlCopy}` : ""}`;
 
-      const systemPrompt = `You are a senior Meta ads copywriter specializing in direct-response advertising and competitive analysis.
+      const systemPrompt = `You are a world-class direct-response copywriter for DTC health and wellness brands. You write copy that makes people stop scrolling and buy.
 
-Your job is to analyze competitor ads and rewrite them for a different product while preserving what makes them work — INCLUDING THE EXACT FORMATTING STRUCTURE.
+${PROVEN_COPY_FORMULAS}
 
-## STEP 1 — EXTRACT THE FORMAT (this is critical)
-Before writing anything, identify:
-- Does the copy use line breaks between sentences? → Mirror that exactly using \\n
-- Does it use emoji bullets (✅ 🔥 💊 etc) on their own lines? → Each bullet on its own line with \\n between them
-- Does it use ALL CAPS for certain words or phrases? → Match that
-- Are there short punchy lines followed by longer explanatory lines? → Keep that rhythm
-- Is there a [hook line] → [benefit list] → [social proof] → [CTA] structure? → Follow it exactly
-- Are paragraphs 1 sentence or 3-4 sentences? → Match the paragraph length
-- Does it use spacing between sections or is it dense? → Mirror the spacing
+Your job:
+1. Analyze the competitor ad input (image, video, text, or URL)
+2. Extract their winning formula — emotional angle, tone, structure, formatting
+3. Pick the BEST proven copy formula that fits the product and context
+4. Write ONE headline and ONE full ad copy for our product
 
-## STEP 2 — REWRITE WITH IDENTICAL STRUCTURE
-Every output field must use the SAME formatting structure as the competitor ad.
+HEADLINE:
+- 5-12 words maximum
+- Punchy, scroll-stopping, emotionally charged
+- Match the tone of the competitor (bold, clinical, empathetic, etc.)
+- Examples: "Pour Yourself a Better Cup of Coffee ☕" / "Natural Hormonal Support for Men Over 35"
 
-If the competitor uses:
-✅ Short benefit line
-✅ Another short benefit line
-✅ Third benefit line
-
-Then your copies and body must use \\n between each line — not one paragraph.
-
-hooks: 3 scroll-stopping opening lines (5-12 words each) — same hook STYLE and FORMAT as competitor
-copies: 3 ad copy variants — same emotional angle, structure, AND formatting as competitor. Use \\n for line breaks between sentences/sections when the competitor uses them. Use \\n\\n between paragraphs.
-body: 1 detailed body copy with strong CTA — mirrors the competitor's EXACT narrative structure and line-break pattern.
-benefit_bullets: array of 4-6 strings. Each string is ONE benefit line exactly as it would appear (e.g. "✅ Supports healthy vaginal pH & odor"). Do NOT combine into one string.
-comparison: array of 3-4 objects. "them" starts with ❌, "us" starts with ✅. Punchy, 8-12 words max.
+AD COPY:
+- Full narrative direct-response copy
+- Use one of the proven formulas above — pick the best fit
+- Embed comparison (❌/✅) INSIDE the copy naturally, not as a separate section
+- Use \\n between paragraphs for line breaks
+- End with a strong CTA
+- Length: medium (like the Mars Men or gut health examples — substantial but not bloated)
+- If the input mentions a holiday, season, or specific event — make the copy relevant to that context
 
 Output ONLY valid JSON, no markdown, no preamble:
-{"hooks":["h1","h2","h3"],"copies":["c1","c2","c3"],"body":"b","benefit_bullets":["✅ benefit 1","✅ benefit 2","✅ benefit 3","✅ benefit 4"],"comparison":[{"them":"❌ them 1","us":"✅ us 1"},{"them":"❌ them 2","us":"✅ us 2"},{"them":"❌ them 3","us":"✅ us 3"}]}
+{"headline":"h","ad_copy":"full ad copy here with \\n line breaks"}
 
-CRITICAL RULES:
-- Never mention the competitor brand by name
-- Never copy exact phrases
-- The formatting structure IS the style — if you change the formatting, you have failed
-- \\n in JSON strings renders as real line breaks in the UI
-- If competitor uses one sentence per line, your output must do the same`;
+CRITICAL: Never mention competitor brands by name. Capture style and emotion, not exact words.`;
 
       let messages: any[] = [];
 
@@ -368,19 +351,122 @@ CRITICAL RULES:
             { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
             {
               type: "text",
-              text: `This is a competitor's winning static ad. Analyze their hook style, emotional angle, tone, emoji usage, formatting, and persuasion technique. Then rewrite it completely for our product.\n\nCompetitor's ad copy/headline (if any): ${conceptDesc || "See image only"}\n\n${contextInfo}\n\nCapture exactly what makes this competitor ad work and apply that winning formula to our product.`
+              text: `This is a competitor's winning ad. Analyze their formula, tone, formatting, and emotional angle. Then write a headline and full ad copy for our product using the best proven formula.\n\n${contextInfo}\n\nAdditional context from the ad: ${conceptDesc || "See image only"}`
             }
           ]
+        }];
+      } else if (inputTab === "video" && videoBase64) {
+        // Step 1: Upload video to Gemini Files API
+        const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyBWK2PL7ThBPyvNOk_xgx_i8qc0ZOkgY0Y";
+
+        // Detect mime type from file name
+        const mimeType = videoFileName?.endsWith(".mov") ? "video/quicktime" :
+                         videoFileName?.endsWith(".avi") ? "video/avi" :
+                         videoFileName?.endsWith(".webm") ? "video/webm" : "video/mp4";
+
+        // Convert base64 to blob for upload
+        const byteCharacters = atob(videoBase64);
+        const byteNumbers = new Array(byteCharacters.length).fill(0).map((_, i) => byteCharacters.charCodeAt(i));
+        const byteArray = new Uint8Array(byteNumbers);
+        const videoBlob = new Blob([byteArray], { type: mimeType });
+
+        // Upload to Gemini Files API
+        const uploadResponse = await fetch(
+          `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: {
+              "X-Goog-Upload-Command": "start, upload, finalize",
+              "X-Goog-Upload-Header-Content-Length": String(videoBlob.size),
+              "X-Goog-Upload-Header-Content-Type": mimeType,
+              "Content-Type": mimeType,
+            },
+            body: videoBlob,
+          }
+        );
+
+        if (!uploadResponse.ok) {
+          const errText = await uploadResponse.text();
+          throw new Error(`Gemini upload failed: ${errText}`);
+        }
+
+        const uploadData = await uploadResponse.json();
+        const fileUri = uploadData.file?.uri;
+        if (!fileUri) throw new Error("Gemini did not return a file URI");
+
+        // Poll until file is ACTIVE
+        let fileActive = false;
+        let pollAttempts = 0;
+        while (!fileActive && pollAttempts < 20) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const statusRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/files/${uploadData.file.name.split("/").pop()}?key=${GEMINI_API_KEY}`
+          );
+          const statusData = await statusRes.json();
+          if (statusData.state === "ACTIVE") {
+            fileActive = true;
+          }
+          pollAttempts++;
+        }
+        if (!fileActive) throw new Error("Video processing timed out. Try a shorter video.");
+
+        // Step 2: Ask Gemini to analyze the video
+        const geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  {
+                    file_data: {
+                      mime_type: mimeType,
+                      file_uri: fileUri,
+                    }
+                  },
+                  {
+                    text: `You are analyzing a competitor's video ad. Watch it carefully and extract:
+1. The hook style (how does it open? what's the first 3 seconds?)
+2. The emotional angle (fear, aspiration, curiosity, social proof, urgency?)
+3. The tone (aggressive, clinical, empathetic, casual, authoritative?)
+4. The persuasion technique (problem-agitate-solve, story, comparison, authority?)
+5. Any text, captions, or copy visible in the video
+6. The overall narrative structure (how does it flow from hook to CTA?)
+7. Formatting patterns (emojis, ALL CAPS, bullet points, line breaks?)
+
+Be specific and detailed. This analysis will be used to write new ad copy for a different product using the same winning formula.`
+                  }
+                ]
+              }]
+            })
+          }
+        );
+
+        if (!geminiResponse.ok) {
+          const errText = await geminiResponse.text();
+          throw new Error(`Gemini analysis failed: ${errText}`);
+        }
+
+        const geminiData = await geminiResponse.json();
+        const videoAnalysis = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+        if (!videoAnalysis) throw new Error("Gemini returned empty analysis");
+
+        // Step 3: Feed Gemini's analysis into Claude to write the copy
+        messages = [{
+          role: "user",
+          content: `A competitor's winning video ad has been analyzed by Gemini AI. Here is the detailed analysis:\n\n${videoAnalysis}\n\nAdditional context from user: ${conceptDesc || "None"}\n\n${contextInfo}\n\nUsing this analysis, pick the best proven copy formula and write a headline and full ad copy for our product that captures the same winning formula.`
         }];
       } else if (inputTab === "url") {
         messages = [{
           role: "user",
-          content: `This is a competitor's winning ad URL. Analyze their style, tone, hook structure, emoji usage, and persuasion angle. Rewrite it completely for our product.\n\nURL: ${creativeUrl}\n\nCompetitor's ad copy/headline (if provided): ${conceptDesc || "See URL"}\n\n${contextInfo}\n\nCapture what makes this competitor ad work and apply it to our product.`
+          content: `Competitor's winning ad URL: ${creativeUrl}\n\nAnalyze their formula, tone, and emotional angle. Write a headline and full ad copy for our product.\n\n${contextInfo}\n\nAdditional context: ${conceptDesc || "See URL"}`
         }];
       } else {
         messages = [{
           role: "user",
-          content: `This is a competitor's winning ad copy. Analyze their style, tone, hook structure, emoji usage, formatting, and persuasion angle. Rewrite it completely for our product.\n\nCompetitor's ad copy:\n${conceptDesc}\n\n${contextInfo}\n\nCapture what makes this competitor ad work — the emotional trigger, the formatting, the emoji style — and apply that winning formula to our product.`
+          content: `Competitor's winning ad copy:\n${conceptDesc}\n\nAnalyze their formula — emotional trigger, formatting, tone, structure. Pick the best proven formula and write a headline and full ad copy for our product.\n\n${contextInfo}`
         }];
       }
 
@@ -394,17 +480,28 @@ CRITICAL RULES:
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-5",
-          max_tokens: 1500,
+          max_tokens: 2000,
           system: systemPrompt,
           messages,
         }),
       });
 
       const data = await response.json();
+      console.log("Claude full response:", JSON.stringify(data));
       const raw = data.content?.[0]?.text || "";
+      console.log("Claude raw response:", raw);
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No valid JSON in response");
-      const parsed = JSON.parse(jsonMatch[0]);
+      if (!jsonMatch) {
+        console.error("No JSON found in:", raw);
+        throw new Error("No valid JSON in response");
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch (parseErr) {
+        console.error("JSON parse error:", parseErr, jsonMatch[0]);
+        throw new Error("Failed to parse JSON from response");
+      }
       setResult(parsed);
     } catch (err: any) {
       setError("Failed to generate copy. Try again.");
@@ -419,42 +516,26 @@ CRITICAL RULES:
     setIsSaving(true);
 
     try {
-      const copyData = {
-        hooks: result.hooks,
-        copies: result.copies,
-        body: result.body,
-        generated_by: currentUser,
-        generated_at: new Date().toISOString(),
-        control_copy: controlCopy || null,
-      };
-
-      if (selectedAdId) {
-        await supabase.from("ads").update({ generated_copy: copyData }).eq("id", selectedAdId);
-      }
-
       let inputPreview: string | null = null;
-      if (inputTab === "url" && creativeUrl.trim()) {
-        inputPreview = creativeUrl.trim();
-      } else if (inputTab === "image" && imagePreview) {
-        inputPreview = imagePreview;
-      } else if (inputTab === "describe" && conceptDesc.trim()) {
-        inputPreview = conceptDesc.trim();
-      }
+      if (inputTab === "url" && creativeUrl.trim()) inputPreview = creativeUrl.trim();
+      else if (inputTab === "image" && imagePreview) inputPreview = imagePreview;
+      else if (inputTab === "video" && videoFileName) inputPreview = videoFileName;
+      else if (inputTab === "describe" && conceptDesc.trim()) inputPreview = conceptDesc.trim();
 
       const { error: historyError } = await supabase.from("copy_history").insert({
         ad_id: selectedAdId || null,
-        ad_name: selectedAd?.concept_name || conceptDesc || creativeUrl || "Image input",
+        ad_name: selectedAd?.concept_name || conceptDesc || creativeUrl || videoFileName || "Image input",
         generated_by: currentUser,
         generated_by_role: currentRole,
-        hooks: result.hooks,
-        copies: result.copies,
-        body: result.body,
-        benefit_bullets: result.benefit_bullets || [],
-        comparison: result.comparison || [],
+        headline: result.headline,
+        ad_copy: result.ad_copy,
+        // legacy fields for backward compat
+        hooks: [result.headline],
+        copies: [result.ad_copy],
+        body: result.ad_copy,
         control_copy: controlCopy || null,
         input_type: inputTab,
         input_preview: inputPreview,
-        ad_format: format || null,
       });
 
       if (historyError) {
@@ -481,6 +562,12 @@ CRITICAL RULES:
         : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
     }`;
 
+  const isGenerateDisabled = isGenerating ||
+    (inputTab === "describe" && !conceptDesc.trim()) ||
+    (inputTab === "url" && !creativeUrl.trim()) ||
+    (inputTab === "image" && !imageBase64) ||
+    (inputTab === "video" && !videoBase64);
+
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto">
       <div className="max-w-[900px] mx-auto">
@@ -495,16 +582,15 @@ CRITICAL RULES:
           {/* Left — Input */}
           <div className="space-y-4">
 
-
-
             {/* Competitor Ad Input */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">1. Competitor Ad Input</span>
               <p className="text-[10px] text-gray-400 font-medium mb-4">Upload or paste the competitor's winning ad — Claude will copy their style for your product</p>
-              <div className="flex gap-2 mb-4">
+              <div className="flex flex-wrap gap-2 mb-4">
                 <button className={tabClass("describe")} onClick={() => setInputTab("describe")}>Paste Text</button>
                 <button className={tabClass("url")} onClick={() => setInputTab("url")}>URL / Video</button>
                 <button className={tabClass("image")} onClick={() => setInputTab("image")}>Image</button>
+                <button className={tabClass("video")} onClick={() => setInputTab("video")}>Upload Video</button>
               </div>
 
               {inputTab === "describe" && (
@@ -547,11 +633,48 @@ CRITICAL RULES:
                       <svg className="w-8 h-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
-                      <p className="text-sm font-black text-gray-500">Drop competitor's ad image or click to upload</p>
+                      <p className="text-sm font-black text-gray-500">Drop image or click to upload</p>
                       <p className="text-[10px] text-gray-400 mt-1">PNG, JPG, WEBP · Max 5MB</p>
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageInput} />
                     </label>
                   )}
+                </div>
+              )}
+
+              {inputTab === "video" && (
+                <div>
+                  {videoFileName ? (
+                    <div className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl p-4">
+                      <span className="text-2xl">🎥</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-gray-800 truncate">{videoFileName}</p>
+                        <p className="text-[10px] text-gray-400">Video ready for analysis</p>
+                      </div>
+                      <button
+                        onClick={() => { setVideoBase64(null); setVideoFileName(null); }}
+                        className="w-6 h-6 bg-white rounded-full shadow flex items-center justify-center text-gray-500 hover:text-red-500 font-black text-xs border border-gray-200 shrink-0"
+                      >✕</button>
+                    </div>
+                  ) : (
+                    <label
+                      className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${isDragging ? "border-purple-400 bg-purple-50" : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"}`}
+                      onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={handleVideoDrop}
+                    >
+                      <span className="text-3xl mb-2">🎥</span>
+                      <p className="text-sm font-black text-gray-500">Drop video ad or click to upload</p>
+                      <p className="text-[10px] text-gray-400 mt-1">MP4, MOV, AVI · Max 20MB</p>
+                      <input type="file" accept="video/*" className="hidden" onChange={handleVideoInput} />
+                    </label>
+                  )}
+                  <textarea
+                    rows={2}
+                    className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800 resize-none mt-3"
+                    placeholder="Optional: describe what's in the video or paste any visible copy..."
+                    value={conceptDesc}
+                    onChange={e => setConceptDesc(e.target.value)}
+                  />
                 </div>
               )}
             </div>
@@ -571,7 +694,7 @@ CRITICAL RULES:
 
             {/* Previous Winning Copy */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">3. Your Previous Winning Copy (Optional)</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">3. Previous Winning Copy (Optional)</p>
               <p className="text-[10px] text-gray-400 font-medium mb-3">Paste your own previous winner — Claude will make sure the new copy is different enough</p>
               <textarea
                 rows={3}
@@ -586,7 +709,7 @@ CRITICAL RULES:
 
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || (inputTab === "describe" && !conceptDesc.trim()) || (inputTab === "url" && !creativeUrl.trim()) || (inputTab === "image" && !imageBase64)}
+              disabled={isGenerateDisabled}
               className="w-full bg-green-700 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-green-800 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isGenerating ? (
@@ -595,9 +718,9 @@ CRITICAL RULES:
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  Analyzing & Rewriting...
+                  Analyzing & Writing...
                 </span>
-              ) : "🕵️ Analyze & Rewrite for Our Product"}
+              ) : "🕵️ Analyze & Write Copy"}
             </button>
           </div>
 
@@ -613,75 +736,32 @@ CRITICAL RULES:
             {isGenerating && (
               <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center h-full min-h-[300px]">
                 <div className="w-12 h-12 border-4 border-green-200 border-t-green-700 rounded-full animate-spin mb-4" />
-                <p className="font-black text-gray-600">Claude is analyzing the competitor ad...</p>
-                <p className="text-xs text-gray-400 mt-1">Capturing their winning formula for your product</p>
+                <p className="font-black text-gray-600">
+                  {inputTab === "video" ? "Gemini is watching the video..." : "Writing your copy..."}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {inputTab === "video" ? "Then Claude will write the copy using proven formulas" : "Applying proven formulas to your product"}
+                </p>
               </div>
             )}
             {result && (
               <div className="space-y-4">
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center gap-2">
                   <span className="text-sm">🕵️</span>
-                  <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Competitor style captured — rewritten for your product</p>
-                </div>
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                  <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">🪝 Hooks (3)</p>
-                  <div className="space-y-2">
-                    {result.hooks.map((hook, i) => (
-                      <CopyCard key={i} label={`Hook ${i + 1}`} content={hook} color="border-green-200" />
-                    ))}
-                  </div>
-                </div>
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3">📝 Ad Copies (3)</p>
-                  <div className="space-y-2">
-                    {result.copies.map((copy, i) => (
-                      <CopyCard key={i} label={`Copy ${i + 1}`} content={copy} color="border-amber-200" />
-                    ))}
-                  </div>
-                </div>
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3">📄 Body Copy (1)</p>
-                  <CopyCard label="Body" content={result.body} color="border-blue-200" />
+                  <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Competitor formula captured — rewritten for your product</p>
                 </div>
 
-                {result.benefit_bullets && result.benefit_bullets.length > 0 && (
-                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                    <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">✅ Benefit Bullet List</p>
-                    <CopyCard
-                      label="Bullets"
-                      content={result.benefit_bullets.join("\n")}
-                      color="border-green-200"
-                    />
-                  </div>
-                )}
+                {/* Headline */}
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                  <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">📢 Headline</p>
+                  <CopyCard label="Headline" content={result.headline} color="border-green-200" />
+                </div>
 
-                {result.comparison && result.comparison.length > 0 && (
-                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-3">⚔️ Comparison Copy</p>
-                    <div className="space-y-3">
-                      {result.comparison.map((item, i) => (
-                        <div key={i} className="rounded-xl border border-gray-100 overflow-hidden">
-                          <div className="bg-red-50 border-b border-gray-100 px-3 py-2 flex items-start justify-between gap-2">
-                            <p className="text-sm text-gray-700 font-medium flex-1">{item.them}</p>
-                            <button onClick={() => navigator.clipboard.writeText(item.them)} className="text-[9px] font-black text-gray-400 hover:text-red-500 uppercase shrink-0">Copy</button>
-                          </div>
-                          <div className="bg-green-50 px-3 py-2 flex items-start justify-between gap-2">
-                            <p className="text-sm text-gray-700 font-medium flex-1">{item.us}</p>
-                            <button onClick={() => navigator.clipboard.writeText(item.us)} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
-                          </div>
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => navigator.clipboard.writeText(
-                          result.comparison.map(c => `${c.them}\n${c.us}`).join("\n\n")
-                        )}
-                        className="text-[9px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest"
-                      >
-                        Copy All Comparisons
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {/* Ad Copy */}
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3">📝 Ad Copy</p>
+                  <CopyCard label="Ad Copy" content={result.ad_copy} color="border-amber-200" />
+                </div>
 
                 <button
                   onClick={handleSave}
@@ -691,7 +771,7 @@ CRITICAL RULES:
                     "bg-green-700 text-white hover:bg-green-800 disabled:opacity-40"
                   }`}
                 >
-                  {isSaving ? "Saving..." : saved ? "✓ Saved to Ad & History" : "💾 Save Copy"}
+                  {isSaving ? "Saving..." : saved ? "✓ Saved to History" : "💾 Save Copy"}
                 </button>
                 <button
                   onClick={() => { setResult(null); setSaved(false); }}
