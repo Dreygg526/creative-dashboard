@@ -558,9 +558,39 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
         }];
 
       } else if (inputTab === "url") {
+        const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+
+        // Use Gemini to analyze the URL content first
+        const geminiUrlResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  {
+                    text: `Visit and analyze this competitor ad URL: ${creativeUrl}\n\nExtract:\n1. The hook style (how does it open?)\n2. The emotional angle (fear, aspiration, curiosity, social proof, urgency?)\n3. The tone (aggressive, clinical, empathetic, casual, authoritative?)\n4. The persuasion technique used\n5. Any visible copy, headlines, or text\n6. The narrative structure (hook → body → CTA flow)\n7. Formatting patterns (emojis, ALL CAPS, bullet points?)\n\nBe specific and detailed. This will be used to write new ad copy for a different product using the same winning formula.`
+                  }
+                ]
+              }],
+              tools: [{ url_context: {} }]
+            })
+          }
+        );
+
+        let urlAnalysis = "";
+        if (geminiUrlResponse.ok) {
+          const geminiUrlData = await geminiUrlResponse.json();
+          urlAnalysis = geminiUrlData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        }
+
+        // Fall back to passing URL directly if Gemini fails
         messages = [{
           role: "user",
-          content: `Competitor's winning ad URL: ${creativeUrl}\n\nAnalyze their formula, tone, and emotional angle. Write a headline and full ad copy for our product.\n\n${contextInfo}\n\nAdditional context: ${conceptDesc || "See URL"}`
+          content: urlAnalysis
+            ? `A competitor's winning ad URL has been analyzed by Gemini AI:\n\nURL: ${creativeUrl}\n\nGemini Analysis:\n${urlAnalysis}\n\nAdditional context: ${conceptDesc || "None"}\n\n${contextInfo}\n\nUsing this analysis, pick the best proven copy formula and write a headline and full ad copy for our product.`
+            : `Competitor's winning ad URL: ${creativeUrl}\n\nAnalyze their formula, tone, and emotional angle. Write a headline and full ad copy for our product.\n\n${contextInfo}\n\nAdditional context: ${conceptDesc || "See URL"}`
         }];
       } else {
         messages = [{
@@ -684,7 +714,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
               <p className="text-[10px] text-gray-400 font-medium mb-4">Upload or paste the competitor's winning ad — Claude will copy their style for your product</p>
               <div className="flex flex-wrap gap-2 mb-4">
                 <button className={tabClass("describe")} onClick={() => setInputTab("describe")}>Paste Text</button>
-                <button className={tabClass("url")} onClick={() => setInputTab("url")}>URL / Video</button>
+                <button className={tabClass("url")} onClick={() => setInputTab("url")}>URL</button>
                 <button className={tabClass("image")} onClick={() => setInputTab("image")}>Image</button>
                 <button className={tabClass("video")} onClick={() => setInputTab("video")}>Upload Video</button>
               </div>
@@ -703,7 +733,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                 <input
                   type="url"
                   className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800"
-                  placeholder="Paste competitor's ad URL, YouTube, TikTok, Facebook, or Vimeo link..."
+                  placeholder="Paste competitor's ad URL, YouTube, TikTok, or Facebook link..."
                   value={creativeUrl}
                   onChange={e => setCreativeUrl(e.target.value)}
                 />
