@@ -255,45 +255,144 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   };
 
   const PROVEN_COPY_FORMULAS = `
-You have deep knowledge of these proven direct-response ad copy formulas used by top DTC brands. Rotate and apply them based on context:
+You are trained on the ad copy DNA of 50 top DTC brands. You know exactly how each writes — their tone, structure, hooks, and persuasion techniques. When writing copy, pick the style that best matches the competitor ad and product context.
 
-1. GRANDFATHER CONTRAST: "Your grandfather had more T at 60 than you do at 35. He didn't have: ❌ [modern problem 1] ❌ [modern problem 2]. You're not weak. You're poisoned. [Brand] was built to fight back."
+## BRAND COPY DNA (pick the best match):
 
-2. PROBLEM-AGITATE-SOLVE: State the problem bluntly → twist the knife → reveal the solution as the only logical choice.
+**SUPPLEMENTS / HEALTH:**
 
-3. STORY-BRIDGE: First-person story → "I was tired of [X], so I built [product]" → one simple formula → proof → CTA.
+ANCESTRAL SUPPLEMENTS: Stat hook ("90% of Americans are deficient in...") → nutrient deficiency problem agitation → ✅ emoji bullet benefits (grassfed, 3rd-party tested, no fillers) → science/origin credibility close ("just as our ancestors did"). Tone: educational, earthy, ancestral authority.
 
-4. PERMISSION SLIP: "You're not 'just getting old.' Your [system] crashed. Here's how I restored mine in [timeframe]..."
+HIMS: Social proof number first ("hundreds of thousands of guys") → "Why Hims?" format → 📋 emoji bullets → clinical credibility → heavy disclaimer footer. Tone: shame-free, direct, medically trustworthy.
 
-5. STILL LIST: "✅ Still [enjoy normal thing] ✅ Still [enjoy normal thing] ✅ No more [bad thing]" — shows life doesn't have to change, just gets better.
+RITUAL: Transparency-first ("We'll tell you exactly what's in it and why") → ingredient-by-ingredient breakdown → "no BS" positioning → subscription framing. Tone: clean, feminist, science-backed minimalism.
 
-6. VILLAIN FRAME: "Most [category] options leave you hanging. Either [bad option A] or [bad option B]. I was tired of the scams, so..."
+FEALS: Emotional problem open → CBD as calm solution → "meet feals" soft intro → lifestyle benefit bullets → free trial CTA. Tone: soft, anxiety-aware, premium calm.
 
-7. COMPARISON EMBED: ❌ [what competitors do wrong] then immediately ✅ [what we do right] — woven INTO the ad copy, not a separate section.
+EVERYDAY DOSE: Coffee replacement angle → "what if your morning routine actually helped you?" → mushroom science → before/after energy comparison → ritual framing. Tone: wellness-curious, anti-hustle, functional.
 
-8. SCIENTIFIC AUTHORITY: "One simple formula. [N] clinically-dosed ingredients. The only stack that [bold claim]."
+ARMRA: Immune system gate metaphor → colostrum science → "the first food" origin story → ✅ benefit stack → "try risk-free" CTA. Tone: scientific but warm, female-skewing health.
 
-9. SOCIAL PROOF EMBED: "It's what thousands of [target] are using for [benefit 1], [benefit 2], [benefit 3]..."
+HAPPY MAMMOTH: Women's hormonal symptoms called out specifically → "it's not in your head" validation → product as hormonal support → transformation story → community proof. Tone: empathetic, validating, women's health focused.
 
-10. RISK REVERSAL CTA: "Try [product] 100% risk-free, [X]-day guarantee" — at the end, after the emotional peak.
+PRIMAL HERBS: Ancient herb credibility → "used for thousands of years" framing → modern science validation → ✅ benefit bullets → ethical sourcing close. Tone: earthy, holistic, nature-authority.
 
-11. URGENCY + IDENTITY: "Stop blaming yourself. Start fighting back." / "Stop settling. Start [thriving]."
+GRUNS: "Finally, a gummy that actually works" → ingredient transparency → no sugar/no junk → taste + function combo → subscription discount CTA. Tone: playful but credible, millennial health.
 
-12. HOLIDAY/SEASONAL ANGLE: If context mentions a holiday or season, open with that angle: "This [holiday], don't give them [generic gift]. Give them [benefit]..."
+HEIGHTS: Brain health specificity → "most people are deficient in [specific nutrient]" → cognitive performance angle → ✅ science bullets → 30-day trial. Tone: intellectual, performance-focused, UK-premium.
 
-13. FEAR + RELIEF: Open with a scary truth → relieve it with the product → close with transformation.
+HIYA: Kids' health parent guilt angle → "most kids' vitamins are basically candy" → clean ingredients → pediatrician-approved → subscribe + save. Tone: protective parent, trust-building, clean label.
 
-14. BEFORE/AFTER CONTRAST: Paint the before (pain) vividly → then the after (transformation) → bridge is the product.
+KIND PATCHES: Convenience angle → "no pills, no powders" → patch technology novelty → benefit stack → starter kit CTA. Tone: modern, effortless wellness, lifestyle-first.
 
-15. MOMENTUM BUILDER: Short punchy sentences that build speed. "Fix your gut. Fix everything. When your gut works, your whole system follows."
+SPARTAN: Performance identity → "you train hard, your supplements should too" → ingredient dosing specifics → athlete social proof → bulk discount CTA. Tone: aggressive, masculine, performance identity.
 
-FORMATTING RULES you must follow:
+**FOOD / BEVERAGE:**
+
+RYZE: Morning ritual replacement → "what if coffee didn't crash you?" → mushroom coffee positioning → ✅ benefit comparison (focus, calm, energy) → 30-day guarantee. Tone: wellness-forward, anti-anxiety, ritual upgrade.
+
+DAVID PROTEIN: Protein density stat ("28g protein, 150 calories") → macro efficiency angle → "engineered for performance" → clean ingredient list → bulk CTA. Tone: data-driven, performance-first, no fluff.
+
+OATS OVERNIGHT: Time-saving convenience → "breakfast in 2 minutes" → nutrition facts comparison vs regular oatmeal → flavor variety → subscription. Tone: busy professional, practical, taste-forward.
+
+MASA CHIPS: "Not your average chip" → traditional nixtamalization process → heritage + health combo → clean ingredients → snack guilt-free positioning. Tone: foodie-curious, heritage-proud, clean snacking.
+
+JAVVY: Coffee + collagen combo novelty → "your coffee just got an upgrade" → beauty-from-within angle → taste credibility → morning ritual framing. Tone: female wellness, beauty-health overlap, indulgent-but-healthy.
+
+KA'CHAVA: Meal replacement completeness → "40+ superfoods in one shake" → replace multiple supplements → plant-based lifestyle → transformation story. Tone: complete nutrition, plant-powered, lifestyle transformation.
+
+BREZ: "Finally a social drink without the hangover" → THC/CBD beverage novelty → specific occasion framing (parties, dinners) → taste comparison to alcohol → try a pack CTA. Tone: social lifestyle, sober-curious, modern alternative.
+
+**BEAUTY / PERSONAL CARE:**
+
+DR. SQUATCH: Pure masculine humor → pop culture hook → "tag someone who needs this" community mechanic → product benefit buried in joke → never takes itself seriously. Tone: bro-humor, irreverent, viral-first.
+
+LUMIN SKINCARE: Men's skincare without the feminine framing → "your face deserves better" → simple routine positioning → before/after proof → starter kit. Tone: masculine self-care, accessible, confidence-driven.
+
+NORSE ORGANICS: Beard/hair care masculine identity → "real men take care of themselves" → natural ingredients → ritual framing → before/after transformation. Tone: rugged-but-refined, natural authority, masculine care.
+
+SOLAWAVE: Skincare technology novelty → "dermatologist-recommended" credibility → specific skin problem targeting → red light science → results timeline. Tone: tech-forward, results-obsessed, beauty meets science.
+
+TRULY BEAUTY: Bold sensory copy → fun/playful ingredient names → body positivity tone → variety/flavors emphasis → "treat yourself" CTA. Tone: Gen-Z playful, body-positive, indulgent skincare.
+
+OGEE: Luxury organic positioning → "the first certified organic luxury skincare" → ingredient purity → celebrity/editorial credibility → premium gift framing. Tone: luxury minimalism, purity-obsessed, aspirational organic.
+
+BLISSY: Sleep quality angle → silk pillowcase science → hair + skin benefits while sleeping → "you deserve this" self-care framing → gift positioning. Tone: self-care luxury, sleep wellness, deserving framing.
+
+LAURA GELLER: Age-positive beauty → "makeup that works with your skin, not against it" → coverage + skincare hybrid → mature woman confidence → QVC-style value stacking. Tone: inclusive, age-positive, trusted beauty advisor.
+
+HI-SMILE: Teeth whitening speed claim ("whiter in X uses") → sensitivity-free positioning → celebrity/influencer proof → before/after visual emphasis → starter kit discount. Tone: confident smile identity, results-fast, accessible luxury.
+
+**PET:**
+
+FARMER'S DOG: Emotional dog owner guilt → "you wouldn't eat processed food every day" → fresh food comparison to kibble → vet-approved credibility → subscription convenience. Tone: emotional, guilt-to-love, pet parent devotion.
+
+PETLAB CO.: Dog symptom specificity (joint pain, gut health, coat) → vet-formulated credibility → before/after dog transformation → money-back guarantee → subscription. Tone: concerned pet parent, clinical but warm, results-focused.
+
+**APPAREL / ACCESSORIES:**
+
+MFUNDIES / MEUNDIES: Comfort identity → "softest underwear you'll ever wear" → fabric science (MicroModal) → matching sets/couples angle → first pair discount. Tone: playful, comfort-obsessed, couples/gift friendly.
+
+FABLETICS: VIP membership value → "get 2 leggings for $24" → celebrity founder credibility → style + performance combo → quiz/personalization hook. Tone: aspirational fitness lifestyle, value-forward, membership community.
+
+JAMBYS: Loungewear comfort maximalism → "the softest pants exist" → stay-home identity → gift-perfect framing → limited colors urgency. Tone: cozy humor, stay-home proud, gifting occasion.
+
+KIZIK: Hands-free shoe technology novelty → "just step in" → mobility/convenience angle → aging-in-place or busy parent targeting → demo video CTA. Tone: innovation-forward, practical luxury, accessibility.
+
+HOLLOW SOCKS: Comfort + durability claims → "socks that don't fall down" → specific pain point (bunching, fading) → bulk value pack → satisfaction guarantee. Tone: functional, no-nonsense, everyday upgrade.
+
+CUTS: Premium menswear performance → "shirts that don't wrinkle, stretch, or fade" → office-to-gym versatility → fabric technology → professional identity. Tone: ambitious professional, performance menswear, quality investment.
+
+GLADE OPTICS: Affordable luxury eyewear → "why pay $500 for frames?" → direct-to-consumer disruption → style variety → home try-on program. Tone: anti-establishment, value-disruption, style-accessible.
+
+PAIR EYEWEAR: Customizable frames concept → "one frame, endless tops" → personality expression → kids + adults → subscription of new tops. Tone: playful, self-expression, family-inclusive.
+
+**OTHER:**
+
+HEXCLAD: Gordon Ramsay credibility anchor → "the last pan you'll ever buy" → hybrid non-stick technology → professional-grade for home cooks → lifetime warranty. Tone: culinary authority, premium investment, chef-endorsed.
+
+BOBBIE: Infant formula trust rebuilding → "made to EU standards" → ingredient transparency → "formula you can feel good about" → new parent anxiety relief. Tone: trust-rebuilding, parent-protective, premium safety.
+
+GROUNDING WELL: Earthing/grounding science novelty → "you're disconnected from the earth" → inflammation reduction claim → product as reconnection tool → skeptic-friendly explanation. Tone: alternative wellness, curious-skeptic, nature-reconnection.
+
+AFTER.COM: Afterpay/BNPL model → "get it now, pay later" → impulse purchase enablement → product showcase → zero interest framing. Tone: financial accessibility, instant gratification, modern payment.
+
+LOOP EARPLUGS: Noise reduction without isolation → "hear what matters, filter what doesn't" → specific use cases (concerts, focus, sleep, parenting) → style + function → starter pack. Tone: modern lifestyle, sensory wellness, design-forward.
+
+HIKE FOOTWEAR: Trail running performance → "built for the mountain, worn in the city" → crossover lifestyle → technical specs in plain language → adventure identity. Tone: outdoor identity, performance crossover, adventure-aspirational.
+
+CITY BEAUTY: Age-reversal specificity → "clinically shown to reduce [specific sign of aging]" → dermatologist formulated → before/after proof → results guarantee. Tone: results-obsessed, clinical authority, mature woman empowerment.
+
+PRIMAL QUEEN: Women's hormonal health specifically → perimenopause/menopause validation → "finally someone made something for us" → natural hormone support → community belonging. Tone: women's health advocacy, validation, age-positive power.
+
+NOVA CERAMICS (from real ad): Lifestyle upgrade angle → "your daily [thing] deserves better" → artisan quality story → emoji benefit bullets → urgency discount CTA. Tone: lifestyle elevation, artisan pride, limited-time value.
+
+## CORE COPY FORMULAS (apply within any brand style):
+
+1. STAT HOOK: Lead with a surprising statistic → explain why it matters → product as solution
+2. GRANDFATHER CONTRAST: "Your grandfather had [X]. He didn't have: ❌ [modern toxin]. You're not weak. You're poisoned."
+3. PERMISSION SLIP: "You're not 'just [getting old/tired/sick].' Your [system] crashed."
+4. STILL LIST: "✅ Still [enjoy normal thing] ✅ Still [normal life] ✅ No more [bad thing]"
+5. VILLAIN FRAME: "Most [category] options leave you hanging. Either [bad A] or [bad B]."
+6. STORY BRIDGE: "I was tired of [X], so I built [product]" → proof → CTA
+7. SOCIAL PROOF SCALE: "[Number] of [people] are already [benefit]"
+8. SCIENCE AUTHORITY: "[N] clinically-dosed ingredients. The only [product] that [bold claim]."
+9. COMPARISON EMBED: ❌ competitor weakness immediately followed by ✅ our strength — inside the copy
+10. RISK REVERSAL: "Try risk-free for [X] days. If you don't [result], we'll refund every penny."
+11. MOMENTUM BUILDER: Short. Punchy. One sentence per line. Builds speed to CTA.
+12. HOLIDAY/OCCASION: "This [holiday/occasion], don't give them [generic]. Give them [transformation]."
+13. BEFORE/AFTER: Vivid before (pain) → vivid after (transformation) → product is the bridge
+14. CURIOSITY OPEN: "Here's what nobody tells you about [common thing]..."
+15. IDENTITY CHALLENGE: "Stop [negative behavior]. Start [positive identity]."
+
+FORMATTING RULES:
 - Short sentences. One idea per line when impactful.
-- Use ❌ and ✅ for contrast lists INSIDE the copy, not as separate sections.
-- Use line breaks (\\n) between paragraphs for breathing room.
-- Match the tone of the input (aggressive, clinical, empathetic, casual).
-- End with a strong CTA embedded naturally.
-- Disclaimer like "*Individual results may vary" if making health claims.
+- Use ❌ and ✅ for contrast lists INSIDE the copy only.
+- Use \\n between paragraphs for breathing room.
+- Match the exact tone of the competitor input.
+- End with a punchy CTA.
+- Add "*Individual results may vary" for health claims.
+- If holiday/seasonal context detected, open with that angle.
 `;
 
   const handleGenerate = async () => {
@@ -336,10 +435,16 @@ AD COPY:
 - Length: medium (like the Mars Men or gut health examples — substantial but not bloated)
 - If the input mentions a holiday, season, or specific event — make the copy relevant to that context
 
-Output ONLY valid JSON, no markdown, no preamble:
-{"headline":"h","ad_copy":"full ad copy here with \\n line breaks"}
+CRITICAL OUTPUT RULES:
+- Output ONLY a raw JSON object. Nothing before it. Nothing after it.
+- No markdown. No backticks. No "Here is..." preamble. No explanation.
+- The entire response must be parseable by JSON.parse()
+- Format: {"headline":"your headline here","ad_copy":"your full ad copy here with \\n line breaks"}
+- Never mention competitor brands by name.
+- If you write anything outside the JSON object, you have failed.
 
-CRITICAL: Never mention competitor brands by name. Capture style and emotion, not exact words.`;
+EXAMPLE OF CORRECT OUTPUT:
+{"headline":"Natural Support for Men Over 35","ad_copy":"You're not just tired.\\n\\nYour body is fighting a war it wasn't designed for..."}`;
 
       let messages: any[] = [];
 
@@ -394,25 +499,12 @@ CRITICAL: Never mention competitor brands by name. Capture style and emotion, no
         const fileUri = uploadData.file?.uri;
         if (!fileUri) throw new Error("Gemini did not return a file URI");
 
-        // Poll until file is ACTIVE
-        let fileActive = false;
-        let pollAttempts = 0;
-        while (!fileActive && pollAttempts < 20) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          const statusRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/files/${uploadData.file.name.split("/").pop()}?key=${GEMINI_API_KEY}`
-          );
-          const statusData = await statusRes.json();
-          if (statusData.state === "ACTIVE") {
-            fileActive = true;
-          }
-          pollAttempts++;
-        }
-        if (!fileActive) throw new Error("Video processing timed out. Try a shorter video.");
+        // Wait for file to be processed
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         // Step 2: Ask Gemini to analyze the video
         const geminiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -487,21 +579,10 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
       });
 
       const data = await response.json();
-      console.log("Claude full response:", JSON.stringify(data));
       const raw = data.content?.[0]?.text || "";
-      console.log("Claude raw response:", raw);
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error("No JSON found in:", raw);
-        throw new Error("No valid JSON in response");
-      }
-      let parsed;
-      try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch (parseErr) {
-        console.error("JSON parse error:", parseErr, jsonMatch[0]);
-        throw new Error("Failed to parse JSON from response");
-      }
+      if (!jsonMatch) throw new Error("No valid JSON in response");
+      const parsed = JSON.parse(jsonMatch[0]);
       setResult(parsed);
     } catch (err: any) {
       setError("Failed to generate copy. Try again.");
@@ -772,6 +853,13 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                   }`}
                 >
                   {isSaving ? "Saving..." : saved ? "✓ Saved to History" : "💾 Save Copy"}
+                </button>
+                <button
+                  onClick={() => { setSaved(false); handleGenerate(); }}
+                  disabled={isGenerating}
+                  className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest border border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700 hover:bg-green-50 transition-all disabled:opacity-40"
+                >
+                  {isGenerating ? "Generating..." : "🔄 Generate New Version"}
                 </button>
                 <button
                   onClick={() => { setResult(null); setSaved(false); }}
