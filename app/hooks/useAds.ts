@@ -244,6 +244,8 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           imprint_number: isFounder ? selectedAd.imprint_number : originalAd.imprint_number,
           destination_url: selectedAd.destination_url ?? originalAd.destination_url ?? null,
           whitelisting_page: selectedAd.whitelisting_page ?? originalAd.whitelisting_page ?? null,
+          selected_headline: selectedAd.selected_headline ?? originalAd.selected_headline ?? null,
+          selected_ad_copy: selectedAd.selected_ad_copy ?? originalAd.selected_ad_copy ?? null,
         })
         .eq("id", selectedAd.id)
         .select();

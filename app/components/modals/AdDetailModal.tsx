@@ -591,6 +591,29 @@ export default function AdDetailModal({
                       <p className="text-sm font-black text-red-400">⚠️ No whitelisting page set — ask the Strategist</p>
                     )}
                   </div>
+                  {(selectedAd.selected_headline || selectedAd.selected_ad_copy) && (
+                    <div className="border-t border-green-200 pt-3">
+                      <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">📌 Selected Ad Copy</p>
+                      {selectedAd.selected_headline && (
+                        <div className="mb-2">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Headline</p>
+                          <div className="flex items-start justify-between gap-2 bg-white rounded-xl p-2 border border-green-200">
+                            <p className="text-sm font-black text-gray-800 flex-1">{selectedAd.selected_headline}</p>
+                            <button onClick={() => navigator.clipboard.writeText(selectedAd.selected_headline || "")} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                          </div>
+                        </div>
+                      )}
+                      {selectedAd.selected_ad_copy && (
+                        <div>
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Ad Copy</p>
+                          <div className="flex items-start justify-between gap-2 bg-white rounded-xl p-2 border border-green-200">
+                            <p className="text-sm font-medium text-gray-800 flex-1 whitespace-pre-wrap">{selectedAd.selected_ad_copy}</p>
+                            <button onClick={() => navigator.clipboard.writeText(selectedAd.selected_ad_copy || "")} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -927,6 +950,23 @@ export default function AdDetailModal({
                   </button>
                 </div>
               </div>
+              {(selectedAd.selected_headline || selectedAd.selected_ad_copy) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
+                  <p className="text-[9px] font-black text-blue-700 uppercase tracking-widest">📌 Selected Ad Copy</p>
+                  {selectedAd.selected_headline && (
+                    <div>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Headline</p>
+                      <p className="text-sm font-black text-gray-800 bg-white rounded-xl p-3 border border-blue-200">{selectedAd.selected_headline}</p>
+                    </div>
+                  )}
+                  {selectedAd.selected_ad_copy && (
+                    <div>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Ad Copy</p>
+                      <p className="text-sm font-medium text-gray-800 bg-white rounded-xl p-3 border border-blue-200 whitespace-pre-wrap">{selectedAd.selected_ad_copy}</p>
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <label className={labelClass}>Notes</label>
                 <textarea rows={1} className={`${inputClass} resize-none`} placeholder="Optional notes..." value={selectedAd.notes || ""} onChange={e => setSelectedAd({ ...selectedAd, notes: e.target.value })} />

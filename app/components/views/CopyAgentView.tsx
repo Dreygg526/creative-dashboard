@@ -192,6 +192,10 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  const [selectedHeadline, setSelectedHeadline] = useState<string | null>(null);
+  const [selectedAdCopy, setSelectedAdCopy] = useState<string | null>(null);
+  const [isSavingToAd, setIsSavingToAd] = useState(false);
+  const [savedToAd, setSavedToAd] = useState(false);
 
   const [inputTab, setInputTab] = useState<"describe" | "url" | "image" | "video">("describe");
   const [creativeUrl, setCreativeUrl] = useState("");
@@ -400,6 +404,9 @@ FORMATTING RULES:
     setIsGenerating(true);
     setResult(null);
     setSaved(false);
+    setSelectedHeadline(null);
+    setSelectedAdCopy(null);
+    setSavedToAd(false);
 
     try {
       const contextInfo = `Product: ${product || "same product category as the competitor ad"}
@@ -879,7 +886,18 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                   <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">📢 Headlines (3)</p>
                   <div className="space-y-2">
                     {result.headlines.map((h, i) => (
-                      <CopyCard key={i} label={`Headline ${i + 1}`} content={h} color="border-green-200" />
+                      <div key={i} className={`border rounded-2xl p-4 shadow-sm transition-all ${selectedHeadline === h ? "border-green-500 bg-green-50" : "border-green-200 bg-white"}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-green-600">Headline {i + 1}</span>
+                          <div className="flex gap-2">
+                            <button onClick={() => navigator.clipboard.writeText(h)} className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all">Copy</button>
+                            <button onClick={() => setSelectedHeadline(selectedHeadline === h ? null : h)} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${selectedHeadline === h ? "bg-green-600 text-white" : "bg-green-100 text-green-700 hover:bg-green-200"}`}>
+                              {selectedHeadline === h ? "✓ Selected" : "Use This"}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-800 font-medium leading-relaxed whitespace-pre-wrap">{h}</p>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -888,11 +906,55 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                   <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3">📝 Ad Copies (3)</p>
                   <div className="space-y-2">
                     {result.ad_copies.map((c, i) => (
-                      <CopyCard key={i} label={`Copy ${i + 1}`} content={c} color="border-amber-200" />
+                      <div key={i} className={`border rounded-2xl p-4 shadow-sm transition-all ${selectedAdCopy === c ? "border-amber-500 bg-amber-50" : "border-amber-200 bg-white"}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-amber-600">Copy {i + 1}</span>
+                          <div className="flex gap-2">
+                            <button onClick={() => navigator.clipboard.writeText(c)} className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all">Copy</button>
+                            <button onClick={() => setSelectedAdCopy(selectedAdCopy === c ? null : c)} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${selectedAdCopy === c ? "bg-amber-500 text-white" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}`}>
+                              {selectedAdCopy === c ? "✓ Selected" : "Use This"}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-800 font-medium leading-relaxed whitespace-pre-wrap">{c}</p>
+                      </div>
                     ))}
                   </div>
                 </div>
 
+                {selectedHeadline && selectedAdCopy && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
+                    <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">📌 Send to Ad</p>
+                    <p className="text-[10px] text-blue-600 font-medium">Link this copy to an ad so Axel can see it in the Ad Detail Modal</p>
+                    <select
+                      className="w-full border border-blue-200 bg-white p-3 rounded-xl text-sm font-bold outline-none focus:border-blue-500 text-gray-700"
+                      value={selectedAdId}
+                      onChange={e => setSelectedAdId(e.target.value)}
+                    >
+                      <option value="">— Select an Ad —</option>
+                      {ads.filter(a => !["Winner", "Killed"].includes(a.status)).sort((a, b) => a.concept_name.localeCompare(b.concept_name)).map(a => (
+                        <option key={a.id} value={a.id}>{a.concept_name} ({a.status})</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={async () => {
+                        if (!selectedAdId) { alert("Please select an ad first"); return; }
+                        setIsSavingToAd(true);
+                        await supabase.from("ads").update({
+                          selected_headline: selectedHeadline,
+                          selected_ad_copy: selectedAdCopy,
+                        }).eq("id", selectedAdId);
+                        setIsSavingToAd(false);
+                        setSavedToAd(true);
+                        setTimeout(() => setSavedToAd(false), 3000);
+                      }}
+                      disabled={!selectedAdId || isSavingToAd || savedToAd}
+                      className={`w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${savedToAd ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40"}`}
+                    >
+                      {isSavingToAd ? "Saving..." : savedToAd ? "✓ Sent to Ad" : "📌 Send to Ad"}
+                    </button>
+                  </div>
+                )}
                 <button
                   onClick={handleSave}
                   disabled={isSaving || saved}

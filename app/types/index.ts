@@ -33,6 +33,8 @@ export interface Ad {
   imprint_number?: number;
   destination_url?: string[];
   whitelisting_page?: string[];
+  selected_headline?: string;
+  selected_ad_copy?: string;
   generated_copy?: {
     hooks: string[];
     copies: string[];
