@@ -152,7 +152,7 @@ function AdSetNameCopy({ ad }: { ad: Ad }) {
     ad.assigned_editor ? `Editor: ${ad.assigned_editor}` : "",
     ad.assigned_copywriter ? `Strategist: ${ad.assigned_copywriter}` : "",
     "",
-  ].filter(Boolean).join(" | ");
+  ].filter(Boolean).join(" || ");
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
