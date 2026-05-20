@@ -259,7 +259,13 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
               {selectedAd.imprint_number && (
                 <div className="mb-3 bg-amber-50 rounded-xl px-3 py-2 border border-amber-200">
                   <p className="text-[10px] font-black font-mono text-amber-700 whitespace-nowrap tracking-wide">
-                    DTC #{String(selectedAd.imprint_number)} — {selectedAd.ad_format} | {selectedAd.concept_name}
+                    {[
+                      `DTC #${String(selectedAd.imprint_number)}`,
+                      selectedAd.ad_format || "",
+                      (selectedAd.whitelisting_page || []).length > 0 ? (selectedAd.whitelisting_page || []).join(" & ") : "",
+                      selectedAd.assigned_editor ? `Editor: ${selectedAd.assigned_editor}` : "",
+                      selectedAd.assigned_copywriter ? `Strategist: ${selectedAd.assigned_copywriter}` : "",
+                    ].filter(Boolean).join(" || ")}
                   </p>
                 </div>
               )}
