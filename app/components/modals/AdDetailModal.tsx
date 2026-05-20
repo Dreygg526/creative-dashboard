@@ -217,12 +217,12 @@ function CloseButton({ onClose }: { onClose: () => void }) {
 
 function AdSetNameBar({ selectedAd }: { selectedAd: Ad }) {
   const adSetName = [
-    selectedAd.imprint_number ? `DTC #${String(selectedAd.imprint_number).padStart(4, "0")}` : "",
+    selectedAd.imprint_number ? `DTC #${String(selectedAd.imprint_number)}` : "",
     selectedAd.ad_format || "",
     (selectedAd.whitelisting_page || []).length > 0 ? (selectedAd.whitelisting_page || []).join(" & ") : "",
     selectedAd.assigned_editor ? `Editor: ${selectedAd.assigned_editor}` : "",
     selectedAd.assigned_copywriter ? `Strategist: ${selectedAd.assigned_copywriter}` : "",
-    (selectedAd.destination_url || []).length > 0 ? (selectedAd.destination_url || [])[0] : "",
+    "",
   ].filter(Boolean).join(" || ");
 
   return (
@@ -259,7 +259,7 @@ function ReadOnlyView({ selectedAd, setSelectedAd, setManualLogNote, currentUser
               {selectedAd.imprint_number && (
                 <div className="mb-3 bg-amber-50 rounded-xl px-3 py-2 border border-amber-200">
                   <p className="text-[10px] font-black font-mono text-amber-700 whitespace-nowrap tracking-wide">
-                    DTC #{String(selectedAd.imprint_number).padStart(4, "0")} — {selectedAd.ad_format} | {selectedAd.concept_name}
+                    DTC #{String(selectedAd.imprint_number)} — {selectedAd.ad_format} | {selectedAd.concept_name}
                   </p>
                 </div>
               )}
@@ -400,7 +400,7 @@ export default function AdDetailModal({
               <div className="mb-5">
                 {selectedAd.imprint_number && (
                   <div className="mb-3 bg-amber-50 rounded-xl px-3 py-2 border border-amber-200">
-                    <p className="text-[10px] font-black font-mono text-amber-700 tracking-wide">DTC #{String(selectedAd.imprint_number).padStart(4, "0")} — {selectedAd.ad_format}</p>
+                    <p className="text-[10px] font-black font-mono text-amber-700 tracking-wide">DTC #{String(selectedAd.imprint_number)} — {selectedAd.ad_format}</p>
                   </div>
                 )}
                 <h2 className="text-xl font-black text-gray-900 mb-2">{selectedAd.concept_name}</h2>
@@ -728,7 +728,7 @@ export default function AdDetailModal({
               {selectedAd.imprint_number && (
                 <div className="mb-3 bg-amber-50 rounded-xl px-3 py-2 border border-amber-200">
                   <p className="text-[10px] font-black font-mono text-amber-700 whitespace-nowrap tracking-wide">
-                    DTC #{String(selectedAd.imprint_number).padStart(4, "0")} — {selectedAd.ad_format} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} | {selectedAd.concept_name}
+                    DTC #{String(selectedAd.imprint_number)} — {selectedAd.ad_format} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} | {selectedAd.concept_name}
                   </p>
                 </div>
               )}

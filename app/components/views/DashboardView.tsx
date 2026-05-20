@@ -151,7 +151,7 @@ function AdSetNameCopy({ ad }: { ad: Ad }) {
     (ad.whitelisting_page || []).length > 0 ? (ad.whitelisting_page || []).join(" & ") : "",
     ad.assigned_editor ? `Editor: ${ad.assigned_editor}` : "",
     ad.assigned_copywriter ? `Strategist: ${ad.assigned_copywriter}` : "",
-    (ad.destination_url || []).length > 0 ? (ad.destination_url || [])[0] : "",
+    "",
   ].filter(Boolean).join(" | ");
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -800,7 +800,12 @@ function ContentCoordDashboard({ ads, onSelectAd, activeSessions, formatTimer }:
 // ── MEDIA BUYER DASHBOARD ──
 function MediaBuyerDashboard({ ads, onSelectAd, activeSessions, formatTimer }: Props) {
   const pendingAds = ads.filter(ad => ad.status === "Pending Upload").sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  const testingAds = ads.filter(ad => ad.status === "Testing").sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const [testingSort, setTestingSort] = useState<"asc" | "desc">("asc");
+  const testingAds = ads.filter(ad => ad.status === "Testing").sort((a, b) => {
+    const aNum = a.imprint_number || 0;
+    const bNum = b.imprint_number || 0;
+    return testingSort === "asc" ? aNum - bNum : bNum - aNum;
+  });
 
   const { tested, winners, rate: hitRate } = calcHitRate(ads, () => true);
 
@@ -873,6 +878,10 @@ function MediaBuyerDashboard({ ads, onSelectAd, activeSessions, formatTimer }: P
           <span className="w-2 h-2 rounded-full bg-blue-400" />
           <h3 className="font-black text-gray-800">In Testing — Set Results</h3>
           <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{testingAds.length}</span>
+          <div className="ml-auto flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <button onClick={() => setTestingSort("asc")} className={`text-[9px] font-black uppercase px-2 py-1 rounded-md transition-all ${testingSort === "asc" ? "bg-white text-gray-700 shadow-sm" : "text-gray-400"}`}>DTC ↑</button>
+            <button onClick={() => setTestingSort("desc")} className={`text-[9px] font-black uppercase px-2 py-1 rounded-md transition-all ${testingSort === "desc" ? "bg-white text-gray-700 shadow-sm" : "text-gray-400"}`}>DTC ↓</button>
+          </div>
         </div>
         {testingAds.length === 0 ? (
           <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center text-gray-400">
