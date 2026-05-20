@@ -223,7 +223,7 @@ function AdSetNameBar({ selectedAd }: { selectedAd: Ad }) {
     selectedAd.assigned_editor ? `Editor: ${selectedAd.assigned_editor}` : "",
     selectedAd.assigned_copywriter ? `Strategist: ${selectedAd.assigned_copywriter}` : "",
     (selectedAd.destination_url || []).length > 0 ? (selectedAd.destination_url || [])[0] : "",
-  ].filter(Boolean).join(" | ");
+  ].filter(Boolean).join(" || ");
 
   return (
     <div className="px-4 py-2.5 border-b border-gray-100">
@@ -952,19 +952,39 @@ export default function AdDetailModal({
               </div>
               {(selectedAd.selected_headline || selectedAd.selected_ad_copy) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
-                  <p className="text-[9px] font-black text-blue-700 uppercase tracking-widest">📌 Selected Ad Copy</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] font-black text-blue-700 uppercase tracking-widest">📌 Selected Ad Copy</p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAd({ ...selectedAd, selected_headline: undefined, selected_ad_copy: undefined })}
+                      className="text-[9px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest px-2 py-1 hover:bg-red-50 rounded-lg transition-all"
+                    >
+                      🗑 Remove
+                    </button>
+                  </div>
                   {selectedAd.selected_headline && (
                     <div>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Headline</p>
-                      <p className="text-sm font-black text-gray-800 bg-white rounded-xl p-3 border border-blue-200">{selectedAd.selected_headline}</p>
+                      <textarea
+                        rows={2}
+                        className="w-full text-sm font-black text-gray-800 bg-white rounded-xl p-3 border border-blue-200 outline-none focus:border-blue-500 resize-none"
+                        value={selectedAd.selected_headline}
+                        onChange={e => setSelectedAd({ ...selectedAd, selected_headline: e.target.value })}
+                      />
                     </div>
                   )}
                   {selectedAd.selected_ad_copy && (
                     <div>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Ad Copy</p>
-                      <p className="text-sm font-medium text-gray-800 bg-white rounded-xl p-3 border border-blue-200 whitespace-pre-wrap">{selectedAd.selected_ad_copy}</p>
+                      <textarea
+                        rows={10}
+                        className="w-full text-sm font-medium text-gray-800 bg-white rounded-xl p-3 border border-blue-200 outline-none focus:border-blue-500 resize-none"
+                        value={selectedAd.selected_ad_copy}
+                        onChange={e => setSelectedAd({ ...selectedAd, selected_ad_copy: e.target.value })}
+                      />
                     </div>
                   )}
+                  <p className="text-[9px] text-blue-500 font-medium">Changes save when you hit Save Changes below</p>
                 </div>
               )}
               <div>
