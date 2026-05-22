@@ -246,7 +246,7 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   };
 
   const processVideo = (file: File) => {
-    if (file.size > 20 * 1024 * 1024) { setError("Video too large — max 20MB"); return; }
+    if (file.size > 100 * 1024 * 1024) { setError("Video too large — max 100MB"); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const res = reader.result as string;
@@ -797,7 +797,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                     >
                       <span className="text-3xl mb-2">🎥</span>
                       <p className="text-sm font-black text-gray-500">Drop video ad or click to upload</p>
-                      <p className="text-[10px] text-gray-400 mt-1">MP4, MOV, AVI · Max 20MB</p>
+                      <p className="text-[10px] text-gray-400 mt-1">MP4, MOV, AVI · Max 100MB</p>
                       <input type="file" accept="video/*" className="hidden" onChange={handleVideoInput} />
                     </label>
                   )}
