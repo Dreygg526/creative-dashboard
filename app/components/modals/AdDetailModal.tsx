@@ -80,7 +80,7 @@ function canUserModify(ad: Ad, originalStatus: string, currentRole: string, curr
     if (ad.assigned_copywriter === currentUser) return { allowed: true, reason: "" };
     return { allowed: false, reason: `⛔ Access Denied — You are not the assigned strategist for this ad.` };
   }
-  if (currentRole === "Editor" || currentRole === "Graphic Designer") {
+  if (currentRole === "Editor" || currentRole === "Graphic Designer" || currentRole === "Team Lead Editor") {
     if (ad.assigned_editor === currentUser || originalStatus === "Done, Waiting for Approval") return { allowed: true, reason: "" };
     return { allowed: false, reason: `⛔ Access Denied — This ad is not assigned to you. Only ${ad.assigned_editor || "the assigned editor"} can make changes.` };
   }
@@ -344,7 +344,7 @@ export default function AdDetailModal({
 
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
-  const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
+  const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer" || currentRole === "Team Lead Editor";
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
   const isMediaBuyer = currentRole === "Media Buyer";
@@ -362,7 +362,7 @@ export default function AdDetailModal({
   };
 
   const canDelete = isFounder || (isStrategist && selectedAd.assigned_copywriter === currentUser);
-  const canReassign = isFounder;
+  const canReassign = isFounder || (currentRole === "Team Lead Editor" && selectedAd.assigned_editor === currentUser);
   const stageMovable = !isLocked || isFounder || isStrategist;
   const allowedTransitions = getAllowedTransitions();
 
@@ -379,7 +379,7 @@ export default function AdDetailModal({
   const selectClass = "w-full border border-gray-200 bg-white p-3 rounded-xl text-sm font-bold outline-none focus:border-green-500 text-gray-700";
 
   const TimerBlock = () => (
-    activeSession && !isStrategist && !isFounder ? (
+    activeSession && !isStrategist && !isFounder && currentRole !== "Team Lead Editor" ? (
       <div className="bg-green-700 rounded-2xl p-4 flex items-center justify-between mb-2">
         <div>
           <p className="text-[9px] font-black text-green-200 uppercase tracking-widest mb-1">⏱️ Session Active</p>
