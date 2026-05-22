@@ -74,7 +74,6 @@ export default function App() {
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
   const isMediaBuyer = currentRole === "Media Buyer";
-  const isTeamLeadEditor = currentRole === "Team Lead Editor";
   const isCopyAgent = isFounder || isStrategist || isMediaBuyer;
   const canManageIdeas = isManager;
   const canCreateAd = true;
@@ -256,7 +255,7 @@ export default function App() {
   }, [ads]);
 
   const allEditors = useMemo(() => allProfiles.filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active).map((p: any) => p.full_name).sort(), [allProfiles]);
-  const allEditorProfiles = useMemo(() => allProfiles.filter(p => (p.role === "Editor" || p.role === "Graphic Designer" || p.role === "Team Lead Editor") && p.is_active).sort((a: any, b: any) => a.full_name.localeCompare(b.full_name)), [allProfiles]);
+  const allEditorProfiles = useMemo(() => allProfiles.filter(p => (p.role === "Editor" || p.role === "Graphic Designer") && p.is_active).sort((a: any, b: any) => a.full_name.localeCompare(b.full_name)), [allProfiles]);
   const allCopywriters = useMemo(() => allProfiles.filter(p => p.role === "Copywriter" && p.is_active).map((p: any) => p.full_name).sort(), [allProfiles]);
   const allStrategists = useMemo(() => allProfiles.filter(p => p.role === "Strategist" && p.is_active).map((p: any) => p.full_name).sort(), [allProfiles]);
   const allStrategistProfiles = useMemo(() => allProfiles.filter(p => (p.role === "Strategist" || p.role === "Founder") && p.is_active).sort((a: any, b: any) => a.full_name.localeCompare(b.full_name)), [allProfiles]);
@@ -324,8 +323,6 @@ export default function App() {
     ? ["Dashboard", "Pipeline", "MyQueue", "Ideas"]
     : isMediaBuyer
     ? ["Dashboard", "Pipeline", "CopyAgent"]
-    : isTeamLeadEditor
-    ? ["Dashboard", "Pipeline", "MyQueue", "Ideas"]
     : ["Dashboard", "Pipeline", "MyQueue", "Ideas"];
 
   if (libError) return <div className="min-h-screen flex items-center justify-center p-4 text-red-600 font-bold">{libError}</div>;

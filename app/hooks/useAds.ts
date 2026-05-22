@@ -146,7 +146,14 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           timestamp: new Date().toISOString(),
           note: manualLogNote.trim() || undefined
         });
-
+// Log editor reassignment
+        if (selectedAd.assigned_editor !== originalAd.assigned_editor) {
+          updatedTimeLog.push({
+            action: `Passed to ${selectedAd.assigned_editor}`,
+            user: currentUser,
+            timestamp: new Date().toISOString(),
+          });
+        }
         if (statusChanged) {
           newStageUpdatedDate = new Date().toISOString();
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
@@ -226,7 +233,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           ad_type: selectedAd.ad_type,
           angle: selectedAd.angle,
           assigned_copywriter: isFounder ? selectedAd.assigned_copywriter : originalAd.assigned_copywriter,
-          assigned_editor: isFounder ? selectedAd.assigned_editor : originalAd.assigned_editor,
+          assigned_editor: (isFounder || isEditor) ? selectedAd.assigned_editor : originalAd.assigned_editor,
           brief_link: selectedAd.brief_link,
           concept_name: selectedAd.concept_name,
           content_source: selectedAd.content_source,

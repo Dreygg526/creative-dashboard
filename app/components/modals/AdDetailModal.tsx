@@ -80,7 +80,7 @@ function canUserModify(ad: Ad, originalStatus: string, currentRole: string, curr
     if (ad.assigned_copywriter === currentUser) return { allowed: true, reason: "" };
     return { allowed: false, reason: `⛔ Access Denied — You are not the assigned strategist for this ad.` };
   }
-  if (currentRole === "Editor" || currentRole === "Graphic Designer" || currentRole === "Team Lead Editor") {
+  if (currentRole === "Editor" || currentRole === "Graphic Designer") {
     if (ad.assigned_editor === currentUser || originalStatus === "Done, Waiting for Approval") return { allowed: true, reason: "" };
     return { allowed: false, reason: `⛔ Access Denied — This ad is not assigned to you. Only ${ad.assigned_editor || "the assigned editor"} can make changes.` };
   }
@@ -344,12 +344,12 @@ export default function AdDetailModal({
 
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
-  const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer" || currentRole === "Team Lead Editor";
+  const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
   const isMediaBuyer = currentRole === "Media Buyer";
 
-  const { allowed, reason } = canUserModify(selectedAd, originalAdStatus, currentRole, currentUser);
+  const { allowed, reason } = canUserModify(originalAd || selectedAd, originalAdStatus, currentRole, currentUser);
 
   const getAllowedTransitions = () => {
     if (isFounder || isStrategist) {
@@ -362,7 +362,7 @@ export default function AdDetailModal({
   };
 
   const canDelete = isFounder || (isStrategist && selectedAd.assigned_copywriter === currentUser);
-  const canReassign = isFounder || (currentRole === "Team Lead Editor" && selectedAd.assigned_editor === currentUser);
+  const canReassign = isFounder;
   const stageMovable = !isLocked || isFounder || isStrategist;
   const allowedTransitions = getAllowedTransitions();
 
@@ -379,7 +379,7 @@ export default function AdDetailModal({
   const selectClass = "w-full border border-gray-200 bg-white p-3 rounded-xl text-sm font-bold outline-none focus:border-green-500 text-gray-700";
 
   const TimerBlock = () => (
-    activeSession && !isStrategist && !isFounder && currentRole !== "Team Lead Editor" ? (
+    activeSession && !isStrategist && !isFounder ? (
       <div className="bg-green-700 rounded-2xl p-4 flex items-center justify-between mb-2">
         <div>
           <p className="text-[9px] font-black text-green-200 uppercase tracking-widest mb-1">⏱️ Session Active</p>
@@ -435,6 +435,22 @@ export default function AdDetailModal({
                   <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
                     <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">Brief (Milanote)</p>
                     <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800 transition-colors">Open Brief ↗</a>
+                  </div>
+                )}
+                {originalAd?.assigned_editor === currentUser && allEditorProfiles.length > 1 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                    <label className="block text-[9px] font-black text-amber-700 uppercase tracking-widest mb-2">🔄 Pass to Another Editor</label>
+                    <select
+                      className={selectClass}
+                      value={selectedAd.assigned_editor || ""}
+                      onChange={e => setSelectedAd({ ...selectedAd, assigned_editor: e.target.value })}
+                    >
+                      <option value={currentUser}>{currentUser} (You)</option>
+                      {allEditorProfiles.filter(p => p.full_name !== currentUser).map(p => (
+                        <option key={p.full_name} value={p.full_name}>{p.full_name} ({p.role})</option>
+                      ))}
+                    </select>
+                    <p className="text-[9px] text-amber-600 font-medium mt-2">Saves when you hit Save Changes</p>
                   </div>
                 )}
                 <div>
