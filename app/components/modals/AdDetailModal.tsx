@@ -587,6 +587,14 @@ export default function AdDetailModal({
                       </div>
                     ))}
                   </div>
+                  {selectedAd.brief_link && (
+                    <div>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Brief (Milanote)</p>
+                      <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800 break-all">
+                        Open Brief ↗
+                      </a>
+                    </div>
+                  )}
                   <div>
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Destination URLs (PDP)</p>
                     {(selectedAd.destination_url || []).length > 0 ? (
