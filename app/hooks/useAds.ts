@@ -44,12 +44,10 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
 
   // Gets next imprint number scoped by ad_format, excluding killed ads
   // So if #0023 is killed, next new ad gets #0023 (reuses the freed number)
-  const getNextImprintNumber = async (adFormat: string): Promise<number> => {
+  const getNextImprintNumber = async (): Promise<number> => {
     const { data, error } = await supabase
       .from("ads")
       .select("imprint_number")
-      .eq("ad_format", adFormat)
-      .neq("status", "Killed")
       .not("imprint_number", "is", null)
       .order("imprint_number", { ascending: false })
       .limit(1);
@@ -73,7 +71,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
     if (isEditor) autoAssignedEditor = currentUser;
     if (isStrategist) autoAssignedCopywriter = currentUser;
 
-    const imprintNumber = await getNextImprintNumber(newAd.ad_format || "Video Ad");
+    const imprintNumber = await getNextImprintNumber();
 
     const { error } = await supabase.from("ads").insert([{
       ...newAd,
