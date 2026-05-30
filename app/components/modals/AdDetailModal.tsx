@@ -362,7 +362,7 @@ export default function AdDetailModal({
   };
 
   const canDelete = isFounder || (isStrategist && selectedAd.assigned_copywriter === currentUser);
-  const canReassign = isFounder;
+  const canReassign = isFounder || isStrategist;
   const stageMovable = !isLocked || isFounder || isStrategist;
   const allowedTransitions = getAllowedTransitions();
 
