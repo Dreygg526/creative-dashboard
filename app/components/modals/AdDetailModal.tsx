@@ -32,6 +32,9 @@ interface Props {
   products?: string[];
   whitelistPages?: string[];
   destinationUrls?: string[];
+  subAvatars?: string[];
+  angles?: string[];
+  concepts?: string[];
 }
 
 function formatDate(dateStr?: string) {
@@ -220,9 +223,13 @@ function AdSetNameBar({ selectedAd }: { selectedAd: Ad }) {
     selectedAd.imprint_number ? `DTC #${String(selectedAd.imprint_number)}` : "",
     selectedAd.ad_format || "",
     (selectedAd.whitelisting_page || []).length > 0 ? (selectedAd.whitelisting_page || []).join(" & ") : "",
+    selectedAd.concept || "",
+    selectedAd.sub_avatar || "",
+    selectedAd.angle || "",
+    selectedAd.awareness || "",
+    selectedAd.ad_type || "",
     selectedAd.assigned_editor ? `Editor: ${selectedAd.assigned_editor}` : "",
     selectedAd.assigned_copywriter ? `Strategist: ${selectedAd.assigned_copywriter}` : "",
-    "",
   ].filter(Boolean).join(" || ");
 
   return (
@@ -330,15 +337,13 @@ export default function AdDetailModal({
   currentRole, currentUser, allEditors = [], allEditorProfiles = [],
   allStrategists = [], allStrategistProfiles = [], supabase,
   activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer,
-  products = [],
-  whitelistPages = [],
-  destinationUrls = []
+  products = [], whitelistPages = [], destinationUrls = [],
+  subAvatars = [], angles = [], concepts = []
 }: Props) {
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
   const isLocked = selectedAd.status === "Testing" && daysLeft > 0;
   const originalAd = ads.find(a => a.id === selectedAd.id);
   const originalAdStatus = originalAd?.status || selectedAd.status;
-  const revisionLimitReached = originalAdStatus === "Ad Revision" && (originalAd?.revision_count || 0) >= 2;
   const overdue = isOverdue(selectedAd.due_date) && !["Winner", "Killed"].includes(selectedAd.status);
   const showResult = ["Testing", "Winner"].includes(originalAdStatus);
 
@@ -354,11 +359,10 @@ export default function AdDetailModal({
   const getAllowedTransitions = () => {
     if (isFounder || isStrategist) {
       return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Winner", "Killed"]
-        .filter(s => s !== originalAdStatus)
-        .filter(s => !(s === "Ad Revision" && revisionLimitReached));
+        .filter(s => s !== originalAdStatus);
     }
     const transitions = ALLOWED_TRANSITIONS[originalAdStatus] || [];
-    return transitions.filter(s => !(s === "Ad Revision" && revisionLimitReached)).filter(s => s !== "Killed");
+    return transitions.filter(s => s !== "Killed");
   };
 
   const canDelete = isFounder || (isStrategist && selectedAd.assigned_copywriter === currentUser);
@@ -440,11 +444,7 @@ export default function AdDetailModal({
                 {originalAd?.assigned_editor === currentUser && allEditorProfiles.length > 1 && (
                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
                     <label className="block text-[9px] font-black text-amber-700 uppercase tracking-widest mb-2">🔄 Pass to Another Editor</label>
-                    <select
-                      className={selectClass}
-                      value={selectedAd.assigned_editor || ""}
-                      onChange={e => setSelectedAd({ ...selectedAd, assigned_editor: e.target.value })}
-                    >
+                    <select className={selectClass} value={selectedAd.assigned_editor || ""} onChange={e => setSelectedAd({ ...selectedAd, assigned_editor: e.target.value })}>
                       <option value={currentUser}>{currentUser} (You)</option>
                       {allEditorProfiles.filter(p => p.full_name !== currentUser).map(p => (
                         <option key={p.full_name} value={p.full_name}>{p.full_name} ({p.role})</option>
@@ -545,11 +545,7 @@ export default function AdDetailModal({
         <div className="relative w-full max-w-2xl">
           <CloseButton onClose={handleClose} />
           <div className="bg-white rounded-2xl w-full shadow-2xl border border-gray-200 overflow-hidden max-h-[90vh] flex flex-col">
-
-            {/* ── AD SET NAME BAR — very top, above everything ── */}
             <AdSetNameBar selectedAd={selectedAd} />
-
-            {/* ── SCROLLABLE CONTENT ── */}
             <div className="flex-1 overflow-y-auto p-6">
               <h2 className="text-xl font-black text-gray-900 mb-2">{selectedAd.concept_name}</h2>
               <div className="flex flex-wrap gap-2 mb-5">
@@ -560,18 +556,14 @@ export default function AdDetailModal({
                   "bg-gray-100 text-gray-500 border-gray-200"
                 }`}>{selectedAd.priority} Priority</span>
               </div>
-
               <form onSubmit={handleSubmit} className="space-y-4">
                 <TimerBlock />
-
                 {selectedAd.review_link && (
                   <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
                     <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Review File</p>
                     <a href={selectedAd.review_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800">Open Review File ↗</a>
                   </div>
                 )}
-
-                {/* Upload Info */}
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-3">
                   <p className="text-[9px] font-black text-green-700 uppercase tracking-widest">Upload Info</p>
                   <div className="grid grid-cols-2 gap-3">
@@ -580,7 +572,11 @@ export default function AdDetailModal({
                       { label: "Editor", value: selectedAd.assigned_editor },
                       { label: "Format", value: selectedAd.ad_format },
                       { label: "Product", value: selectedAd.product },
-                    ].map(item => (
+                      { label: "Sub Avatar", value: selectedAd.sub_avatar },
+                      { label: "Angle", value: selectedAd.angle },
+                      { label: "Concept", value: selectedAd.concept },
+                      { label: "Awareness", value: selectedAd.awareness },
+                    ].filter(item => item.value).map(item => (
                       <div key={item.label}>
                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{item.label}</p>
                         <p className="text-sm font-black text-gray-700">{item.value || "—"}</p>
@@ -590,9 +586,7 @@ export default function AdDetailModal({
                   {selectedAd.brief_link && (
                     <div>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Brief (Milanote)</p>
-                      <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800 break-all">
-                        Open Brief ↗
-                      </a>
+                      <a href={selectedAd.brief_link} target="_blank" rel="noopener noreferrer" className="text-sm font-black text-green-700 hover:text-green-800 break-all">Open Brief ↗</a>
                     </div>
                   )}
                   <div>
@@ -600,9 +594,7 @@ export default function AdDetailModal({
                     {(selectedAd.destination_url || []).length > 0 ? (
                       <div className="space-y-1">
                         {(selectedAd.destination_url || []).map((url, i) => (
-                          <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block text-sm font-black text-green-700 hover:text-green-800 break-all">
-                            {i + 1}. {url} ↗
-                          </a>
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block text-sm font-black text-green-700 hover:text-green-800 break-all">{i + 1}. {url} ↗</a>
                         ))}
                       </div>
                     ) : (
@@ -622,30 +614,38 @@ export default function AdDetailModal({
                     )}
                   </div>
                   {(selectedAd.selected_headline || selectedAd.selected_ad_copy) && (
-                    <div className="border-t border-green-200 pt-3">
-                      <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">📌 Selected Ad Copy</p>
+                    <div className="border-t border-green-200 pt-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-black text-green-700 uppercase tracking-widest">📌 Selected Ad Copy</p>
+                        <button type="button" onClick={() => setSelectedAd({ ...selectedAd, selected_headline: undefined, selected_ad_copy: undefined })}
+                          className="text-[9px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest px-2 py-1 hover:bg-red-50 rounded-lg transition-all">
+                          🗑 Remove
+                        </button>
+                      </div>
                       {selectedAd.selected_headline && (
-                        <div className="mb-2">
+                        <div>
                           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Headline</p>
-                          <div className="flex items-start justify-between gap-2 bg-white rounded-xl p-2 border border-green-200">
-                            <p className="text-sm font-black text-gray-800 flex-1">{selectedAd.selected_headline}</p>
-                            <button onClick={() => navigator.clipboard.writeText(selectedAd.selected_headline || "")} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                          <div className="flex items-start gap-2">
+                            <textarea rows={2} className="flex-1 text-sm font-black text-gray-800 bg-white rounded-xl p-2 border border-green-200 outline-none focus:border-green-500 resize-none"
+                              value={selectedAd.selected_headline} onChange={e => setSelectedAd({ ...selectedAd, selected_headline: e.target.value })} />
+                            <button onClick={() => navigator.clipboard.writeText(selectedAd.selected_headline || "")} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0 mt-1">Copy</button>
                           </div>
                         </div>
                       )}
                       {selectedAd.selected_ad_copy && (
                         <div>
                           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Ad Copy</p>
-                          <div className="flex items-start justify-between gap-2 bg-white rounded-xl p-2 border border-green-200">
-                            <p className="text-sm font-medium text-gray-800 flex-1 whitespace-pre-wrap">{selectedAd.selected_ad_copy}</p>
-                            <button onClick={() => navigator.clipboard.writeText(selectedAd.selected_ad_copy || "")} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                          <div className="flex items-start gap-2">
+                            <textarea rows={10} className="flex-1 text-sm font-medium text-gray-800 bg-white rounded-xl p-2 border border-green-200 outline-none focus:border-green-500 resize-none"
+                              value={selectedAd.selected_ad_copy} onChange={e => setSelectedAd({ ...selectedAd, selected_ad_copy: e.target.value })} />
+                            <button onClick={() => navigator.clipboard.writeText(selectedAd.selected_ad_copy || "")} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0 mt-1">Copy</button>
                           </div>
                         </div>
                       )}
+                      <p className="text-[9px] text-green-600 font-medium">Changes save when you hit Save Changes below</p>
                     </div>
                   )}
                 </div>
-
                 <div>
                   <label className={labelClass}>Move Stage</label>
                   <select className={selectClass} value={selectedAd.status} onChange={e => setSelectedAd({ ...selectedAd, status: e.target.value })}>
@@ -657,41 +657,33 @@ export default function AdDetailModal({
                     </>}
                   </select>
                 </div>
-
                 {originalAdStatus === "Testing" && (
                   <div>
                     <label className={labelClass}>Result</label>
                     <div className="grid grid-cols-3 gap-2">
                       {["Winner", "Loser", "Inconclusive"].map(r => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => setSelectedAd({ ...selectedAd, result: r })}
+                        <button key={r} type="button" onClick={() => setSelectedAd({ ...selectedAd, result: r })}
                           className={`py-3 rounded-xl font-black text-xs uppercase tracking-widest border-2 transition-all ${
                             selectedAd.result === r
                               ? r === "Winner" ? "bg-green-600 text-white border-green-600"
                               : r === "Loser" ? "bg-red-500 text-white border-red-500"
                               : "bg-gray-500 text-white border-gray-500"
                               : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
-                          }`}
-                        >
+                          }`}>
                           {r === "Winner" ? "🏆" : r === "Loser" ? "❌" : "❓"} {r}
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
-
                 <div>
                   <label className={labelClass}>Ad Spend ($)</label>
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="0.00" value={selectedAd.ad_spend || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })} />
                 </div>
-
                 <div className="bg-green-50 p-4 rounded-2xl border border-green-200">
                   <label className="block text-[10px] font-black text-green-700 uppercase tracking-widest mb-2">Note</label>
                   <textarea rows={2} className="w-full border border-green-200 p-3 rounded-xl text-sm outline-none focus:border-green-500 bg-white font-medium text-gray-800" placeholder="Add a note..." value={manualLogNote} onChange={e => setManualLogNote(e.target.value)} />
                 </div>
-
                 <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                   <button type="button" onClick={handleClose} className="text-xs font-black text-gray-400 uppercase tracking-widest px-4 py-2 hover:bg-gray-100 rounded-xl">Close</button>
                   <button type="submit" className="bg-green-700 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 shadow-sm">Save Changes</button>
@@ -747,18 +739,25 @@ export default function AdDetailModal({
               {selectedAd.imprint_number && isFounder && (
                 <div className="mb-2 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 w-fit">
                   <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Imprint</span>
-                  <input
-                    type="number"
-                    className="w-14 text-[11px] font-black text-amber-700 bg-transparent outline-none font-mono"
-                    value={selectedAd.imprint_number || ""}
-                    onChange={e => setSelectedAd({ ...selectedAd, imprint_number: e.target.value ? Number(e.target.value) : undefined })}
-                  />
+                  <input type="number" className="w-14 text-[11px] font-black text-amber-700 bg-transparent outline-none font-mono"
+                    value={selectedAd.imprint_number || ""} onChange={e => setSelectedAd({ ...selectedAd, imprint_number: e.target.value ? Number(e.target.value) : undefined })} />
                 </div>
               )}
               {selectedAd.imprint_number && (
                 <div className="mb-3 bg-amber-50 rounded-xl px-3 py-2 border border-amber-200">
                   <p className="text-[10px] font-black font-mono text-amber-700 whitespace-nowrap tracking-wide">
-                    DTC #{String(selectedAd.imprint_number)} — {selectedAd.ad_format} | {selectedAd.created_at ? new Date(selectedAd.created_at).toISOString().split("T")[0] : "—"} | {selectedAd.concept_name}
+                    {[
+                      `DTC #${String(selectedAd.imprint_number)}`,
+                      selectedAd.ad_format || "",
+                      (selectedAd.whitelisting_page || []).length > 0 ? (selectedAd.whitelisting_page || []).join(" & ") : "",
+                      selectedAd.concept || "",
+                      selectedAd.sub_avatar || "",
+                      selectedAd.angle || "",
+                      selectedAd.awareness || "",
+                      selectedAd.ad_type || "",
+                      selectedAd.assigned_editor ? `Editor: ${selectedAd.assigned_editor}` : "",
+                      selectedAd.assigned_copywriter ? `Strategist: ${selectedAd.assigned_copywriter}` : "",
+                    ].filter(Boolean).join(" || ")}
                   </p>
                 </div>
               )}
@@ -771,17 +770,11 @@ export default function AdDetailModal({
                   "bg-gray-100 text-gray-500 border-gray-200"
                 }`}>{selectedAd.priority} Priority</span>
                 {overdue && <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-red-100 text-red-600 border border-red-200 animate-pulse">⚠️ Overdue</span>}
-                {["Ad Revision", "Done, Waiting for Approval"].includes(originalAdStatus) && (originalAd?.revision_count || 0) > 0 && (
-                  <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${revisionLimitReached ? "bg-red-100 text-red-600 border-red-200" : "bg-amber-100 text-amber-600 border-amber-200"}`}>
-                    🔄 Round {originalAd?.revision_count}/2
-                  </span>
-                )}
                 {originalAdStatus === "Done, Waiting for Approval" && (
                   <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-200 animate-pulse">✋ Awaiting Approval</span>
                 )}
               </div>
             </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <TimerBlock />
               {isLocked && !isFounder && (
@@ -850,14 +843,49 @@ export default function AdDetailModal({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className={labelClass}>Sub Avatar</label>
+                  <select className={selectClass} value={selectedAd.sub_avatar || ""} onChange={e => setSelectedAd({ ...selectedAd, sub_avatar: e.target.value })}>
+                    <option value="">— Select Sub Avatar —</option>
+                    {subAvatars.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Angle</label>
+                  <select className={selectClass} value={selectedAd.angle || ""} onChange={e => setSelectedAd({ ...selectedAd, angle: e.target.value })}>
+                    <option value="">— Select Angle —</option>
+                    {angles.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>Concept</label>
+                  <select className={selectClass} value={selectedAd.concept || ""} onChange={e => setSelectedAd({ ...selectedAd, concept: e.target.value })}>
+                    <option value="">— Select Concept —</option>
+                    {concepts.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Awareness</label>
+                  <select className={selectClass} value={selectedAd.awareness || ""} onChange={e => setSelectedAd({ ...selectedAd, awareness: e.target.value })}>
+                    <option value="">— Select Awareness —</option>
+                    <option value="Unaware">Unaware</option>
+                    <option value="Problem aware">Problem aware</option>
+                    <option value="Solution aware">Solution aware</option>
+                    <option value="Product aware">Product aware</option>
+                    <option value="Most aware">Most aware</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className={labelClass}>Strategist {!canReassign && <span className="text-gray-300 normal-case">(locked)</span>}</label>
                   {canReassign ? (
                     <select className={selectClass} value={selectedAd.assigned_copywriter || ""} onChange={e => setSelectedAd({ ...selectedAd, assigned_copywriter: e.target.value })}>
                       <option value="">— Unassigned —</option>
                       {allStrategistProfiles.length > 0
                         ? allStrategistProfiles.map(p => <option key={p.full_name} value={p.full_name}>{p.full_name} ({p.role})</option>)
-                        : allStrategists.map(name => <option key={name} value={name}>{name}</option>)
-                      }
+                        : allStrategists.map(name => <option key={name} value={name}>{name}</option>)}
                     </select>
                   ) : (
                     <input disabled className="w-full border border-gray-100 p-3 rounded-xl text-sm bg-gray-50 font-bold text-gray-400 cursor-not-allowed" value={selectedAd.assigned_copywriter || "Unassigned"} />
@@ -870,8 +898,7 @@ export default function AdDetailModal({
                       <option value="">— Unassigned —</option>
                       {allEditorProfiles.length > 0
                         ? allEditorProfiles.map(p => <option key={p.full_name} value={p.full_name}>{p.full_name} ({p.role})</option>)
-                        : allEditors.map(name => <option key={name} value={name}>{name}</option>)
-                      }
+                        : allEditors.map(name => <option key={name} value={name}>{name}</option>)}
                     </select>
                   ) : (
                     <input disabled className="w-full border border-gray-100 p-3 rounded-xl text-sm bg-gray-50 font-bold text-gray-400 cursor-not-allowed" value={selectedAd.assigned_editor || "Unassigned"} />
@@ -923,95 +950,51 @@ export default function AdDetailModal({
                   {(selectedAd.destination_url || []).map((url, i) => (
                     <div key={i} className="flex gap-2">
                       <div className="relative flex-1">
-                        <input
-                          type="url"
-                          list="destination-url-suggestions"
-                          className={inputClass}
-                          placeholder="https://..."
-                          value={url}
-                          onChange={e => {
-                            const updated = [...(selectedAd.destination_url || [])];
-                            updated[i] = e.target.value;
-                            setSelectedAd({ ...selectedAd, destination_url: updated });
-                          }}
-                        />
-                        {url && (
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-green-700 hover:text-green-800 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">Open ↗</a>
-                        )}
+                        <input type="url" list="destination-url-suggestions" className={inputClass} placeholder="https://..." value={url}
+                          onChange={e => { const updated = [...(selectedAd.destination_url || [])]; updated[i] = e.target.value; setSelectedAd({ ...selectedAd, destination_url: updated }); }} />
+                        {url && <a href={url} target="_blank" rel="noopener noreferrer" className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-green-700 hover:text-green-800 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">Open ↗</a>}
                       </div>
-                      <button type="button" onClick={() => {
-                        const updated = (selectedAd.destination_url || []).filter((_, idx) => idx !== i);
-                        setSelectedAd({ ...selectedAd, destination_url: updated });
-                      }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
+                      <button type="button" onClick={() => { const updated = (selectedAd.destination_url || []).filter((_, idx) => idx !== i); setSelectedAd({ ...selectedAd, destination_url: updated }); }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
                     </div>
                   ))}
-                  <datalist id="destination-url-suggestions">
-                    {(destinationUrls || []).map(url => <option key={url} value={url} />)}
-                  </datalist>
-                  <button type="button" onClick={() => setSelectedAd({ ...selectedAd, destination_url: [...(selectedAd.destination_url || []), ""] })}
-                    className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">
-                    + Add URL
-                  </button>
+                  <datalist id="destination-url-suggestions">{(destinationUrls || []).map(url => <option key={url} value={url} />)}</datalist>
+                  <button type="button" onClick={() => setSelectedAd({ ...selectedAd, destination_url: [...(selectedAd.destination_url || []), ""] })} className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">+ Add URL</button>
                 </div>
               </div>
-
               <div>
                 <label className={labelClass}>Whitelisting Pages <span className="text-gray-300 normal-case font-medium">(add multiple for A/B test)</span></label>
                 <div className="space-y-2">
                   {(selectedAd.whitelisting_page || []).map((page, i) => (
                     <div key={i} className="flex gap-2">
-                      <select className={selectClass} value={page} onChange={e => {
-                        const updated = [...(selectedAd.whitelisting_page || [])];
-                        updated[i] = e.target.value;
-                        setSelectedAd({ ...selectedAd, whitelisting_page: updated });
-                      }}>
+                      <select className={selectClass} value={page} onChange={e => { const updated = [...(selectedAd.whitelisting_page || [])]; updated[i] = e.target.value; setSelectedAd({ ...selectedAd, whitelisting_page: updated }); }}>
                         <option value="">— Select Page —</option>
                         {whitelistPages.map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
-                      <button type="button" onClick={() => {
-                        const updated = (selectedAd.whitelisting_page || []).filter((_, idx) => idx !== i);
-                        setSelectedAd({ ...selectedAd, whitelisting_page: updated });
-                      }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
+                      <button type="button" onClick={() => { const updated = (selectedAd.whitelisting_page || []).filter((_, idx) => idx !== i); setSelectedAd({ ...selectedAd, whitelisting_page: updated }); }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setSelectedAd({ ...selectedAd, whitelisting_page: [...(selectedAd.whitelisting_page || []), ""] })}
-                    className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">
-                    + Add Page
-                  </button>
+                  <button type="button" onClick={() => setSelectedAd({ ...selectedAd, whitelisting_page: [...(selectedAd.whitelisting_page || []), ""] })} className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">+ Add Page</button>
                 </div>
               </div>
               {(selectedAd.selected_headline || selectedAd.selected_ad_copy) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-[9px] font-black text-blue-700 uppercase tracking-widest">📌 Selected Ad Copy</p>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAd({ ...selectedAd, selected_headline: undefined, selected_ad_copy: undefined })}
-                      className="text-[9px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest px-2 py-1 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      🗑 Remove
-                    </button>
+                    <button type="button" onClick={() => setSelectedAd({ ...selectedAd, selected_headline: undefined, selected_ad_copy: undefined })}
+                      className="text-[9px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest px-2 py-1 hover:bg-red-50 rounded-lg transition-all">🗑 Remove</button>
                   </div>
                   {selectedAd.selected_headline && (
                     <div>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Headline</p>
-                      <textarea
-                        rows={2}
-                        className="w-full text-sm font-black text-gray-800 bg-white rounded-xl p-3 border border-blue-200 outline-none focus:border-blue-500 resize-none"
-                        value={selectedAd.selected_headline}
-                        onChange={e => setSelectedAd({ ...selectedAd, selected_headline: e.target.value })}
-                      />
+                      <textarea rows={2} className="w-full text-sm font-black text-gray-800 bg-white rounded-xl p-3 border border-blue-200 outline-none focus:border-blue-500 resize-none"
+                        value={selectedAd.selected_headline} onChange={e => setSelectedAd({ ...selectedAd, selected_headline: e.target.value })} />
                     </div>
                   )}
                   {selectedAd.selected_ad_copy && (
                     <div>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Ad Copy</p>
-                      <textarea
-                        rows={10}
-                        className="w-full text-sm font-medium text-gray-800 bg-white rounded-xl p-3 border border-blue-200 outline-none focus:border-blue-500 resize-none"
-                        value={selectedAd.selected_ad_copy}
-                        onChange={e => setSelectedAd({ ...selectedAd, selected_ad_copy: e.target.value })}
-                      />
+                      <textarea rows={10} className="w-full text-sm font-medium text-gray-800 bg-white rounded-xl p-3 border border-blue-200 outline-none focus:border-blue-500 resize-none"
+                        value={selectedAd.selected_ad_copy} onChange={e => setSelectedAd({ ...selectedAd, selected_ad_copy: e.target.value })} />
                     </div>
                   )}
                   <p className="text-[9px] text-blue-500 font-medium">Changes save when you hit Save Changes below</p>

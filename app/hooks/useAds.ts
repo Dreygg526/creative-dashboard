@@ -42,8 +42,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
     return data?.[0]?.full_name || "";
   };
 
-  // Gets next imprint number scoped by ad_format, excluding killed ads
-  // So if #0023 is killed, next new ad gets #0023 (reuses the freed number)
   const getNextImprintNumber = async (): Promise<number> => {
     const { data, error } = await supabase
       .from("ads")
@@ -106,10 +104,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       const statusChanged = originalAd.status !== selectedAd.status;
 
       if (statusChanged) {
-        if (selectedAd.status === "Ad Revision" && (originalAd.revision_count || 0) >= 2) {
-          alert("Maximum revision rounds reached. This ad cannot be sent back again.");
-          return;
-        }
+      
 
         if (!isFounder && !isStrategist) {
           const daysLeft = getDaysLeftInTesting(originalAd.live_date);
@@ -144,7 +139,8 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           timestamp: new Date().toISOString(),
           note: manualLogNote.trim() || undefined
         });
-// Log editor reassignment
+
+        // Log editor reassignment
         if (selectedAd.assigned_editor !== originalAd.assigned_editor) {
           updatedTimeLog.push({
             action: `Passed to ${selectedAd.assigned_editor}`,
@@ -152,6 +148,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
             timestamp: new Date().toISOString(),
           });
         }
+
         if (statusChanged) {
           newStageUpdatedDate = new Date().toISOString();
           if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
@@ -229,7 +226,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           ad_format: selectedAd.ad_format,
           ad_spend: selectedAd.ad_spend,
           ad_type: selectedAd.ad_type,
-          angle: selectedAd.angle,
           assigned_copywriter: isFounder ? selectedAd.assigned_copywriter : originalAd.assigned_copywriter,
           assigned_editor: (isFounder || isEditor) ? selectedAd.assigned_editor : originalAd.assigned_editor,
           brief_link: selectedAd.brief_link,
@@ -251,6 +247,10 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           whitelisting_page: selectedAd.whitelisting_page ?? originalAd.whitelisting_page ?? null,
           selected_headline: selectedAd.selected_headline ?? originalAd.selected_headline ?? null,
           selected_ad_copy: selectedAd.selected_ad_copy ?? originalAd.selected_ad_copy ?? null,
+          angle: selectedAd.angle ?? originalAd.angle ?? null,
+          sub_avatar: selectedAd.sub_avatar ?? originalAd.sub_avatar ?? null,
+          concept: selectedAd.concept ?? originalAd.concept ?? null,
+          awareness: selectedAd.awareness ?? originalAd.awareness ?? null,
         })
         .eq("id", selectedAd.id)
         .select();

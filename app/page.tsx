@@ -95,6 +95,9 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [products, setProducts] = useState<string[]>([]);
   const [whitelistPages, setWhitelistPages] = useState<string[]>([]);
+  const [subAvatars, setSubAvatars] = useState<string[]>([]);
+  const [angles, setAngles] = useState<string[]>([]);
+  const [concepts, setConcepts] = useState<string[]>([]);
 
   const loadProducts = async () => {
     if (!supabase) return;
@@ -108,6 +111,30 @@ export default function App() {
       const { data } = await supabase.from("settings").select("value").eq("key", "whitelisting_pages").single();
       if (data?.value && Array.isArray(data.value)) setWhitelistPages(data.value);
     } catch { setWhitelistPages([]); }
+  };
+
+  const loadSubAvatars = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "sub_avatars").single();
+      if (data?.value && Array.isArray(data.value)) setSubAvatars(data.value);
+    } catch { setSubAvatars([]); }
+  };
+
+  const loadAngles = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "angles").single();
+      if (data?.value && Array.isArray(data.value)) setAngles(data.value);
+    } catch { setAngles([]); }
+  };
+
+  const loadConcepts = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "concepts").single();
+      if (data?.value && Array.isArray(data.value)) setConcepts(data.value);
+    } catch { setConcepts([]); }
   };
 
   const currentUserRef = useRef(currentUser);
@@ -174,7 +201,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (supabase && user) { loadAllProfiles(); loadProducts(); loadWhitelistPages(); }
+    if (supabase && user) { loadAllProfiles(); loadProducts(); loadWhitelistPages(); loadSubAvatars(); loadAngles(); loadConcepts(); }
   }, [supabase, user, profile]);
 
   useEffect(() => {
@@ -194,7 +221,7 @@ export default function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => loadAllProfiles())
       .subscribe();
     const settingsChannel = supabase.channel("settings-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => { loadProducts(); loadWhitelistPages(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => { loadProducts(); loadWhitelistPages(); loadSubAvatars(); loadAngles(); loadConcepts(); })
       .subscribe();
     const notifChannel = supabase.channel("notif-realtime-v2")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
@@ -577,13 +604,13 @@ export default function App() {
 
       {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
-        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} />
+        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} subAvatars={subAvatars} angles={angles} concepts={concepts} />
       )}
       {ideaToPromote && (
         <PromoteIdeaModal idea={ideaToPromote} onConfirm={(idea) => handlePromoteIdea(idea, setNewAd, setIsNewAdOpen, handleSetViewMode)} onCancel={() => setIdeaToPromote(null)} />
       )}
       {selectedAd && (
-        <AdDetailModal selectedAd={selectedAd} ads={ads} manualLogNote={manualLogNote} setManualLogNote={setManualLogNote} setSelectedAd={setSelectedAd} onUpdate={handleUpdateAdWithSession} onDelete={handleDeleteAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allEditorProfiles={allEditorProfiles} allStrategists={allStrategists} allStrategistProfiles={allStrategistProfiles} supabase={supabase} activeSession={getSessionForAd(selectedAd.id, selectedAd)} onFinishSession={async () => { await finishSession(selectedAd.id); }} fetchSessionsForAd={fetchSessionsForAd} fetchAllSessions={fetchAllSessions} formatTimer={formatTimer} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} />
+        <AdDetailModal selectedAd={selectedAd} ads={ads} manualLogNote={manualLogNote} setManualLogNote={setManualLogNote} setSelectedAd={setSelectedAd} onUpdate={handleUpdateAdWithSession} onDelete={handleDeleteAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allEditorProfiles={allEditorProfiles} allStrategists={allStrategists} allStrategistProfiles={allStrategistProfiles} supabase={supabase} activeSession={getSessionForAd(selectedAd.id, selectedAd)} onFinishSession={async () => { await finishSession(selectedAd.id); }} fetchSessionsForAd={fetchSessionsForAd} fetchAllSessions={fetchAllSessions} formatTimer={formatTimer} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} subAvatars={subAvatars} angles={angles} concepts={concepts} />
       )}
     </div>
   );

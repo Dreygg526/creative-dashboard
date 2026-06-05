@@ -23,6 +23,85 @@ const ROLE_STYLES: Record<string, string> = {
   "Media Buyer": "bg-cyan-100 text-cyan-700 border-cyan-200",
 };
 
+const inputClass = "w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all placeholder:text-gray-300 text-gray-800";
+
+// ── REUSABLE LIST SECTION — defined outside to prevent re-render on keystroke ──
+function ListSection({ title, description, items, newValue, setNewValue, isSaving, msg, color, onAdd, onRemove, placeholder }: {
+  title: string; description: string; items: string[]; newValue: string; setNewValue: (v: string) => void;
+  isSaving: boolean; msg: string; color: string; onAdd: () => void; onRemove: (v: string) => void; placeholder: string;
+}) {
+  return (
+    <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{title}</p>
+          <p className="text-xs text-gray-400 font-medium mt-0.5">{description}</p>
+        </div>
+        {msg && <span className="text-[10px] font-black text-green-700 bg-green-100 border border-green-200 px-3 py-1 rounded-full">✓ {msg}</span>}
+      </div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {items.length === 0 ? (
+          <p className="text-[11px] text-gray-300 font-bold italic">No {title.toLowerCase()} added yet</p>
+        ) : (
+          items.map(p => (
+            <div key={p} className={`flex items-center gap-1.5 ${color} px-3 py-1.5 rounded-xl group`}>
+              <span className="text-[11px] font-black">{p}</span>
+              <button onClick={() => onRemove(p)} className="text-[9px] text-gray-300 hover:text-red-500 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="flex gap-2">
+        <input type="text" placeholder={placeholder} className={inputClass} value={newValue} onChange={e => setNewValue(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }} />
+        <button onClick={onAdd} disabled={!newValue.trim() || isSaving}
+          className="bg-green-700 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all disabled:opacity-40">
+          {isSaving ? "..." : "Add"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── WHITELISTING SECTION — defined outside to prevent re-render on keystroke ──
+function WhitelistingSection({ whitelistPages, newWhitelistPage, setNewWhitelistPage, isSavingWhitelist, whitelistMsg, onAdd, onRemove }: {
+  whitelistPages: string[]; newWhitelistPage: string; setNewWhitelistPage: (v: string) => void;
+  isSavingWhitelist: boolean; whitelistMsg: string; onAdd: () => void; onRemove: (page: string) => void;
+}) {
+  return (
+    <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Whitelisting Pages</p>
+          <p className="text-xs text-gray-400 font-medium mt-0.5">Facebook/Instagram pages used to run ads from</p>
+        </div>
+        {whitelistMsg && <span className="text-[10px] font-black text-green-700 bg-green-100 border border-green-200 px-3 py-1 rounded-full">✓ {whitelistMsg}</span>}
+      </div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {whitelistPages.length === 0 ? (
+          <p className="text-[11px] text-gray-300 font-bold italic">No whitelisting pages added yet</p>
+        ) : (
+          whitelistPages.map(p => (
+            <div key={p} className="flex items-center gap-1.5 bg-cyan-50 border border-cyan-200 px-3 py-1.5 rounded-xl group">
+              <span className="text-[11px] font-black text-cyan-700">{p}</span>
+              <button onClick={() => onRemove(p)} className="text-[9px] text-gray-300 hover:text-red-500 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="flex gap-2">
+        <input type="text" placeholder="Add page name (e.g. Healthy Men 40+)" className={inputClass} value={newWhitelistPage}
+          onChange={e => setNewWhitelistPage(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }} />
+        <button onClick={onAdd} disabled={!newWhitelistPage.trim() || isSavingWhitelist}
+          className="bg-green-700 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all disabled:opacity-40">
+          {isSavingWhitelist ? "..." : "Add"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsView({ currentProfile, onInviteUser, onUpdateRole, onDeactivateUser, getAllUsers, supabase }: Props) {
   const isFounder = currentProfile.role === "Founder";
   const isStrategist = currentProfile.role === "Strategist";
@@ -44,14 +123,33 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [productMsg, setProductMsg] = useState("");
 
-  // ── Whitelisting Pages ──
   const [whitelistPages, setWhitelistPages] = useState<string[]>([]);
   const [newWhitelistPage, setNewWhitelistPage] = useState("");
   const [isSavingWhitelist, setIsSavingWhitelist] = useState(false);
   const [whitelistMsg, setWhitelistMsg] = useState("");
 
+  const [subAvatars, setSubAvatars] = useState<string[]>([]);
+  const [newSubAvatar, setNewSubAvatar] = useState("");
+  const [isSavingSubAvatar, setIsSavingSubAvatar] = useState(false);
+  const [subAvatarMsg, setSubAvatarMsg] = useState("");
+
+  const [angles, setAngles] = useState<string[]>([]);
+  const [newAngle, setNewAngle] = useState("");
+  const [isSavingAngle, setIsSavingAngle] = useState(false);
+  const [angleMsg, setAngleMsg] = useState("");
+
+  const [concepts, setConcepts] = useState<string[]>([]);
+  const [newConcept, setNewConcept] = useState("");
+  const [isSavingConcept, setIsSavingConcept] = useState(false);
+  const [conceptMsg, setConceptMsg] = useState("");
+
+  const selectClass = "w-full border border-gray-200 bg-white p-3 rounded-xl text-sm font-black outline-none focus:border-green-500 text-gray-700";
+
   useEffect(() => {
     loadWhitelistPages();
+    loadSubAvatars();
+    loadAngles();
+    loadConcepts();
     if (isFounder) { loadUsers(); loadProducts(); }
   }, []);
 
@@ -69,6 +167,30 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
       const { data } = await supabase.from("settings").select("value").eq("key", "whitelisting_pages").single();
       if (data?.value) setWhitelistPages(Array.isArray(data.value) ? data.value : []);
     } catch { setWhitelistPages([]); }
+  };
+
+  const loadSubAvatars = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "sub_avatars").single();
+      if (data?.value) setSubAvatars(Array.isArray(data.value) ? data.value : []);
+    } catch { setSubAvatars([]); }
+  };
+
+  const loadAngles = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "angles").single();
+      if (data?.value) setAngles(Array.isArray(data.value) ? data.value : []);
+    } catch { setAngles([]); }
+  };
+
+  const loadConcepts = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "concepts").single();
+      if (data?.value) setConcepts(Array.isArray(data.value) ? data.value : []);
+    } catch { setConcepts([]); }
   };
 
   const saveProducts = async (updated: string[]) => {
@@ -89,6 +211,36 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
     setIsSavingWhitelist(false);
     setWhitelistMsg("Saved!");
     setTimeout(() => setWhitelistMsg(""), 2000);
+  };
+
+  const saveSubAvatars = async (updated: string[]) => {
+    if (!supabase) return;
+    setIsSavingSubAvatar(true);
+    await supabase.from("settings").upsert({ key: "sub_avatars", value: updated, updated_at: new Date().toISOString() });
+    setSubAvatars(updated);
+    setIsSavingSubAvatar(false);
+    setSubAvatarMsg("Saved!");
+    setTimeout(() => setSubAvatarMsg(""), 2000);
+  };
+
+  const saveAngles = async (updated: string[]) => {
+    if (!supabase) return;
+    setIsSavingAngle(true);
+    await supabase.from("settings").upsert({ key: "angles", value: updated, updated_at: new Date().toISOString() });
+    setAngles(updated);
+    setIsSavingAngle(false);
+    setAngleMsg("Saved!");
+    setTimeout(() => setAngleMsg(""), 2000);
+  };
+
+  const saveConcepts = async (updated: string[]) => {
+    if (!supabase) return;
+    setIsSavingConcept(true);
+    await supabase.from("settings").upsert({ key: "concepts", value: updated, updated_at: new Date().toISOString() });
+    setConcepts(updated);
+    setIsSavingConcept(false);
+    setConceptMsg("Saved!");
+    setTimeout(() => setConceptMsg(""), 2000);
   };
 
   const handleAddWhitelistPage = async () => {
@@ -160,60 +312,33 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
     if (userId === currentProfile.id) window.location.reload();
   };
 
-  const inputClass = "w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all placeholder:text-gray-300 text-gray-800";
-  const selectClass = "w-full border border-gray-200 bg-white p-3 rounded-xl text-sm font-black outline-none focus:border-green-500 text-gray-700";
-
-  // ── WHITELISTING PAGES SECTION (shared between all roles) ──
-  const WhitelistingSection = () => (
-    <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Whitelisting Pages</p>
-          <p className="text-xs text-gray-400 font-medium mt-0.5">Facebook/Instagram pages used to run ads from</p>
-        </div>
-        {whitelistMsg && <span className="text-[10px] font-black text-green-700 bg-green-100 border border-green-200 px-3 py-1 rounded-full">✓ {whitelistMsg}</span>}
-      </div>
-      <div className="flex flex-wrap gap-2 mb-4">
-        {whitelistPages.length === 0 ? (
-          <p className="text-[11px] text-gray-300 font-bold italic">No whitelisting pages added yet</p>
-        ) : (
-          whitelistPages.map(p => (
-            <div key={p} className="flex items-center gap-1.5 bg-cyan-50 border border-cyan-200 px-3 py-1.5 rounded-xl group">
-              <span className="text-[11px] font-black text-cyan-700">{p}</span>
-              <button onClick={() => handleRemoveWhitelistPage(p)} className="text-[9px] text-gray-300 hover:text-red-500 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
-            </div>
-          ))
-        )}
-      </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          placeholder="Add page name (e.g. Healthy Men 40+)"
-          className={inputClass}
-          value={newWhitelistPage}
-          onChange={e => setNewWhitelistPage(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddWhitelistPage(); } }}
-        />
-        <button
-          onClick={handleAddWhitelistPage}
-          disabled={!newWhitelistPage.trim() || isSavingWhitelist}
-          className="bg-green-700 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all disabled:opacity-40"
-        >
-          {isSavingWhitelist ? "..." : "Add"}
-        </button>
-      </div>
-    </div>
-  );
-
   // ── LIMITED VIEW for Strategist and Media Buyer ──
   if (!isFounder) {
     return (
       <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-[900px] mx-auto w-full">
         <div className="mb-6">
           <h2 className="text-2xl font-black text-gray-900">Settings</h2>
-          <p className="text-gray-400 text-sm font-medium mt-0.5">Manage whitelisting pages</p>
+          <p className="text-gray-400 text-sm font-medium mt-0.5">Manage lists and whitelisting pages</p>
         </div>
-        <WhitelistingSection />
+        <WhitelistingSection
+          whitelistPages={whitelistPages} newWhitelistPage={newWhitelistPage} setNewWhitelistPage={setNewWhitelistPage}
+          isSavingWhitelist={isSavingWhitelist} whitelistMsg={whitelistMsg}
+          onAdd={handleAddWhitelistPage} onRemove={handleRemoveWhitelistPage}
+        />
+        {(isStrategist || isMediaBuyer) && <>
+          <ListSection title="Sub Avatars" description="Target audience sub-personas for ads" items={subAvatars} newValue={newSubAvatar} setNewValue={setNewSubAvatar} isSaving={isSavingSubAvatar} msg={subAvatarMsg} color="bg-violet-50 border border-violet-200 text-violet-700"
+            onAdd={async () => { const t = newSubAvatar.trim(); if (!t || subAvatars.includes(t)) return; setNewSubAvatar(""); await saveSubAvatars([...subAvatars, t]); }}
+            onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveSubAvatars(subAvatars.filter(x => x !== v)); }}
+            placeholder="e.g. Occasional drinker of wine" />
+          <ListSection title="Angles" description="Ad angles for targeting" items={angles} newValue={newAngle} setNewValue={setNewAngle} isSaving={isSavingAngle} msg={angleMsg} color="bg-orange-50 border border-orange-200 text-orange-700"
+            onAdd={async () => { const t = newAngle.trim(); if (!t || angles.includes(t)) return; setNewAngle(""); await saveAngles([...angles, t]); }}
+            onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveAngles(angles.filter(x => x !== v)); }}
+            placeholder="e.g. 30 Days Transformation" />
+          <ListSection title="Concepts" description="Ad concepts for organizing campaigns" items={concepts} newValue={newConcept} setNewValue={setNewConcept} isSaving={isSavingConcept} msg={conceptMsg} color="bg-blue-50 border border-blue-200 text-blue-700"
+            onAdd={async () => { const t = newConcept.trim(); if (!t || concepts.includes(t)) return; setNewConcept(""); await saveConcepts([...concepts, t]); }}
+            onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveConcepts(concepts.filter(x => x !== v)); }}
+            placeholder="e.g. Hungover" />
+        </>}
       </div>
     );
   }
@@ -253,14 +378,9 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
           )}
         </div>
         <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Add new product (e.g. NAC)"
-            className={inputClass}
-            value={newProduct}
+          <input type="text" placeholder="Add new product (e.g. NAC)" className={inputClass} value={newProduct}
             onChange={e => setNewProduct(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddProduct(); } }}
-          />
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddProduct(); } }} />
           <button onClick={handleAddProduct} disabled={!newProduct.trim() || isSavingProduct} className="bg-green-700 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all disabled:opacity-40">
             {isSavingProduct ? "..." : "Add"}
           </button>
@@ -268,7 +388,29 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
       </div>
 
       {/* Whitelisting Pages */}
-      <WhitelistingSection />
+      <WhitelistingSection
+        whitelistPages={whitelistPages} newWhitelistPage={newWhitelistPage} setNewWhitelistPage={setNewWhitelistPage}
+        isSavingWhitelist={isSavingWhitelist} whitelistMsg={whitelistMsg}
+        onAdd={handleAddWhitelistPage} onRemove={handleRemoveWhitelistPage}
+      />
+
+      {/* Sub Avatars */}
+      <ListSection title="Sub Avatars" description="Target audience sub-personas for ads" items={subAvatars} newValue={newSubAvatar} setNewValue={setNewSubAvatar} isSaving={isSavingSubAvatar} msg={subAvatarMsg} color="bg-violet-50 border border-violet-200 text-violet-700"
+        onAdd={async () => { const t = newSubAvatar.trim(); if (!t || subAvatars.includes(t)) return; setNewSubAvatar(""); await saveSubAvatars([...subAvatars, t]); }}
+        onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveSubAvatars(subAvatars.filter(x => x !== v)); }}
+        placeholder="e.g. Occasional drinker of wine" />
+
+      {/* Angles */}
+      <ListSection title="Angles" description="Ad angles for targeting" items={angles} newValue={newAngle} setNewValue={setNewAngle} isSaving={isSavingAngle} msg={angleMsg} color="bg-orange-50 border border-orange-200 text-orange-700"
+        onAdd={async () => { const t = newAngle.trim(); if (!t || angles.includes(t)) return; setNewAngle(""); await saveAngles([...angles, t]); }}
+        onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveAngles(angles.filter(x => x !== v)); }}
+        placeholder="e.g. 30 Days Transformation" />
+
+      {/* Concepts */}
+      <ListSection title="Concepts" description="Ad concepts for organizing campaigns" items={concepts} newValue={newConcept} setNewValue={setNewConcept} isSaving={isSavingConcept} msg={conceptMsg} color="bg-blue-50 border border-blue-200 text-blue-700"
+        onAdd={async () => { const t = newConcept.trim(); if (!t || concepts.includes(t)) return; setNewConcept(""); await saveConcepts([...concepts, t]); }}
+        onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveConcepts(concepts.filter(x => x !== v)); }}
+        placeholder="e.g. Hungover" />
 
       {/* Invite Form */}
       {isInviteOpen && (
@@ -316,22 +458,13 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
                 <div>
                   {editingNameId === u.id ? (
                     <div className="flex items-center gap-2">
-                      <input
-                        autoFocus
-                        className="border border-green-400 bg-gray-50 px-3 py-1.5 rounded-xl text-sm font-black outline-none text-gray-800 w-40"
-                        value={editingNameValue}
-                        onChange={e => setEditingNameValue(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === "Enter") handleSaveName(u.id);
-                          if (e.key === "Escape") { setEditingNameId(null); setEditingNameValue(""); }
-                        }}
-                      />
+                      <input autoFocus className="border border-green-400 bg-gray-50 px-3 py-1.5 rounded-xl text-sm font-black outline-none text-gray-800 w-40"
+                        value={editingNameValue} onChange={e => setEditingNameValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleSaveName(u.id); if (e.key === "Escape") { setEditingNameId(null); setEditingNameValue(""); } }} />
                       <button onClick={() => handleSaveName(u.id)} disabled={isSavingName} className="text-[10px] font-black text-white bg-green-700 px-3 py-1.5 rounded-xl hover:bg-green-800 transition-all disabled:opacity-40">
                         {isSavingName ? "..." : "Save"}
                       </button>
-                      <button onClick={() => { setEditingNameId(null); setEditingNameValue(""); }} className="text-[10px] font-black text-gray-400 hover:text-gray-600 px-2 py-1.5 rounded-xl">
-                        Cancel
-                      </button>
+                      <button onClick={() => { setEditingNameId(null); setEditingNameValue(""); }} className="text-[10px] font-black text-gray-400 hover:text-gray-600 px-2 py-1.5 rounded-xl">Cancel</button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 group">

@@ -19,12 +19,16 @@ interface Props {
   products?: string[];
   whitelistPages?: string[];
   destinationUrls?: string[];
+  subAvatars?: string[];
+  angles?: string[];
+  concepts?: string[];
 }
 
 export default function NewAdModal({
   newAd, setNewAd, onSubmit, onClose,
   editors, currentRole, currentUser, allEditorProfiles = [],
-  allStrategistProfiles = [],  products = [], whitelistPages = [], destinationUrls = []
+  allStrategistProfiles = [], products = [], whitelistPages = [], destinationUrls = [],
+  subAvatars = [], angles = [], concepts = []
 }: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
@@ -57,6 +61,42 @@ export default function NewAdModal({
                 <option>Ideation</option>
                 <option>Imitation</option>
                 <option>New</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Awareness</label>
+              <select className={selectClass} value={newAd.awareness || ""} onChange={e => setNewAd({ ...newAd, awareness: e.target.value })}>
+                <option value="">— Select Awareness —</option>
+                <option value="Unaware">Unaware</option>
+                <option value="Problem aware">Problem aware</option>
+                <option value="Solution aware">Solution aware</option>
+                <option value="Product aware">Product aware</option>
+                <option value="Most aware">Most aware</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Sub Avatar</label>
+              <select className={selectClass} value={newAd.sub_avatar || ""} onChange={e => setNewAd({ ...newAd, sub_avatar: e.target.value })}>
+                <option value="">— Select Sub Avatar —</option>
+                {subAvatars.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Angle</label>
+              <select className={selectClass} value={newAd.angle || ""} onChange={e => setNewAd({ ...newAd, angle: e.target.value })}>
+                <option value="">— Select Angle —</option>
+                {angles.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className={labelClass}>Concept</label>
+              <select className={selectClass} value={newAd.concept || ""} onChange={e => setNewAd({ ...newAd, concept: e.target.value })}>
+                <option value="">— Select Concept —</option>
+                {concepts.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 

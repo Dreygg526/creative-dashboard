@@ -8,7 +8,10 @@ export interface TimeLogEntry {
 export interface Ad {
   id: string;
   concept_name: string;
-  angle: string;
+  angle?: string;
+  sub_avatar?: string;
+  concept?: string;
+  awareness?: string;
   ad_format: string;
   product: string;
   assigned_editor: string;
@@ -85,7 +88,10 @@ export interface NewLearningForm {
 
 export interface NewAdForm {
   concept_name: string;
-  angle: string;
+  angle?: string;
+  sub_avatar?: string;
+  concept?: string;
+  awareness?: string;
   ad_format: string;
   product: string;
   ad_type: string;
