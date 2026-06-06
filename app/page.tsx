@@ -29,12 +29,13 @@ import LearningsView from "./components/views/LearningsView";
 import SettingsView from "./components/views/SettingsView";
 import ArchiveView from "./components/views/ArchiveView";
 import CopyAgentView from "./components/views/CopyAgentView";
+import CyclesView from "./components/views/CyclesView";
 
 // Constants
 import { PRIORITY_ORDER } from "./constants";
 import { IdeaEntry } from "./types";
 
-type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings" | "Archive" | "CopyAgent";
+type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings" | "Archive" | "CopyAgent" | "Cycles";
 
 const NAV_ICONS: Record<string, string> = {
   Dashboard: "⊞",
@@ -49,6 +50,7 @@ const NAV_ICONS: Record<string, string> = {
   Settings: "⚙️",
   Workload: "📊",
   CopyAgent: "✍️",
+  Cycles: "🔄",
 };
 
 export default function App() {
@@ -341,16 +343,16 @@ export default function App() {
   };
 
   const navItems: ViewMode[] = isFounder
-    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive", "CopyAgent"]
+    ? ["Dashboard", "Pipeline", "Cycles", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive", "CopyAgent"]
     : isStrategist
-    ? ["Dashboard", "Pipeline", "MyQueue", "Reports", "Ideas", "Learnings", "Manager", "CopyAgent"]
+    ? ["Dashboard", "Pipeline", "Cycles", "MyQueue", "Reports", "Ideas", "Learnings", "Manager", "CopyAgent"]
     : isVA
-    ? ["Dashboard", "Pipeline"]
+    ? ["Dashboard", "Pipeline", "Cycles"]
     : isContentCoord
-    ? ["Dashboard", "Pipeline", "MyQueue", "Ideas"]
+    ? ["Dashboard", "Pipeline", "Cycles", "MyQueue", "Ideas"]
     : isMediaBuyer
-    ? ["Dashboard", "Pipeline", "CopyAgent"]
-    : ["Dashboard", "Pipeline", "MyQueue", "Ideas"];
+    ? ["Dashboard", "Pipeline", "Cycles", "CopyAgent"]
+    : ["Dashboard", "Pipeline", "Cycles", "MyQueue", "Ideas"];
 
   if (libError) return <div className="min-h-screen flex items-center justify-center p-4 text-red-600 font-bold">{libError}</div>;
   if (authLoading) return <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">Loading...</div>;
@@ -513,6 +515,7 @@ export default function App() {
                  viewMode === "Reports" ? "Live data from your pipeline" :
                  viewMode === "Archive" ? "Completed and killed ads" :
                  viewMode === "CopyAgent" ? "Generate 3:3:1 challenger ad copy with Claude" :
+                 viewMode === "Cycles" ? "Ads grouped by week created" :
                  ""}
               </p>
             </div>
@@ -571,6 +574,9 @@ export default function App() {
           )}
           {viewMode === "Pipeline" && (
             <PipelineView ads={ads} activeStage={activeStage} setActiveStage={setActiveStage} setSelectedAd={handleSelectAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allStrategists={allStrategists} onBulkReassign={handleBulkReassign} onBulkPriority={handleBulkPriority} onBulkKill={handleBulkKill} onBulkMove={handleBulkMove} onBulkDelete={handleBulkDelete} activeSessions={activeSessions} formatTimer={formatTimer} />
+          )}
+          {viewMode === "Cycles" && (
+            <CyclesView ads={ads} onSelectAd={handleSelectAd} />
           )}
           {viewMode === "MyQueue" && (
             <MyQueueView currentUser={currentUser} myQueue={myQueue} setSelectedAd={handleSelectAd} activeSessions={activeSessions} formatTimer={formatTimer} />
