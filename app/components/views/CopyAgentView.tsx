@@ -22,14 +22,14 @@ function CopyCard({ label, content, color }: { label: string; content: string; c
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div className={`bg-white border ${color} rounded-2xl p-4 shadow-sm`}>
+    <div className={`bg-[#141416] border ${color} rounded-2xl p-4 shadow-sm`}>
       <div className="flex items-center justify-between mb-2">
-        <span className={`text-[9px] font-black uppercase tracking-widest ${color.replace("border-", "text-").replace("-200", "-600")}`}>{label}</span>
-        <button onClick={handleCopy} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${copied ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+        <span className={`text-[9px] font-black uppercase tracking-widest ${color.replace("border-", "text-").replace("-900", "-400")}`}>{label}</span>
+        <button onClick={handleCopy} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${copied ? "bg-green-950 text-green-400" : "bg-[#1f1f23] text-gray-400 hover:bg-[#2a2a2e]"}`}>
           {copied ? "✓ Copied" : "Copy"}
         </button>
       </div>
-      <p className="text-sm text-gray-800 font-medium leading-relaxed whitespace-pre-wrap">{content}</p>
+      <p className="text-sm text-gray-100 font-medium leading-relaxed whitespace-pre-wrap">{content}</p>
     </div>
   );
 }
@@ -56,9 +56,9 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
 
   if (loading) return (
     <div className="mt-10">
-      <div className="h-6 w-40 bg-gray-100 rounded-xl animate-pulse mb-4" />
+      <div className="h-6 w-40 bg-[#1a1a1d] rounded-xl animate-pulse mb-4" />
       <div className="space-y-3">
-        {[1, 2, 3].map(i => <div key={i} className="h-16 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+        {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[#141416] rounded-2xl border border-gray-800 animate-pulse" />)}
       </div>
     </div>
   );
@@ -66,33 +66,33 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
   return (
     <div className="mt-10">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-black text-gray-800 text-lg">Generation History</h3>
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-100 px-2.5 py-1 rounded-full">{history.length} entries</span>
+        <h3 className="font-black text-gray-100 text-lg">Generation History</h3>
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-[#1f1f23] px-2.5 py-1 rounded-full">{history.length} entries</span>
       </div>
       {history.length === 0 ? (
-        <div className="bg-white rounded-2xl p-10 border border-gray-100 flex flex-col items-center justify-center text-center">
+        <div className="bg-[#141416] rounded-2xl p-10 border border-gray-800 flex flex-col items-center justify-center text-center">
           <span className="text-4xl mb-3">📭</span>
-          <p className="font-black text-gray-600">No history yet</p>
-          <p className="text-sm text-gray-400 mt-1">Generated copy will appear here after you save</p>
+          <p className="font-black text-gray-300">No history yet</p>
+          <p className="text-sm text-gray-500 mt-1">Generated copy will appear here after you save</p>
         </div>
       ) : (
         <div className="space-y-3">
           {history.map(item => (
-            <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div key={item.id} className="bg-[#141416] rounded-2xl border border-gray-800 shadow-sm overflow-hidden">
               <div
-                className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-all"
+                className="p-4 flex items-center justify-between cursor-pointer hover:bg-[#1a1a1d] transition-all"
                 onClick={() => setExpanded(expanded === item.id ? null : item.id)}
               >
                 <div className="flex items-center gap-3">
                   {item.input_type === "image" && item.input_preview ? (
-                    <img src={item.input_preview} alt="Creative" className="w-12 h-12 object-cover rounded-xl border border-gray-200 shrink-0" />
+                    <img src={item.input_preview} alt="Creative" className="w-12 h-12 object-cover rounded-xl border border-gray-700 shrink-0" />
                   ) : item.input_type === "video" && item.input_preview ? (
-                    <div className="w-12 h-12 rounded-xl border border-gray-200 bg-gray-50 flex flex-col items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-xl border border-gray-700 bg-[#0d0d0f] flex flex-col items-center justify-center shrink-0">
                       <span className="text-lg">🎥</span>
-                      <span className="text-[8px] font-black text-gray-400 uppercase">Video</span>
+                      <span className="text-[8px] font-black text-gray-500 uppercase">Video</span>
                     </div>
                   ) : item.input_type === "url" && item.input_preview ? (
-                    <div className="w-12 h-12 rounded-xl border border-gray-200 bg-gray-50 flex flex-col items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-12 h-12 rounded-xl border border-gray-700 bg-[#0d0d0f] flex flex-col items-center justify-center shrink-0 overflow-hidden">
                       {item.input_preview.includes("youtube.com") || item.input_preview.includes("youtu.be") ? (
                         <img
                           src={`https://img.youtube.com/vi/${item.input_preview.match(/(?:v=|youtu\.be\/)([^&\s]+)/)?.[1]}/mqdefault.jpg`}
@@ -103,59 +103,59 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                       ) : (
                         <div className="flex flex-col items-center justify-center w-full h-full">
                           <span className="text-lg">🔗</span>
-                          <span className="text-[8px] font-black text-gray-400 uppercase">URL</span>
+                          <span className="text-[8px] font-black text-gray-500 uppercase">URL</span>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="w-12 h-12 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-xl border border-gray-700 bg-[#0d0d0f] flex items-center justify-center shrink-0">
                       <span className="text-xl">✍️</span>
                     </div>
                   )}
                   <div>
-                    <p className="font-black text-gray-800 text-sm">{item.ad_name || "Untitled"}</p>
+                    <p className="font-black text-gray-100 text-sm">{item.ad_name || "Untitled"}</p>
                     <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
                       {item.input_type && (
                         <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${
-                          item.input_type === "image" ? "bg-blue-50 text-blue-600" :
-                          item.input_type === "video" ? "bg-purple-50 text-purple-600" :
-                          item.input_type === "url" ? "bg-green-50 text-green-600" :
-                          "bg-gray-100 text-gray-500"
+                          item.input_type === "image" ? "bg-blue-950 text-blue-400" :
+                          item.input_type === "video" ? "bg-purple-950 text-purple-400" :
+                          item.input_type === "url" ? "bg-green-950 text-green-400" :
+                          "bg-[#0d0d0f] text-gray-400"
                         }`}>
                           {item.input_type === "image" ? "🖼 Image" : item.input_type === "video" ? "🎥 Video" : item.input_type === "url" ? "🔗 URL" : "📝 Text"}
                         </span>
                       )}
-                      <p className="text-[10px] text-gray-400 font-medium">
+                      <p className="text-[10px] text-gray-500 font-medium">
                         by {item.generated_by}{item.generated_by_role ? ` (${item.generated_by_role})` : ""} · {new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
                   </div>
                 </div>
-                <span className="text-gray-400 text-xs">{expanded === item.id ? "▲" : "▼"}</span>
+                <span className="text-gray-500 text-xs">{expanded === item.id ? "▲" : "▼"}</span>
               </div>
               {expanded === item.id && (
-                <div className="border-t border-gray-100 p-4 space-y-4">
+                <div className="border-t border-gray-800 p-4 space-y-4">
                   {item.control_copy && (
-                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Previous Winning Copy</p>
-                      <p className="text-sm text-gray-600 font-medium whitespace-pre-wrap">{item.control_copy}</p>
+                    <div className="bg-[#0d0d0f] rounded-xl p-3 border border-gray-700">
+                      <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Previous Winning Copy</p>
+                      <p className="text-sm text-gray-400 font-medium whitespace-pre-wrap">{item.control_copy}</p>
                     </div>
                   )}
                   {(item.headline || (item.hooks && item.hooks[0])) && (
                     <div>
-                      <p className="text-[9px] font-black text-green-700 uppercase tracking-widest mb-2">📢 Headline</p>
-                      <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.hooks?.join("\n\n") || item.headline}</p>
-        <button onClick={() => navigator.clipboard.writeText(item.hooks?.join("\n\n") || item.headline)} className="text-[9px] font-black text-gray-400 hover:text-green-700 uppercase shrink-0">Copy</button>
+                      <p className="text-[9px] font-black text-green-400 uppercase tracking-widest mb-2">📢 Headline</p>
+                      <div className="bg-green-950/30 border border-green-900 rounded-xl p-3 flex items-start justify-between gap-2">
+                        <p className="text-sm text-gray-100 font-medium flex-1 whitespace-pre-wrap">{item.hooks?.join("\n\n") || item.headline}</p>
+        <button onClick={() => navigator.clipboard.writeText(item.hooks?.join("\n\n") || item.headline)} className="text-[9px] font-black text-gray-500 hover:text-green-400 uppercase shrink-0">Copy</button>
                       </div>
                     </div>
                   )}
                   {(item.ad_copy || item.body) && (
                     <div>
-                      <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📝 Ad Copy</p>
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                        <p className="text-sm text-gray-800 font-medium flex-1 whitespace-pre-wrap">{item.copies?.join("\n\n---\n\n") || item.ad_copy || item.body}</p>
-        <button onClick={() => navigator.clipboard.writeText(item.copies?.join("\n\n---\n\n") || item.ad_copy || item.body)} className="text-[9px] font-black text-gray-400 hover:text-amber-600 uppercase shrink-0">Copy</button>
+                      <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-2">📝 Ad Copy</p>
+                      <div className="bg-amber-950/30 border border-amber-900 rounded-xl p-3 flex items-start justify-between gap-2">
+                        <p className="text-sm text-gray-100 font-medium flex-1 whitespace-pre-wrap">{item.copies?.join("\n\n---\n\n") || item.ad_copy || item.body}</p>
+        <button onClick={() => navigator.clipboard.writeText(item.copies?.join("\n\n---\n\n") || item.ad_copy || item.body)} className="text-[9px] font-black text-gray-500 hover:text-amber-400 uppercase shrink-0">Copy</button>
                       </div>
                     </div>
                   )}
@@ -165,7 +165,7 @@ function HistorySection({ supabase, currentUser, currentRole, refreshKey }: { su
                         await supabase.from("copy_history").delete().eq("id", item.id);
                         setHistory(h => h.filter(x => x.id !== item.id));
                       }}
-                      className="text-[10px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest"
+                      className="text-[10px] font-black text-red-400 hover:text-red-300 uppercase tracking-widest"
                     >
                       Delete Entry
                     </button>
@@ -692,8 +692,8 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
   const tabClass = (tab: string) =>
     `px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest transition-all border ${
       inputTab === tab
-        ? "bg-gray-900 text-white border-gray-900"
-        : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
+        ? "bg-gray-100 text-gray-900 border-gray-100"
+        : "bg-[#1a1a1d] text-gray-400 border-gray-700 hover:border-gray-500"
     }`;
 
   const isGenerateDisabled = isGenerating ||
@@ -707,8 +707,8 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
       <div className="max-w-[900px] mx-auto">
 
         <div className="mb-8">
-          <h2 className="text-2xl font-black text-gray-900">Copy Agent</h2>
-          <p className="text-gray-400 text-sm font-medium mt-0.5">Analyze competitor ads and rewrite them for your product</p>
+          <h2 className="text-2xl font-black text-gray-100">Copy Agent</h2>
+          <p className="text-gray-500 text-sm font-medium mt-0.5">Analyze competitor ads and rewrite them for your product</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -716,9 +716,9 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
           {/* Left — Input */}
           <div className="space-y-4">
 
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">1. Competitor Ad Input</span>
-              <p className="text-[10px] text-gray-400 font-medium mb-4">Upload or paste the competitor's winning ad — Claude will copy their style for your product</p>
+            <div className="bg-[#141416] rounded-2xl p-5 border border-gray-800 shadow-sm">
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 block">1. Competitor Ad Input</span>
+              <p className="text-[10px] text-gray-500 font-medium mb-4">Upload or paste the competitor's winning ad — Claude will copy their style for your product</p>
               <div className="flex flex-wrap gap-2 mb-4">
                 <button className={tabClass("describe")} onClick={() => setInputTab("describe")}>Paste Text</button>
                 <button className={tabClass("url")} onClick={() => setInputTab("url")}>URL</button>
@@ -729,7 +729,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
               {inputTab === "describe" && (
                 <textarea
                   rows={5}
-                  className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800 resize-none"
+                  className="w-full border border-gray-700 bg-[#0d0d0f] p-3 rounded-xl text-sm font-medium outline-none focus:border-gray-500 text-gray-100 resize-none placeholder:text-gray-600"
                   placeholder="Paste the competitor's ad copy, headline, body text here — include emojis and formatting exactly as they appear..."
                   value={conceptDesc}
                   onChange={e => setConceptDesc(e.target.value)}
@@ -739,7 +739,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
               {inputTab === "url" && (
                 <input
                   type="url"
-                  className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800"
+                  className="w-full border border-gray-700 bg-[#0d0d0f] p-3 rounded-xl text-sm font-medium outline-none focus:border-gray-500 text-gray-100 placeholder:text-gray-600"
                   placeholder="Paste competitor's ad URL, YouTube, TikTok, or Facebook link..."
                   value={creativeUrl}
                   onChange={e => setCreativeUrl(e.target.value)}
@@ -750,24 +750,24 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                 <div>
                   {imagePreview ? (
                     <div className="relative">
-                      <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-xl border border-gray-200" />
+                      <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-xl border border-gray-700" />
                       <button
                         onClick={() => { setImageBase64(null); setImagePreview(null); }}
-                        className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full shadow flex items-center justify-center text-gray-500 hover:text-red-500 font-black text-xs border border-gray-200"
+                        className="absolute top-2 right-2 w-6 h-6 bg-[#1a1a1d] rounded-full shadow flex items-center justify-center text-gray-400 hover:text-red-400 font-black text-xs border border-gray-700"
                       >✕</button>
                     </div>
                   ) : (
                     <label
-                      className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${isDragging ? "border-green-400 bg-green-50" : "border-gray-200 hover:border-green-300 hover:bg-gray-50"}`}
+                      className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${isDragging ? "border-gray-500 bg-[#1a1a1d]" : "border-gray-700 hover:border-gray-600 hover:bg-[#1a1a1d]"}`}
                       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={handleImageDrop}
                     >
-                      <svg className="w-8 h-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-8 h-8 text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
-                      <p className="text-sm font-black text-gray-500">Drop image or click to upload</p>
-                      <p className="text-[10px] text-gray-400 mt-1">PNG, JPG, WEBP · Max 5MB</p>
+                      <p className="text-sm font-black text-gray-400">Drop image or click to upload</p>
+                      <p className="text-[10px] text-gray-600 mt-1">PNG, JPG, WEBP · Max 5MB</p>
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageInput} />
                     </label>
                   )}
@@ -777,33 +777,33 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
               {inputTab === "video" && (
                 <div>
                   {videoFileName ? (
-                    <div className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <div className="flex items-center gap-3 bg-purple-950/30 border border-purple-900 rounded-xl p-4">
                       <span className="text-2xl">🎥</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-gray-800 truncate">{videoFileName}</p>
-                        <p className="text-[10px] text-gray-400">Video ready for analysis</p>
+                        <p className="text-sm font-black text-gray-100 truncate">{videoFileName}</p>
+                        <p className="text-[10px] text-gray-500">Video ready for analysis</p>
                       </div>
                       <button
                         onClick={() => { setVideoBase64(null); setVideoFileName(null); }}
-                        className="w-6 h-6 bg-white rounded-full shadow flex items-center justify-center text-gray-500 hover:text-red-500 font-black text-xs border border-gray-200 shrink-0"
+                        className="w-6 h-6 bg-[#1a1a1d] rounded-full shadow flex items-center justify-center text-gray-400 hover:text-red-400 font-black text-xs border border-gray-700 shrink-0"
                       >✕</button>
                     </div>
                   ) : (
                     <label
-                      className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${isDragging ? "border-purple-400 bg-purple-50" : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"}`}
+                      className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${isDragging ? "border-purple-700 bg-purple-950/30" : "border-gray-700 hover:border-purple-800 hover:bg-[#1a1a1d]"}`}
                       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={handleVideoDrop}
                     >
                       <span className="text-3xl mb-2">🎥</span>
-                      <p className="text-sm font-black text-gray-500">Drop video ad or click to upload</p>
-                      <p className="text-[10px] text-gray-400 mt-1">MP4, MOV, AVI · Max 100MB</p>
+                      <p className="text-sm font-black text-gray-400">Drop video ad or click to upload</p>
+                      <p className="text-[10px] text-gray-600 mt-1">MP4, MOV, AVI · Max 100MB</p>
                       <input type="file" accept="video/*" className="hidden" onChange={handleVideoInput} />
                     </label>
                   )}
                   <textarea
                     rows={2}
-                    className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800 resize-none mt-3"
+                    className="w-full border border-gray-700 bg-[#0d0d0f] p-3 rounded-xl text-sm font-medium outline-none focus:border-gray-500 text-gray-100 resize-none mt-3 placeholder:text-gray-600"
                     placeholder="Optional: describe what's in the video or paste any visible copy..."
                     value={conceptDesc}
                     onChange={e => setConceptDesc(e.target.value)}
@@ -812,36 +812,36 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
               )}
             </div>
 
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">2. Your Product Context</p>
+            <div className="bg-[#141416] rounded-2xl p-5 border border-gray-800 shadow-sm space-y-3">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">2. Your Product Context</p>
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Your Product</label>
-                <input type="text" className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800" placeholder="e.g. NAC" value={product} onChange={e => setProduct(e.target.value)} />
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Your Product</label>
+                <input type="text" className="w-full border border-gray-700 bg-[#0d0d0f] p-3 rounded-xl text-sm font-medium outline-none focus:border-gray-500 text-gray-100 placeholder:text-gray-600" placeholder="e.g. NAC" value={product} onChange={e => setProduct(e.target.value)} />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Target Audience</label>
-                <input type="text" className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800" placeholder="e.g. Men 40+, health-conscious" value={targetAudience} onChange={e => setTargetAudience(e.target.value)} />
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Target Audience</label>
+                <input type="text" className="w-full border border-gray-700 bg-[#0d0d0f] p-3 rounded-xl text-sm font-medium outline-none focus:border-gray-500 text-gray-100 placeholder:text-gray-600" placeholder="e.g. Men 40+, health-conscious" value={targetAudience} onChange={e => setTargetAudience(e.target.value)} />
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">3. Previous Winning Copy (Optional)</p>
-              <p className="text-[10px] text-gray-400 font-medium mb-3">Paste your own previous winner — Claude will make sure the new copy is different enough</p>
+            <div className="bg-[#141416] rounded-2xl p-5 border border-gray-800 shadow-sm">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">3. Previous Winning Copy (Optional)</p>
+              <p className="text-[10px] text-gray-500 font-medium mb-3">Paste your own previous winner — Claude will make sure the new copy is different enough</p>
               <textarea
                 rows={3}
-                className="w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 text-gray-800 resize-none"
+                className="w-full border border-gray-700 bg-[#0d0d0f] p-3 rounded-xl text-sm font-medium outline-none focus:border-gray-500 text-gray-100 resize-none placeholder:text-gray-600"
                 placeholder="Paste your previous winning copy here..."
                 value={controlCopy}
                 onChange={e => setControlCopy(e.target.value)}
               />
             </div>
 
-            {error && <p className="text-sm font-black text-red-500 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
+            {error && <p className="text-sm font-black text-red-400 bg-red-950/30 border border-red-900 rounded-xl p-3">{error}</p>}
 
             <button
               onClick={handleGenerate}
               disabled={isGenerateDisabled}
-              className="w-full bg-green-700 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-green-800 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full bg-gray-100 text-gray-900 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isGenerating ? (
                 <span className="flex items-center justify-center gap-2">
@@ -858,76 +858,76 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
           {/* Right — Output */}
           <div className="space-y-4">
             {!result && !isGenerating && (
-              <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center h-full min-h-[300px]">
+              <div className="bg-[#141416] rounded-2xl p-10 border border-gray-800 shadow-sm flex flex-col items-center justify-center text-center h-full min-h-[300px]">
                 <span className="text-5xl mb-4">🕵️</span>
-                <p className="font-black text-gray-600 text-lg">Ready to analyze</p>
-                <p className="text-sm text-gray-400 mt-1">Paste or upload a competitor's winning ad and hit Analyze</p>
+                <p className="font-black text-gray-300 text-lg">Ready to analyze</p>
+                <p className="text-sm text-gray-500 mt-1">Paste or upload a competitor's winning ad and hit Analyze</p>
               </div>
             )}
             {isGenerating && (
-              <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center h-full min-h-[300px]">
-                <div className="w-12 h-12 border-4 border-green-200 border-t-green-700 rounded-full animate-spin mb-4" />
-                <p className="font-black text-gray-600">
+              <div className="bg-[#141416] rounded-2xl p-10 border border-gray-800 shadow-sm flex flex-col items-center justify-center text-center h-full min-h-[300px]">
+                <div className="w-12 h-12 border-4 border-gray-700 border-t-gray-200 rounded-full animate-spin mb-4" />
+                <p className="font-black text-gray-300">
                   {inputTab === "video" ? "Gemini is watching the video..." : "Writing your copy..."}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   {inputTab === "video" ? "Then Claude will write the copy using proven formulas" : "Applying proven formulas to your product"}
                 </p>
               </div>
             )}
             {result && (
               <div className="space-y-4">
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center gap-2">
+                <div className="bg-amber-950/30 border border-amber-900 rounded-2xl p-3 flex items-center gap-2">
                   <span className="text-sm">🕵️</span>
-                  <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Competitor formula captured — rewritten for your product</p>
+                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Competitor formula captured — rewritten for your product</p>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                  <p className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-3">📢 Headlines (3)</p>
+                <div className="bg-[#141416] rounded-2xl p-5 border border-gray-800 shadow-sm">
+                  <p className="text-[10px] font-black text-green-400 uppercase tracking-widest mb-3">📢 Headlines (3)</p>
                   <div className="space-y-2">
                     {result.headlines.map((h, i) => (
-                      <div key={i} className={`border rounded-2xl p-4 shadow-sm transition-all ${selectedHeadline === h ? "border-green-500 bg-green-50" : "border-green-200 bg-white"}`}>
+                      <div key={i} className={`border rounded-2xl p-4 shadow-sm transition-all ${selectedHeadline === h ? "border-green-700 bg-green-950/30" : "border-green-900 bg-[#0d0d0f]"}`}>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-green-600">Headline {i + 1}</span>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-green-400">Headline {i + 1}</span>
                           <div className="flex gap-2">
-                            <button onClick={() => navigator.clipboard.writeText(h)} className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all">Copy</button>
-                            <button onClick={() => setSelectedHeadline(selectedHeadline === h ? null : h)} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${selectedHeadline === h ? "bg-green-600 text-white" : "bg-green-100 text-green-700 hover:bg-green-200"}`}>
+                            <button onClick={() => navigator.clipboard.writeText(h)} className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-[#1f1f23] text-gray-400 hover:bg-[#2a2a2e] transition-all">Copy</button>
+                            <button onClick={() => setSelectedHeadline(selectedHeadline === h ? null : h)} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${selectedHeadline === h ? "bg-green-600 text-white" : "bg-green-950 text-green-400 hover:bg-green-900"}`}>
                               {selectedHeadline === h ? "✓ Selected" : "Use This"}
                             </button>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-800 font-medium leading-relaxed whitespace-pre-wrap">{h}</p>
+                        <p className="text-sm text-gray-100 font-medium leading-relaxed whitespace-pre-wrap">{h}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3">📝 Ad Copies (3)</p>
+                <div className="bg-[#141416] rounded-2xl p-5 border border-gray-800 shadow-sm">
+                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3">📝 Ad Copies (3)</p>
                   <div className="space-y-2">
                     {result.ad_copies.map((c, i) => (
-                      <div key={i} className={`border rounded-2xl p-4 shadow-sm transition-all ${selectedAdCopy === c ? "border-amber-500 bg-amber-50" : "border-amber-200 bg-white"}`}>
+                      <div key={i} className={`border rounded-2xl p-4 shadow-sm transition-all ${selectedAdCopy === c ? "border-amber-700 bg-amber-950/30" : "border-amber-900 bg-[#0d0d0f]"}`}>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-amber-600">Copy {i + 1}</span>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">Copy {i + 1}</span>
                           <div className="flex gap-2">
-                            <button onClick={() => navigator.clipboard.writeText(c)} className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all">Copy</button>
-                            <button onClick={() => setSelectedAdCopy(selectedAdCopy === c ? null : c)} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${selectedAdCopy === c ? "bg-amber-500 text-white" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}`}>
+                            <button onClick={() => navigator.clipboard.writeText(c)} className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-[#1f1f23] text-gray-400 hover:bg-[#2a2a2e] transition-all">Copy</button>
+                            <button onClick={() => setSelectedAdCopy(selectedAdCopy === c ? null : c)} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${selectedAdCopy === c ? "bg-amber-500 text-white" : "bg-amber-950 text-amber-400 hover:bg-amber-900"}`}>
                               {selectedAdCopy === c ? "✓ Selected" : "Use This"}
                             </button>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-800 font-medium leading-relaxed whitespace-pre-wrap">{c}</p>
+                        <p className="text-sm text-gray-100 font-medium leading-relaxed whitespace-pre-wrap">{c}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {selectedHeadline && selectedAdCopy && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
-                    <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">📌 Send to Ad</p>
-                    <p className="text-[10px] text-blue-600 font-medium">Link this copy to an ad so Axel can see it in the Ad Detail Modal</p>
+                  <div className="bg-blue-950/30 border border-blue-900 rounded-2xl p-4 space-y-3">
+                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">📌 Send to Ad</p>
+                    <p className="text-[10px] text-blue-400 font-medium">Link this copy to an ad so Axel can see it in the Ad Detail Modal</p>
                     <select
-                      className="w-full border border-blue-200 bg-white p-3 rounded-xl text-sm font-bold outline-none focus:border-blue-500 text-gray-700"
+                      className="w-full border border-blue-900 bg-[#0d0d0f] p-3 rounded-xl text-sm font-bold outline-none focus:border-blue-700 text-gray-200"
                       value={selectedAdId}
                       onChange={e => setSelectedAdId(e.target.value)}
                     >
@@ -949,7 +949,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                         setTimeout(() => setSavedToAd(false), 3000);
                       }}
                       disabled={!selectedAdId || isSavingToAd || savedToAd}
-                      className={`w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${savedToAd ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40"}`}
+                      className={`w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${savedToAd ? "bg-blue-950 text-blue-400 border border-blue-900" : "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40"}`}
                     >
                       {isSavingToAd ? "Saving..." : savedToAd ? "✓ Sent to Ad" : "📌 Send to Ad"}
                     </button>
@@ -959,8 +959,8 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                   onClick={handleSave}
                   disabled={isSaving || saved}
                   className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-sm ${
-                    saved ? "bg-green-100 text-green-700 border border-green-200" :
-                    "bg-green-700 text-white hover:bg-green-800 disabled:opacity-40"
+                    saved ? "bg-green-950 text-green-400 border border-green-900" :
+                    "bg-gray-100 text-gray-900 hover:bg-white disabled:opacity-40"
                   }`}
                 >
                   {isSaving ? "Saving..." : saved ? "✓ Saved to History" : "💾 Save Copy"}
@@ -968,13 +968,13 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                 <button
                   onClick={() => { setSaved(false); handleGenerate(); }}
                   disabled={isGenerating}
-                  className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest border border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700 hover:bg-green-50 transition-all disabled:opacity-40"
+                  className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest border border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white hover:bg-[#1a1a1d] transition-all disabled:opacity-40"
                 >
                   {isGenerating ? "Generating..." : "🔄 Generate New Version"}
                 </button>
                 <button
                   onClick={() => { setResult(null); setSaved(false); }}
-                  className="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                  className="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-500 hover:text-gray-300 hover:bg-[#1a1a1d] transition-all"
                 >
                   Analyze Another
                 </button>

@@ -14,16 +14,16 @@ interface Props {
 const ROLES = ["Founder", "Strategist", "Editor", "Graphic Designer", "Content Coordinator", "VA", "Media Buyer"];
 
 const ROLE_STYLES: Record<string, string> = {
-  "Founder": "bg-green-100 text-green-700 border-green-200",
-  "Strategist": "bg-violet-100 text-violet-700 border-violet-200",
-  "Editor": "bg-amber-100 text-amber-700 border-amber-200",
-  "Graphic Designer": "bg-blue-100 text-blue-700 border-blue-200",
-  "Content Coordinator": "bg-rose-100 text-rose-700 border-rose-200",
-  "VA": "bg-gray-100 text-gray-600 border-gray-200",
-  "Media Buyer": "bg-cyan-100 text-cyan-700 border-cyan-200",
+  "Founder": "bg-green-950 text-green-400 border-green-900",
+  "Strategist": "bg-violet-950 text-violet-400 border-violet-900",
+  "Editor": "bg-amber-950 text-amber-400 border-amber-900",
+  "Graphic Designer": "bg-blue-950 text-blue-400 border-blue-900",
+  "Content Coordinator": "bg-rose-950 text-rose-400 border-rose-900",
+  "VA": "bg-[#1f1f23] text-gray-400 border-gray-700",
+  "Media Buyer": "bg-cyan-950 text-cyan-400 border-cyan-900",
 };
 
-const inputClass = "w-full border border-gray-200 bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all placeholder:text-gray-300 text-gray-800";
+const inputClass = "w-full border border-gray-700 bg-[#0d0d0f] p-3 rounded-xl text-sm font-medium outline-none focus:border-gray-500 transition-all placeholder:text-gray-600 text-gray-100";
 
 // ── REUSABLE LIST SECTION — defined outside to prevent re-render on keystroke ──
 function ListSection({ title, description, items, newValue, setNewValue, isSaving, msg, color, onAdd, onRemove, placeholder }: {
@@ -31,22 +31,22 @@ function ListSection({ title, description, items, newValue, setNewValue, isSavin
   isSaving: boolean; msg: string; color: string; onAdd: () => void; onRemove: (v: string) => void; placeholder: string;
 }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+    <div className="bg-[#141416] border border-gray-800 rounded-2xl p-6 mb-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{title}</p>
-          <p className="text-xs text-gray-400 font-medium mt-0.5">{description}</p>
+          <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest">{title}</p>
+          <p className="text-xs text-gray-500 font-medium mt-0.5">{description}</p>
         </div>
-        {msg && <span className="text-[10px] font-black text-green-700 bg-green-100 border border-green-200 px-3 py-1 rounded-full">✓ {msg}</span>}
+        {msg && <span className="text-[10px] font-black text-green-400 bg-green-950 border border-green-900 px-3 py-1 rounded-full">✓ {msg}</span>}
       </div>
       <div className="flex flex-wrap gap-2 mb-4">
         {items.length === 0 ? (
-          <p className="text-[11px] text-gray-300 font-bold italic">No {title.toLowerCase()} added yet</p>
+          <p className="text-[11px] text-gray-600 font-bold italic">No {title.toLowerCase()} added yet</p>
         ) : (
           items.map(p => (
             <div key={p} className={`flex items-center gap-1.5 ${color} px-3 py-1.5 rounded-xl group`}>
               <span className="text-[11px] font-black">{p}</span>
-              <button onClick={() => onRemove(p)} className="text-[9px] text-gray-300 hover:text-red-500 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
+              <button onClick={() => onRemove(p)} className="text-[9px] text-gray-500 hover:text-red-400 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
             </div>
           ))
         )}
@@ -55,7 +55,7 @@ function ListSection({ title, description, items, newValue, setNewValue, isSavin
         <input type="text" placeholder={placeholder} className={inputClass} value={newValue} onChange={e => setNewValue(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }} />
         <button onClick={onAdd} disabled={!newValue.trim() || isSaving}
-          className="bg-green-700 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all disabled:opacity-40">
+          className="bg-gray-100 text-gray-900 px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all disabled:opacity-40">
           {isSaving ? "..." : "Add"}
         </button>
       </div>
@@ -69,22 +69,22 @@ function WhitelistingSection({ whitelistPages, newWhitelistPage, setNewWhitelist
   isSavingWhitelist: boolean; whitelistMsg: string; onAdd: () => void; onRemove: (page: string) => void;
 }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+    <div className="bg-[#141416] border border-gray-800 rounded-2xl p-6 mb-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Whitelisting Pages</p>
-          <p className="text-xs text-gray-400 font-medium mt-0.5">Facebook/Instagram pages used to run ads from</p>
+          <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Whitelisting Pages</p>
+          <p className="text-xs text-gray-500 font-medium mt-0.5">Facebook/Instagram pages used to run ads from</p>
         </div>
-        {whitelistMsg && <span className="text-[10px] font-black text-green-700 bg-green-100 border border-green-200 px-3 py-1 rounded-full">✓ {whitelistMsg}</span>}
+        {whitelistMsg && <span className="text-[10px] font-black text-green-400 bg-green-950 border border-green-900 px-3 py-1 rounded-full">✓ {whitelistMsg}</span>}
       </div>
       <div className="flex flex-wrap gap-2 mb-4">
         {whitelistPages.length === 0 ? (
-          <p className="text-[11px] text-gray-300 font-bold italic">No whitelisting pages added yet</p>
+          <p className="text-[11px] text-gray-600 font-bold italic">No whitelisting pages added yet</p>
         ) : (
           whitelistPages.map(p => (
-            <div key={p} className="flex items-center gap-1.5 bg-cyan-50 border border-cyan-200 px-3 py-1.5 rounded-xl group">
-              <span className="text-[11px] font-black text-cyan-700">{p}</span>
-              <button onClick={() => onRemove(p)} className="text-[9px] text-gray-300 hover:text-red-500 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
+            <div key={p} className="flex items-center gap-1.5 bg-cyan-950 border border-cyan-900 px-3 py-1.5 rounded-xl group">
+              <span className="text-[11px] font-black text-cyan-400">{p}</span>
+              <button onClick={() => onRemove(p)} className="text-[9px] text-gray-500 hover:text-red-400 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
             </div>
           ))
         )}
@@ -94,7 +94,7 @@ function WhitelistingSection({ whitelistPages, newWhitelistPage, setNewWhitelist
           onChange={e => setNewWhitelistPage(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }} />
         <button onClick={onAdd} disabled={!newWhitelistPage.trim() || isSavingWhitelist}
-          className="bg-green-700 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all disabled:opacity-40">
+          className="bg-gray-100 text-gray-900 px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all disabled:opacity-40">
           {isSavingWhitelist ? "..." : "Add"}
         </button>
       </div>
@@ -143,7 +143,7 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
   const [isSavingConcept, setIsSavingConcept] = useState(false);
   const [conceptMsg, setConceptMsg] = useState("");
 
-  const selectClass = "w-full border border-gray-200 bg-white p-3 rounded-xl text-sm font-black outline-none focus:border-green-500 text-gray-700";
+  const selectClass = "w-full border border-gray-700 bg-[#1a1a1d] p-3 rounded-xl text-sm font-black outline-none focus:border-gray-500 text-gray-200";
 
   useEffect(() => {
     loadWhitelistPages();
@@ -317,8 +317,8 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
     return (
       <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-[900px] mx-auto w-full">
         <div className="mb-6">
-          <h2 className="text-2xl font-black text-gray-900">Settings</h2>
-          <p className="text-gray-400 text-sm font-medium mt-0.5">Manage lists and whitelisting pages</p>
+          <h2 className="text-2xl font-black text-gray-100">Settings</h2>
+          <p className="text-gray-500 text-sm font-medium mt-0.5">Manage lists and whitelisting pages</p>
         </div>
         <WhitelistingSection
           whitelistPages={whitelistPages} newWhitelistPage={newWhitelistPage} setNewWhitelistPage={setNewWhitelistPage}
@@ -326,15 +326,15 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
           onAdd={handleAddWhitelistPage} onRemove={handleRemoveWhitelistPage}
         />
         {(isStrategist || isMediaBuyer) && <>
-          <ListSection title="Sub Avatars" description="Target audience sub-personas for ads" items={subAvatars} newValue={newSubAvatar} setNewValue={setNewSubAvatar} isSaving={isSavingSubAvatar} msg={subAvatarMsg} color="bg-violet-50 border border-violet-200 text-violet-700"
+          <ListSection title="Sub Avatars" description="Target audience sub-personas for ads" items={subAvatars} newValue={newSubAvatar} setNewValue={setNewSubAvatar} isSaving={isSavingSubAvatar} msg={subAvatarMsg} color="bg-violet-950 border border-violet-900 text-violet-400"
             onAdd={async () => { const t = newSubAvatar.trim(); if (!t || subAvatars.includes(t)) return; setNewSubAvatar(""); await saveSubAvatars([...subAvatars, t]); }}
             onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveSubAvatars(subAvatars.filter(x => x !== v)); }}
             placeholder="e.g. Occasional drinker of wine" />
-          <ListSection title="Angles" description="Ad angles for targeting" items={angles} newValue={newAngle} setNewValue={setNewAngle} isSaving={isSavingAngle} msg={angleMsg} color="bg-orange-50 border border-orange-200 text-orange-700"
+          <ListSection title="Angles" description="Ad angles for targeting" items={angles} newValue={newAngle} setNewValue={setNewAngle} isSaving={isSavingAngle} msg={angleMsg} color="bg-orange-950 border border-orange-900 text-orange-400"
             onAdd={async () => { const t = newAngle.trim(); if (!t || angles.includes(t)) return; setNewAngle(""); await saveAngles([...angles, t]); }}
             onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveAngles(angles.filter(x => x !== v)); }}
             placeholder="e.g. 30 Days Transformation" />
-          <ListSection title="Concepts" description="Ad concepts for organizing campaigns" items={concepts} newValue={newConcept} setNewValue={setNewConcept} isSaving={isSavingConcept} msg={conceptMsg} color="bg-blue-50 border border-blue-200 text-blue-700"
+          <ListSection title="Concepts" description="Ad concepts for organizing campaigns" items={concepts} newValue={newConcept} setNewValue={setNewConcept} isSaving={isSavingConcept} msg={conceptMsg} color="bg-blue-950 border border-blue-900 text-blue-400"
             onAdd={async () => { const t = newConcept.trim(); if (!t || concepts.includes(t)) return; setNewConcept(""); await saveConcepts([...concepts, t]); }}
             onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveConcepts(concepts.filter(x => x !== v)); }}
             placeholder="e.g. Hungover" />
@@ -348,31 +348,31 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
     <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-[900px] mx-auto w-full">
       <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-gray-900">Settings</h2>
-          <p className="text-gray-400 text-sm font-medium mt-0.5">Manage team accounts and access</p>
+          <h2 className="text-2xl font-black text-gray-100">Settings</h2>
+          <p className="text-gray-500 text-sm font-medium mt-0.5">Manage team accounts and access</p>
         </div>
-        <button onClick={() => setIsInviteOpen(!isInviteOpen)} className="bg-green-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all shadow-sm">
+        <button onClick={() => setIsInviteOpen(!isInviteOpen)} className="bg-gray-100 text-gray-900 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-sm">
           + Invite User
         </button>
       </div>
 
       {/* Product Manager */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+      <div className="bg-[#141416] border border-gray-800 rounded-2xl p-6 mb-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Product List</p>
-            <p className="text-xs text-gray-400 font-medium mt-0.5">These appear as dropdown options when creating ads</p>
+            <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Product List</p>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">These appear as dropdown options when creating ads</p>
           </div>
-          {productMsg && <span className="text-[10px] font-black text-green-700 bg-green-100 border border-green-200 px-3 py-1 rounded-full">✓ {productMsg}</span>}
+          {productMsg && <span className="text-[10px] font-black text-green-400 bg-green-950 border border-green-900 px-3 py-1 rounded-full">✓ {productMsg}</span>}
         </div>
         <div className="flex flex-wrap gap-2 mb-4">
           {products.length === 0 ? (
-            <p className="text-[11px] text-gray-300 font-bold italic">No products added yet</p>
+            <p className="text-[11px] text-gray-600 font-bold italic">No products added yet</p>
           ) : (
             products.map(p => (
-              <div key={p} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl group">
-                <span className="text-[11px] font-black text-gray-700">{p}</span>
-                <button onClick={() => handleRemoveProduct(p)} className="text-[9px] text-gray-300 hover:text-red-500 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
+              <div key={p} className="flex items-center gap-1.5 bg-[#0d0d0f] border border-gray-700 px-3 py-1.5 rounded-xl group">
+                <span className="text-[11px] font-black text-gray-200">{p}</span>
+                <button onClick={() => handleRemoveProduct(p)} className="text-[9px] text-gray-500 hover:text-red-400 font-black opacity-0 group-hover:opacity-100 transition-all ml-1">✕</button>
               </div>
             ))
           )}
@@ -381,7 +381,7 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
           <input type="text" placeholder="Add new product (e.g. NAC)" className={inputClass} value={newProduct}
             onChange={e => setNewProduct(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddProduct(); } }} />
-          <button onClick={handleAddProduct} disabled={!newProduct.trim() || isSavingProduct} className="bg-green-700 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all disabled:opacity-40">
+          <button onClick={handleAddProduct} disabled={!newProduct.trim() || isSavingProduct} className="bg-gray-100 text-gray-900 px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all disabled:opacity-40">
             {isSavingProduct ? "..." : "Add"}
           </button>
         </div>
@@ -395,29 +395,29 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
       />
 
       {/* Sub Avatars */}
-      <ListSection title="Sub Avatars" description="Target audience sub-personas for ads" items={subAvatars} newValue={newSubAvatar} setNewValue={setNewSubAvatar} isSaving={isSavingSubAvatar} msg={subAvatarMsg} color="bg-violet-50 border border-violet-200 text-violet-700"
+      <ListSection title="Sub Avatars" description="Target audience sub-personas for ads" items={subAvatars} newValue={newSubAvatar} setNewValue={setNewSubAvatar} isSaving={isSavingSubAvatar} msg={subAvatarMsg} color="bg-violet-950 border border-violet-900 text-violet-400"
         onAdd={async () => { const t = newSubAvatar.trim(); if (!t || subAvatars.includes(t)) return; setNewSubAvatar(""); await saveSubAvatars([...subAvatars, t]); }}
         onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveSubAvatars(subAvatars.filter(x => x !== v)); }}
         placeholder="e.g. Occasional drinker of wine" />
 
       {/* Angles */}
-      <ListSection title="Angles" description="Ad angles for targeting" items={angles} newValue={newAngle} setNewValue={setNewAngle} isSaving={isSavingAngle} msg={angleMsg} color="bg-orange-50 border border-orange-200 text-orange-700"
+      <ListSection title="Angles" description="Ad angles for targeting" items={angles} newValue={newAngle} setNewValue={setNewAngle} isSaving={isSavingAngle} msg={angleMsg} color="bg-orange-950 border border-orange-900 text-orange-400"
         onAdd={async () => { const t = newAngle.trim(); if (!t || angles.includes(t)) return; setNewAngle(""); await saveAngles([...angles, t]); }}
         onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveAngles(angles.filter(x => x !== v)); }}
         placeholder="e.g. 30 Days Transformation" />
 
       {/* Concepts */}
-      <ListSection title="Concepts" description="Ad concepts for organizing campaigns" items={concepts} newValue={newConcept} setNewValue={setNewConcept} isSaving={isSavingConcept} msg={conceptMsg} color="bg-blue-50 border border-blue-200 text-blue-700"
+      <ListSection title="Concepts" description="Ad concepts for organizing campaigns" items={concepts} newValue={newConcept} setNewValue={setNewConcept} isSaving={isSavingConcept} msg={conceptMsg} color="bg-blue-950 border border-blue-900 text-blue-400"
         onAdd={async () => { const t = newConcept.trim(); if (!t || concepts.includes(t)) return; setNewConcept(""); await saveConcepts([...concepts, t]); }}
         onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveConcepts(concepts.filter(x => x !== v)); }}
         placeholder="e.g. Hungover" />
 
       {/* Invite Form */}
       {isInviteOpen && (
-        <form onSubmit={handleInvite} className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">Invite New Team Member</p>
-          {inviteSuccess && <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4"><p className="text-green-700 font-black text-sm">✓ Invite sent successfully!</p></div>}
-          {inviteError && <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4"><p className="text-red-600 font-bold text-sm">{inviteError}</p></div>}
+        <form onSubmit={handleInvite} className="bg-[#141416] border border-gray-800 rounded-2xl p-6 mb-6 shadow-sm">
+          <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-4">Invite New Team Member</p>
+          {inviteSuccess && <div className="bg-green-950/30 border border-green-900 rounded-xl p-4 mb-4"><p className="text-green-400 font-black text-sm">✓ Invite sent successfully!</p></div>}
+          {inviteError && <div className="bg-red-950/30 border border-red-900 rounded-xl p-4 mb-4"><p className="text-red-400 font-bold text-sm">{inviteError}</p></div>}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest">Full Name</label>
@@ -435,8 +435,8 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-4">
-            <button type="button" onClick={() => setIsInviteOpen(false)} className="text-sm font-bold text-gray-400 px-4 py-2 hover:bg-gray-100 rounded-xl">Cancel</button>
-            <button type="submit" disabled={isInviting} className="bg-green-700 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all disabled:opacity-50">
+            <button type="button" onClick={() => setIsInviteOpen(false)} className="text-sm font-bold text-gray-400 px-4 py-2 hover:bg-[#1a1a1d] rounded-xl">Cancel</button>
+            <button type="submit" disabled={isInviting} className="bg-gray-100 text-gray-900 px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all disabled:opacity-50">
               {isInviting ? "Sending..." : "Send Invite"}
             </button>
           </div>
@@ -445,51 +445,51 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
 
       {/* Users List */}
       <div className="space-y-3">
-        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3">Team Members ({users.length})</p>
+        <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-3">Team Members ({users.length})</p>
         {users.length === 0 ? (
-          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center text-gray-400 font-bold">No team members yet</div>
+          <div className="border-2 border-dashed border-gray-800 rounded-2xl p-12 text-center text-gray-500 font-bold">No team members yet</div>
         ) : (
           users.map(u => (
-            <div key={u.id} className={`bg-white border rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${!u.is_active ? "opacity-50" : "border-gray-100 hover:border-green-200 hover:shadow-sm"}`}>
+            <div key={u.id} className={`bg-[#141416] border rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${!u.is_active ? "opacity-50 border-gray-800" : "border-gray-800 hover:border-gray-700 hover:shadow-sm"}`}>
               <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${ROLE_STYLES[u.role] || "bg-gray-100 text-gray-600"}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border ${ROLE_STYLES[u.role] || "bg-[#1f1f23] text-gray-400 border-gray-700"}`}>
                   {u.full_name?.charAt(0)?.toUpperCase() || u.email?.charAt(0)?.toUpperCase()}
                 </div>
                 <div>
                   {editingNameId === u.id ? (
                     <div className="flex items-center gap-2">
-                      <input autoFocus className="border border-green-400 bg-gray-50 px-3 py-1.5 rounded-xl text-sm font-black outline-none text-gray-800 w-40"
+                      <input autoFocus className="border border-gray-500 bg-[#0d0d0f] px-3 py-1.5 rounded-xl text-sm font-black outline-none text-gray-100 w-40"
                         value={editingNameValue} onChange={e => setEditingNameValue(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") handleSaveName(u.id); if (e.key === "Escape") { setEditingNameId(null); setEditingNameValue(""); } }} />
-                      <button onClick={() => handleSaveName(u.id)} disabled={isSavingName} className="text-[10px] font-black text-white bg-green-700 px-3 py-1.5 rounded-xl hover:bg-green-800 transition-all disabled:opacity-40">
+                      <button onClick={() => handleSaveName(u.id)} disabled={isSavingName} className="text-[10px] font-black text-gray-900 bg-gray-100 px-3 py-1.5 rounded-xl hover:bg-white transition-all disabled:opacity-40">
                         {isSavingName ? "..." : "Save"}
                       </button>
-                      <button onClick={() => { setEditingNameId(null); setEditingNameValue(""); }} className="text-[10px] font-black text-gray-400 hover:text-gray-600 px-2 py-1.5 rounded-xl">Cancel</button>
+                      <button onClick={() => { setEditingNameId(null); setEditingNameValue(""); }} className="text-[10px] font-black text-gray-500 hover:text-gray-300 px-2 py-1.5 rounded-xl">Cancel</button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 group">
-                      <p className="font-black text-gray-800">{u.full_name || "No name"}</p>
-                      <button onClick={() => { setEditingNameId(u.id); setEditingNameValue(u.full_name || ""); }} className="text-[9px] text-gray-300 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-all font-black" title="Edit name">✏️</button>
+                      <p className="font-black text-gray-100">{u.full_name || "No name"}</p>
+                      <button onClick={() => { setEditingNameId(u.id); setEditingNameValue(u.full_name || ""); }} className="text-[9px] text-gray-600 hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-all font-black" title="Edit name">✏️</button>
                     </div>
                   )}
-                  <p className="text-[11px] text-gray-400 font-medium">{u.email}</p>
+                  <p className="text-[11px] text-gray-500 font-medium">{u.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {!u.is_active && <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-400 border border-gray-200">Deactivated</span>}
+                {!u.is_active && <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-full bg-[#1f1f23] text-gray-500 border border-gray-700">Deactivated</span>}
                 {u.id !== currentProfile.id ? (
                   <>
-                    <select value={u.role} onChange={e => handleRoleChange(u.id, e.target.value)} className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 outline-none cursor-pointer bg-white ${ROLE_STYLES[u.role] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                    <select value={u.role} onChange={e => handleRoleChange(u.id, e.target.value)} className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 outline-none cursor-pointer ${ROLE_STYLES[u.role] || "bg-[#1f1f23] text-gray-400 border-gray-700"}`}>
                       {ROLES.map(r => <option key={r}>{r}</option>)}
                     </select>
                     {u.is_active && (
-                      <button onClick={() => handleDeactivate(u.id)} className="text-[10px] font-black text-gray-300 hover:text-red-500 px-3 py-2 rounded-xl hover:bg-red-50 transition-all uppercase tracking-widest">
+                      <button onClick={() => handleDeactivate(u.id)} className="text-[10px] font-black text-gray-600 hover:text-red-400 px-3 py-2 rounded-xl hover:bg-red-950 transition-all uppercase tracking-widest">
                         Remove
                       </button>
                     )}
                   </>
                 ) : (
-                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 ${ROLE_STYLES[u.role] || "bg-gray-100 text-gray-600 border-gray-200"}`}>{u.role}</span>
+                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 ${ROLE_STYLES[u.role] || "bg-[#1f1f23] text-gray-400 border-gray-700"}`}>{u.role}</span>
                 )}
               </div>
             </div>

@@ -30,12 +30,13 @@ import SettingsView from "./components/views/SettingsView";
 import ArchiveView from "./components/views/ArchiveView";
 import CopyAgentView from "./components/views/CopyAgentView";
 import CyclesView from "./components/views/CyclesView";
+import AnalyticsView from "./components/views/AnalyticsView";
 
 // Constants
 import { PRIORITY_ORDER } from "./constants";
 import { IdeaEntry } from "./types";
 
-type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings" | "Archive" | "CopyAgent" | "Cycles";
+type ViewMode = "Dashboard" | "Pipeline" | "MyQueue" | "Manager" | "Reports" | "Ideas" | "Learnings" | "Members" | "Settings" | "Archive" | "CopyAgent" | "Cycles" | "Analytics";
 
 const NAV_ICONS: Record<string, string> = {
   Dashboard: "⊞",
@@ -51,6 +52,7 @@ const NAV_ICONS: Record<string, string> = {
   Workload: "📊",
   CopyAgent: "✍️",
   Cycles: "🔄",
+  Analytics: "📊",
 };
 
 export default function App() {
@@ -343,55 +345,55 @@ export default function App() {
   };
 
   const navItems: ViewMode[] = isFounder
-    ? ["Dashboard", "Pipeline", "Cycles", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive", "CopyAgent"]
+    ? ["Dashboard", "Pipeline", "Cycles", "Analytics", "MyQueue", "Reports", "Ideas", "Learnings", "Members", "Archive", "CopyAgent"]
     : isStrategist
-    ? ["Dashboard", "Pipeline", "Cycles", "MyQueue", "Reports", "Ideas", "Learnings", "Manager", "CopyAgent"]
+    ? ["Dashboard", "Pipeline", "Cycles", "Analytics", "MyQueue", "Reports", "Ideas", "Learnings", "Manager", "CopyAgent"]
     : isVA
     ? ["Dashboard", "Pipeline", "Cycles"]
     : isContentCoord
     ? ["Dashboard", "Pipeline", "Cycles", "MyQueue", "Ideas"]
     : isMediaBuyer
-    ? ["Dashboard", "Pipeline", "Cycles", "CopyAgent"]
+    ? ["Dashboard", "Pipeline", "Cycles", "Analytics", "CopyAgent"]
     : ["Dashboard", "Pipeline", "Cycles", "MyQueue", "Ideas"];
 
-  if (libError) return <div className="min-h-screen flex items-center justify-center p-4 text-red-600 font-bold">{libError}</div>;
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">Loading...</div>;
+  if (libError) return <div className="min-h-screen flex items-center justify-center p-4 text-red-400 font-bold bg-[#0d0d0f]">{libError}</div>;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-medium bg-[#0d0d0f]">Loading...</div>;
   if (!user) return (
     <div onClick={unlockAudio} onKeyDown={unlockAudio}>
       <LoginPage onLogin={signIn} onForgotPassword={resetPassword} />
     </div>
   );
-  if (!supabase) return <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">Initializing...</div>;
+  if (!supabase) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-medium bg-[#0d0d0f]">Initializing...</div>;
 
   return (
-    <div className="min-h-screen bg-[#f8faf9] text-gray-900 font-sans text-[13px] flex" onClick={unlockAudio}>
+    <div className="min-h-screen bg-[#0d0d0f] text-gray-200 font-sans text-[13px] flex" onClick={unlockAudio}>
       <datalist id="editor-autocomplete">{allEditors.map(n => <option key={n} value={n} />)}</datalist>
       <datalist id="copywriter-autocomplete">{allCopywriters.map(n => <option key={n} value={n} />)}</datalist>
 
       {/* ── SIDEBAR ── */}
-      <aside className={`fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-40 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? "w-16" : "w-56"}`}>
-        <div className="flex items-center justify-between px-4 py-5 border-b border-gray-100">
+      <aside className={`fixed top-0 left-0 h-full bg-[#141416] border-r border-gray-800 z-40 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? "w-16" : "w-56"}`}>
+        <div className="flex items-center justify-between px-4 py-5 border-b border-gray-800">
           {!isSidebarCollapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-green-700 flex items-center justify-center text-white font-black text-xs">C</div>
-              <span className="font-black text-gray-900 text-sm">Creative Ops</span>
+              <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-900 font-black text-xs">C</div>
+              <span className="font-black text-gray-100 text-sm">Creative Ops</span>
             </div>
           )}
           {isSidebarCollapsed && (
-            <div className="w-7 h-7 rounded-lg bg-green-700 flex items-center justify-center text-white font-black text-xs mx-auto">C</div>
+            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-900 font-black text-xs mx-auto">C</div>
           )}
           {!isSidebarCollapsed && (
-            <button onClick={() => setIsSidebarCollapsed(true)} className="text-gray-400 hover:text-gray-600 transition-colors text-xs font-black">&laquo;</button>
+            <button onClick={() => setIsSidebarCollapsed(true)} className="text-gray-500 hover:text-gray-300 transition-colors text-xs font-black">&laquo;</button>
           )}
         </div>
 
         {isSidebarCollapsed && (
-          <button onClick={() => setIsSidebarCollapsed(false)} className="py-2 text-gray-400 hover:text-gray-600 transition-colors text-center text-xs font-black">&raquo;</button>
+          <button onClick={() => setIsSidebarCollapsed(false)} className="py-2 text-gray-500 hover:text-gray-300 transition-colors text-center text-xs font-black">&raquo;</button>
         )}
 
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {!isSidebarCollapsed && (
-            <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest px-2 mb-2">Main</p>
+            <p className="text-[9px] font-black uppercase text-gray-600 tracking-widest px-2 mb-2">Main</p>
           )}
           {navItems.map(v => {
             const isActive = viewMode === v;
@@ -400,7 +402,7 @@ export default function App() {
                 key={v}
                 onClick={() => handleSetViewMode(v)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all relative ${
-                  isActive ? "bg-green-50 text-green-800 font-black" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                  isActive ? "bg-[#1f1f23] text-gray-100 font-black" : "text-gray-500 hover:bg-[#1a1a1d] hover:text-gray-300"
                 }`}
                 title={isSidebarCollapsed ? (v === "MyQueue" ? "My Queue" : v === "CopyAgent" ? "Copy Agent" : v) : ""}
               >
@@ -409,85 +411,85 @@ export default function App() {
                   <span>{v === "MyQueue" ? "My Queue" : v === "CopyAgent" ? "Copy Agent" : v}</span>
                 )}
                 {v === "Ideas" && ideaCounts.pending > 0 && (
-                  <span className={`bg-amber-400 text-white text-[8px] min-w-[16px] h-[16px] flex items-center justify-center font-black rounded-full ${isSidebarCollapsed ? "absolute top-1 right-1" : "ml-auto"}`}>
+                  <span className={`bg-amber-500 text-white text-[8px] min-w-[16px] h-[16px] flex items-center justify-center font-black rounded-full ${isSidebarCollapsed ? "absolute top-1 right-1" : "ml-auto"}`}>
                     {ideaCounts.pending}
                   </span>
                 )}
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-700 rounded-r-full" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gray-100 rounded-r-full" />
                 )}
               </button>
             );
           })}
 
           {isFounder && !isSidebarCollapsed && (
-            <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest px-2 mt-4 mb-2">Management</p>
+            <p className="text-[9px] font-black uppercase text-gray-600 tracking-widest px-2 mt-4 mb-2">Management</p>
           )}
           {isFounder && (
             <button
               onClick={() => handleSetViewMode("Manager")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all relative ${
-                viewMode === "Manager" ? "bg-green-50 text-green-800 font-black" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                viewMode === "Manager" ? "bg-[#1f1f23] text-gray-100 font-black" : "text-gray-500 hover:bg-[#1a1a1d] hover:text-gray-300"
               }`}
               title={isSidebarCollapsed ? "Workload" : ""}
             >
               <span className="text-base shrink-0">{NAV_ICONS["Workload"]}</span>
               {!isSidebarCollapsed && <span>Workload</span>}
-              {viewMode === "Manager" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-700 rounded-r-full" />}
+              {viewMode === "Manager" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gray-100 rounded-r-full" />}
             </button>
           )}
           {(isFounder || isStrategist || isMediaBuyer) && (
             <button
               onClick={() => handleSetViewMode("Settings")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all relative ${
-                viewMode === "Settings" ? "bg-green-50 text-green-800 font-black" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                viewMode === "Settings" ? "bg-[#1f1f23] text-gray-100 font-black" : "text-gray-500 hover:bg-[#1a1a1d] hover:text-gray-300"
               }`}
               title={isSidebarCollapsed ? "Settings" : ""}
             >
               <span className="text-base shrink-0">{NAV_ICONS["Settings"]}</span>
               {!isSidebarCollapsed && <span>Settings</span>}
-              {viewMode === "Settings" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-700 rounded-r-full" />}
+              {viewMode === "Settings" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gray-100 rounded-r-full" />}
             </button>
           )}
         </nav>
 
-        <div className="border-t border-gray-100 p-3">
+        <div className="border-t border-gray-800 p-3">
           <div
             onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-            className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-all relative"
+            className="flex items-center gap-2 p-2 rounded-xl hover:bg-[#1a1a1d] cursor-pointer transition-all relative"
           >
-            <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center font-black text-green-700 text-[11px] shrink-0">
+            <div className="w-7 h-7 rounded-full bg-[#1f1f23] flex items-center justify-center font-black text-gray-200 text-[11px] shrink-0">
               {currentUser.charAt(0).toUpperCase()}
             </div>
             {!isSidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-gray-800 truncate leading-none">{currentUser}</p>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{currentRole}</p>
+                <p className="text-xs font-black text-gray-100 truncate leading-none">{currentUser}</p>
+                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{currentRole}</p>
               </div>
             )}
             {isUserDropdownOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="text-xs font-black text-gray-800">{currentUser}</p>
-                  <p className="text-[10px] text-gray-400">{profile?.email}</p>
+              <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#1a1a1d] border border-gray-700 rounded-xl shadow-xl z-50 py-2 overflow-hidden">
+                <div className="px-4 py-2 border-b border-gray-800">
+                  <p className="text-xs font-black text-gray-100">{currentUser}</p>
+                  <p className="text-[10px] text-gray-500">{profile?.email}</p>
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); unlockAudio(); playNotificationSound(); }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 text-gray-600 transition-colors"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-[#0d0d0f] text-gray-400 transition-colors"
                 >
                   {isAudioUnlocked ? "🔊 Sound ON" : "🔇 Enable Sound"}
                 </button>
                 {isFounder && (
                   <button
                     onClick={() => { handleSetViewMode("Settings"); setIsUserDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-gray-50 text-gray-600 transition-colors"
+                    className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-[#0d0d0f] text-gray-400 transition-colors"
                   >
                     ⚙️ Settings
                   </button>
                 )}
                 <button
                   onClick={() => { signOut(); setIsUserDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-red-50 text-red-500 transition-colors"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-red-950 text-red-400 transition-colors"
                 >
                   🚪 Sign Out
                 </button>
@@ -501,13 +503,13 @@ export default function App() {
       <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? "ml-16" : "ml-56"}`}>
 
         {/* ── TOP BAR ── */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+        <header className="bg-[#141416] border-b border-gray-800 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-lg font-black text-gray-900 leading-none">
+              <h1 className="text-lg font-black text-gray-100 leading-none">
                 {viewMode === "MyQueue" ? "My Queue" : viewMode === "CopyAgent" ? "Copy Agent" : viewMode}
               </h1>
-              <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+              <p className="text-[10px] text-gray-500 font-medium mt-0.5">
                 {viewMode === "Dashboard" ? `Welcome back, ${currentUser}` :
                  viewMode === "Pipeline" ? `${ads.filter(a => !["Winner", "Killed"].includes(a.status)).length} active ads` :
                  viewMode === "MyQueue" ? `${myQueue.length} tasks assigned to you` :
@@ -516,6 +518,7 @@ export default function App() {
                  viewMode === "Archive" ? "Completed and killed ads" :
                  viewMode === "CopyAgent" ? "Generate 3:3:1 challenger ad copy with Claude" :
                  viewMode === "Cycles" ? "Ads grouped by week created" :
+                 viewMode === "Analytics" ? "Full performance table by concept" :
                  ""}
               </p>
             </div>
@@ -523,21 +526,21 @@ export default function App() {
 
           <div className="flex items-center gap-3">
             {Object.keys(activeSessions).length > 0 && (
-              <div className="flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
+              <div className="flex items-center gap-2 bg-[#1a1a1d] border border-gray-700 px-3 py-1.5 rounded-xl">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
                   {Object.keys(activeSessions).length} Active
                 </span>
-                <span className="text-[11px] font-black text-green-600 font-mono">
+                <span className="text-[11px] font-black text-gray-200 font-mono">
                   {formatTimer(Math.max(...Object.values(activeSessions).map(s => s.elapsedSeconds)))}
                 </span>
               </div>
             )}
-            <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-green-500" : "bg-gray-300"}`} title={isSubscribed ? "Connected" : "Connecting..."} />
+            <div className={`w-2 h-2 rounded-full ${isSubscribed ? "bg-green-500" : "bg-gray-600"}`} title={isSubscribed ? "Connected" : "Connecting..."} />
             <div className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500"
+                className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#1a1a1d] transition-colors text-gray-400"
               >
                 🔔
                 {unreadCount > 0 && (
@@ -559,7 +562,7 @@ export default function App() {
             {canCreateAd && (
               <button
                 onClick={() => setIsNewAdOpen(true)}
-                className="bg-green-700 text-white px-4 py-2 rounded-xl font-black text-xs hover:bg-green-800 transition-all shadow-sm"
+                className="bg-gray-100 text-gray-900 px-4 py-2 rounded-xl font-black text-xs hover:bg-white transition-all shadow-sm"
               >
                 + New Ad
               </button>
@@ -577,6 +580,9 @@ export default function App() {
           )}
           {viewMode === "Cycles" && (
             <CyclesView ads={ads} onSelectAd={handleSelectAd} />
+          )}
+          {viewMode === "Analytics" && (
+            <AnalyticsView ads={ads} onSelectAd={handleSelectAd} />
           )}
           {viewMode === "MyQueue" && (
             <MyQueueView currentUser={currentUser} myQueue={myQueue} setSelectedAd={handleSelectAd} activeSessions={activeSessions} formatTimer={formatTimer} />
@@ -610,7 +616,7 @@ export default function App() {
 
       {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
-        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} subAvatars={subAvatars} angles={angles} concepts={concepts} />
+        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} subAvatars={subAvatars} angles={angles} concepts={concepts} ads={ads} />
       )}
       {ideaToPromote && (
         <PromoteIdeaModal idea={ideaToPromote} onConfirm={(idea) => handlePromoteIdea(idea, setNewAd, setIsNewAdOpen, handleSetViewMode)} onCancel={() => setIdeaToPromote(null)} />

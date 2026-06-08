@@ -144,12 +144,12 @@ export default function PipelineView({
     return ["Idea", "Writing Brief", "Brief Revision Required", "Brief Approved", "Editor Assigned", "In Progress", "Ad Revision", "Pending Upload", "Testing", "Winner", "Killed"].filter(s => s !== activeStage);
   }, [activeStage]);
 
-  const filterSelectClass = "w-full border border-gray-200 bg-white p-2.5 rounded-xl text-xs font-bold outline-none focus:border-green-500 text-gray-700";
+  const filterSelectClass = "w-full border border-gray-700 bg-[#1a1a1d] p-2.5 rounded-xl text-xs font-bold outline-none focus:border-gray-500 text-gray-200";
 
   return (
     <>
       {/* Stage tabs */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex flex-wrap gap-2 overflow-x-auto">
+      <div className="bg-[#141416] border-b border-gray-800 px-4 py-3 flex flex-wrap gap-2 overflow-x-auto">
         {STAGES.map(stage => {
           const isArchived = ["Winner", "Killed"].includes(stage);
           const stageCount = ads.filter(ad => ad.status === stage).length;
@@ -160,17 +160,17 @@ export default function PipelineView({
               onClick={() => { setActiveStage(stage); setSelectedIds(new Set()); clearSelection(); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tight transition-all border ${
                 isActive
-                  ? "bg-green-700 text-white border-green-700 shadow-sm"
+                  ? "bg-gray-100 text-gray-900 border-gray-100 shadow-sm"
                   : isArchived
-                  ? "bg-gray-50 text-gray-400 border-gray-200 italic"
-                  : "bg-white text-gray-500 border-gray-200 hover:border-green-300 hover:text-green-700"
+                  ? "bg-[#0d0d0f] text-gray-600 border-gray-800 italic"
+                  : "bg-[#1a1a1d] text-gray-400 border-gray-800 hover:border-gray-600 hover:text-gray-200"
               }`}
             >
               {stage}
               <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${
-                isActive ? "bg-green-600 text-white" :
-                isArchived ? "bg-gray-100 text-gray-400" :
-                "bg-gray-100 text-gray-500"
+                isActive ? "bg-gray-300 text-gray-900" :
+                isArchived ? "bg-[#1a1a1d] text-gray-600" :
+                "bg-[#0d0d0f] text-gray-400"
               }`}>
                 {stageCount}
               </span>
@@ -180,17 +180,17 @@ export default function PipelineView({
       </div>
 
       {/* Search + Filter Bar */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
+      <div className="bg-[#141416] border-b border-gray-800 px-4 py-3">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 type="text"
                 placeholder="Search by name, product, editor, strategist..."
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 bg-white rounded-xl text-sm font-medium outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all placeholder:text-gray-300 text-gray-800"
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-700 bg-[#1a1a1d] rounded-xl text-sm font-medium outline-none focus:border-gray-500 transition-all placeholder:text-gray-600 text-gray-100"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -199,18 +199,18 @@ export default function PipelineView({
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest border transition-all ${
                 showFilters || hasActiveFilters
-                  ? "bg-green-700 text-white border-green-700"
-                  : "bg-white text-gray-500 border-gray-200 hover:border-green-300"
+                  ? "bg-gray-100 text-gray-900 border-gray-100"
+                  : "bg-[#1a1a1d] text-gray-400 border-gray-700 hover:border-gray-500"
               }`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
               </svg>
               Filters
-              {hasActiveFilters && <span className="bg-white text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded-full">ON</span>}
+              {hasActiveFilters && <span className="bg-gray-900 text-gray-100 text-[9px] font-black px-1.5 py-0.5 rounded-full">ON</span>}
             </button>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-[10px] font-black text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest">
+              <button onClick={clearFilters} className="text-[10px] font-black text-gray-500 hover:text-red-400 transition-colors uppercase tracking-widest">
                 Clear
               </button>
             )}
@@ -225,7 +225,7 @@ export default function PipelineView({
                 { label: "Format", value: filterFormat, onChange: setFilterFormat, options: formats, placeholder: "All Formats" },
               ].map(f => (
                 <div key={f.label}>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{f.label}</label>
+                  <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">{f.label}</label>
                   <select className={filterSelectClass} value={f.value} onChange={e => f.onChange(e.target.value)}>
                     <option value="All">{f.placeholder}</option>
                     {f.options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -233,7 +233,7 @@ export default function PipelineView({
                 </div>
               ))}
               <div>
-                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Priority</label>
+                <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Priority</label>
                 <select className={filterSelectClass} value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
                   <option value="All">All Priorities</option>
                   <option value="High">High</option>
@@ -242,7 +242,7 @@ export default function PipelineView({
                 </select>
               </div>
               <div>
-                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Ad Type</label>
+                <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Ad Type</label>
                 <select className={filterSelectClass} value={filterAdType} onChange={e => setFilterAdType(e.target.value)}>
                   <option value="All">All Types</option>
                   <option value="Iteration">Iteration</option>
@@ -259,45 +259,45 @@ export default function PipelineView({
       <div className="flex-1 p-4 md:p-6 overflow-y-auto max-w-[1200px] mx-auto w-full pb-32">
 
         {activeStage === "Winner" && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+          <div className="bg-green-950/30 border border-green-900 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <span className="text-xl">🏆</span>
-            <p className="text-sm font-bold text-green-700">These ads are archived. View the full Archive section for search and filters.</p>
+            <p className="text-sm font-bold text-green-400">These ads are archived. View the full Archive section for search and filters.</p>
           </div>
         )}
 
         {activeStage === "Killed" && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+          <div className="bg-red-950/30 border border-red-900 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <span className="text-xl">💀</span>
-            <p className="text-sm font-bold text-red-600">Killed ads are permanently deleted after 30 days.</p>
+            <p className="text-sm font-bold text-red-400">Killed ads are permanently deleted after 30 days.</p>
           </div>
         )}
 
         {isFounder && filteredAds.length > 0 && (
           <div className="flex items-center gap-3 mb-4">
-            <input type="checkbox" checked={selectedIds.size === filteredAds.length && filteredAds.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-green-700 cursor-pointer" />
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            <input type="checkbox" checked={selectedIds.size === filteredAds.length && filteredAds.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-gray-300 cursor-pointer" />
+            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
               {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select All"}
             </span>
             {selectedIds.size > 0 && (
-              <button onClick={clearSelection} className="text-[10px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest">Clear</button>
+              <button onClick={clearSelection} className="text-[10px] font-black text-red-400 hover:text-red-300 uppercase tracking-widest">Clear</button>
             )}
           </div>
         )}
 
         {hasActiveFilters && (
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">
+          <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-4">
             {filteredAds.length} result{filteredAds.length !== 1 ? "s" : ""} found
           </p>
         )}
 
         {filteredAds.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+          <div className="flex flex-col items-center justify-center py-20 text-gray-700">
             <div className="text-6xl mb-4">{hasActiveFilters ? "🔍" : "📭"}</div>
-            <p className="text-lg font-bold text-gray-400">
+            <p className="text-lg font-bold text-gray-500">
               {hasActiveFilters ? "No ads match your filters" : `No ads currently in ${activeStage}`}
             </p>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="mt-3 text-sm font-black text-green-700 hover:text-green-800">Clear filters</button>
+              <button onClick={clearFilters} className="mt-3 text-sm font-black text-gray-300 hover:text-white">Clear filters</button>
             )}
           </div>
         ) : (
@@ -318,34 +318,34 @@ export default function PipelineView({
                 <div
                   key={ad.id}
                   onClick={() => { if (!isSelected) setSelectedAd(ad); }}
-                  className={`bg-white rounded-2xl border shadow-sm transition-all relative overflow-hidden cursor-pointer hover:shadow-md ${
-                    isSelected ? "border-green-400 ring-2 ring-green-100" :
-                    session ? "border-green-300 bg-green-50" :
-                    overdue ? "border-red-200 bg-red-50" :
-                    "border-gray-100 hover:border-green-200"
+                  className={`bg-[#141416] rounded-2xl border shadow-sm transition-all relative overflow-hidden cursor-pointer hover:shadow-md ${
+                    isSelected ? "border-gray-400 ring-2 ring-gray-700" :
+                    session ? "border-green-900 bg-green-950/20" :
+                    overdue ? "border-red-900 bg-red-950/20" :
+                    "border-gray-800 hover:border-gray-700"
                   }`}
                 >
                   {/* Priority stripe */}
                   <div className={`absolute top-0 left-0 right-0 h-1 ${
                     ad.priority === "High" ? "bg-red-500" :
                     ad.priority === "Medium" ? "bg-amber-400" :
-                    "bg-gray-200"
+                    "bg-gray-700"
                   }`} />
 
                   {isFounder && (
                     <div className="absolute top-3 left-3 z-10" onClick={e => { e.stopPropagation(); toggleSelect(ad.id); }}>
-                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(ad.id)} className="w-4 h-4 rounded accent-green-700 cursor-pointer" onClick={e => e.stopPropagation()} />
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(ad.id)} className="w-4 h-4 rounded accent-gray-300 cursor-pointer" onClick={e => e.stopPropagation()} />
                     </div>
                   )}
 
                   {overdue && (
-                    <div className="absolute top-1 left-0 right-0 bg-red-500 text-white text-[9px] font-black uppercase tracking-widest text-center py-0.5">
+                    <div className="absolute top-1 left-0 right-0 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest text-center py-0.5">
                       ⚠️ Overdue — Due {dueDate}
                     </div>
                   )}
 
                   {isKilled && daysUntilDeletion !== null && (
-                    <div className={`absolute top-1 left-0 right-0 text-white text-[9px] font-black uppercase tracking-widest text-center py-0.5 ${daysUntilDeletion <= 5 ? "bg-red-600" : "bg-gray-500"}`}>
+                    <div className={`absolute top-1 left-0 right-0 text-white text-[9px] font-black uppercase tracking-widest text-center py-0.5 ${daysUntilDeletion <= 5 ? "bg-red-600" : "bg-gray-600"}`}>
                       💀 Deletes in {daysUntilDeletion} day{daysUntilDeletion !== 1 ? "s" : ""}
                     </div>
                   )}
@@ -355,74 +355,74 @@ export default function PipelineView({
                     <div className={`flex items-baseline gap-2 mb-3 ${overdue || isKilled ? "mt-4" : isFounder ? "mt-1 ml-6" : "mt-1"}`}>
                       {ad.imprint_number && (
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-xs font-black font-mono text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                          <span className="text-xs font-black font-mono text-amber-500 bg-amber-950/50 border border-amber-900 px-2 py-0.5 rounded-md">
                             DTC #{String(ad.imprint_number)}
                           </span>
                           {isKilled && (
-                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-red-100 text-red-500 border border-red-200">
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-red-950 text-red-400 border border-red-900">
                               KILLED
                             </span>
                           )}
                         </div>
                       )}
-                      <p className="font-black text-gray-800 leading-snug">{ad.concept_name}</p>
+                      <p className="font-black text-gray-100 leading-snug">{ad.concept_name}</p>
                     </div>
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-1.5 mb-3">
-                      <span className="text-[9px] font-black px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md uppercase">{ad.ad_type}</span>
-                      <span className="text-[9px] font-black px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md uppercase">{ad.ad_format}</span>
+                      <span className="text-[9px] font-black px-2 py-0.5 bg-[#0d0d0f] text-gray-400 rounded-md uppercase">{ad.ad_type}</span>
+                      <span className="text-[9px] font-black px-2 py-0.5 bg-[#0d0d0f] text-gray-400 rounded-md uppercase">{ad.ad_format}</span>
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase ${
-                        ad.priority === "High" ? "bg-red-100 text-red-600" :
-                        ad.priority === "Medium" ? "bg-amber-100 text-amber-600" :
-                        "bg-gray-100 text-gray-400"
+                        ad.priority === "High" ? "bg-red-950 text-red-400" :
+                        ad.priority === "Medium" ? "bg-amber-950 text-amber-400" :
+                        "bg-[#0d0d0f] text-gray-500"
                       }`}>{ad.priority || "Medium"}</span>
                       {ad.assigned_editor && (
-                        <span className="text-[9px] font-black px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md uppercase">✂️ {ad.assigned_editor}</span>
+                        <span className="text-[9px] font-black px-2 py-0.5 bg-blue-950 text-blue-400 rounded-md uppercase">✂️ {ad.assigned_editor}</span>
                       )}
                       {ad.assigned_copywriter && (
-                        <span className="text-[9px] font-black px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md uppercase">✍️ {ad.assigned_copywriter}</span>
+                        <span className="text-[9px] font-black px-2 py-0.5 bg-purple-950 text-purple-400 rounded-md uppercase">✍️ {ad.assigned_copywriter}</span>
                       )}
                       {ad.product && (
-                        <span className="text-[9px] font-black px-2 py-0.5 bg-green-50 text-green-700 rounded-md uppercase">📦 {ad.product}</span>
+                        <span className="text-[9px] font-black px-2 py-0.5 bg-[#1f1f23] text-gray-300 rounded-md uppercase">📦 {ad.product}</span>
                       )}
                     </div>
 
                     {/* Indicators */}
                     <div className="flex flex-wrap gap-2 mb-3">
                       {ad.due_date && !overdue && (
-                        <span className="text-[9px] font-black text-gray-400">📅 Due {formatDueDate(ad.due_date)}</span>
+                        <span className="text-[9px] font-black text-gray-500">📅 Due {formatDueDate(ad.due_date)}</span>
                       )}
                       {ad.status === "Testing" && testingDaysLeft !== null && (
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg ${testingDaysLeft <= 2 ? "bg-red-100 text-red-500" : "bg-green-100 text-green-700"}`}>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg ${testingDaysLeft <= 2 ? "bg-red-950 text-red-400" : "bg-green-950 text-green-400"}`}>
                           🧪 {testingDaysLeft > 0 ? `${testingDaysLeft}d left` : "Complete"}
                         </span>
                       )}
                       {isStale && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-lg bg-amber-100 text-amber-600">
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-lg bg-amber-950 text-amber-400">
                           ⏳ {daysInStage}d in stage
                         </span>
                       )}
                       {(ad.revision_count ?? 0) > 0 && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-lg bg-gray-100 text-gray-500">
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-lg bg-[#0d0d0f] text-gray-400">
                           🔄 {ad.revision_count} revision{(ad.revision_count ?? 0) !== 1 ? "s" : ""}
                         </span>
                       )}
                     </div>
 
                     {ad.review_link && (
-                      <a href={ad.review_link} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-green-700 hover:text-green-800 transition-colors uppercase tracking-widest block mb-2" onClick={e => e.stopPropagation()}>
+                      <a href={ad.review_link} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-gray-300 hover:text-white transition-colors uppercase tracking-widest block mb-2" onClick={e => e.stopPropagation()}>
                         View Review File ↗
                       </a>
                     )}
 
                     {/* Bottom row */}
-                    <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                      <span className={`text-[10px] font-bold ${isStale ? "text-red-500 font-black" : "text-gray-400"}`}>
+                    <div className="mt-3 pt-3 border-t border-gray-800 flex items-center justify-between">
+                      <span className={`text-[10px] font-bold ${isStale ? "text-red-400 font-black" : "text-gray-500"}`}>
                         ⏱️ {daysInStage}d in stage
                       </span>
                       {myTask && session && formatTimer && currentRole !== "Strategist" && currentRole !== "Founder" && (
-                        <div className="flex items-center gap-1.5 bg-green-600 text-white px-2.5 py-1 rounded-lg">
+                        <div className="flex items-center gap-1.5 bg-green-700 text-white px-2.5 py-1 rounded-lg">
                           <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                           <span className="text-[9px] font-black uppercase">Active</span>
                           <span className="font-black text-xs font-mono">{formatTimer(session.elapsedSeconds)}</span>
@@ -438,10 +438,10 @@ export default function PipelineView({
 
         {/* Bulk Actions Bar */}
         {isFounder && selectedIds.size > 0 && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-4 z-50 border border-gray-700">
-            <span className="text-[11px] font-black uppercase tracking-widest text-gray-300">{selectedIds.size} selected</span>
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1a1a1d] text-gray-100 rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-4 z-50 border border-gray-700">
+            <span className="text-[11px] font-black uppercase tracking-widest text-gray-400">{selectedIds.size} selected</span>
             <div className="w-px h-5 bg-gray-700" />
-            <select value={bulkAction} onChange={e => setBulkAction(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-green-400">
+            <select value={bulkAction} onChange={e => setBulkAction(e.target.value)} className="bg-[#0d0d0f] border border-gray-700 text-gray-100 text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-gray-500">
               <option value="">Choose action...</option>
               <option value="reassign">Reassign Editor</option>
               <option value="priority">Set Priority</option>
@@ -450,28 +450,28 @@ export default function PipelineView({
               <option value="delete">Delete Permanently</option>
             </select>
             {bulkAction === "reassign" && (
-              <select value={bulkEditor} onChange={e => setBulkEditor(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none">
+              <select value={bulkEditor} onChange={e => setBulkEditor(e.target.value)} className="bg-[#0d0d0f] border border-gray-700 text-gray-100 text-xs font-bold rounded-xl px-3 py-2 outline-none">
                 <option value="">Select editor...</option>
                 {editors.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
             )}
             {bulkAction === "priority" && (
-              <select value={bulkPriority} onChange={e => setBulkPriority(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none">
+              <select value={bulkPriority} onChange={e => setBulkPriority(e.target.value)} className="bg-[#0d0d0f] border border-gray-700 text-gray-100 text-xs font-bold rounded-xl px-3 py-2 outline-none">
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
                 <option value="Low">Low</option>
               </select>
             )}
             {bulkAction === "move" && (
-              <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none">
+              <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} className="bg-[#0d0d0f] border border-gray-700 text-gray-100 text-xs font-bold rounded-xl px-3 py-2 outline-none">
                 <option value="">Select stage...</option>
                 {nextStages.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             )}
-            <button onClick={executeBulkAction} disabled={!bulkAction} className="bg-green-700 hover:bg-green-600 disabled:opacity-40 text-white text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all">
+            <button onClick={executeBulkAction} disabled={!bulkAction} className="bg-gray-100 hover:bg-white disabled:opacity-40 text-gray-900 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all">
               Apply
             </button>
-            <button onClick={clearSelection} className="text-gray-400 hover:text-white text-xs font-black uppercase tracking-widest transition-colors">
+            <button onClick={clearSelection} className="text-gray-500 hover:text-gray-200 text-xs font-black uppercase tracking-widest transition-colors">
               Cancel
             </button>
           </div>

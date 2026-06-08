@@ -1,4 +1,5 @@
-import { NewAdForm } from "../../types";
+import { useMemo } from "react";
+import { Ad, NewAdForm } from "../../types";
 
 interface EditorProfile {
   full_name: string;
@@ -22,29 +23,56 @@ interface Props {
   subAvatars?: string[];
   angles?: string[];
   concepts?: string[];
+  ads?: Ad[];
+}
+
+function getWeekLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const day = date.getDay();
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - ((day + 6) % 7));
+  return monday.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function NewAdModal({
   newAd, setNewAd, onSubmit, onClose,
   editors, currentRole, currentUser, allEditorProfiles = [],
   allStrategistProfiles = [], products = [], whitelistPages = [], destinationUrls = [],
-  subAvatars = [], angles = [], concepts = []
+  subAvatars = [], angles = [], concepts = [], ads = []
 }: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
   const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
   const defaultStrategist = (isFounder || isStrategist) ? currentUser || "" : "";
 
-  const inputClass = "w-full border border-gray-200 bg-gray-50 p-3.5 rounded-xl text-sm font-medium outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all placeholder:text-gray-300 text-gray-800";
-  const selectClass = "w-full border border-gray-200 bg-white p-3.5 rounded-xl text-sm font-black outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all text-gray-700";
+  const inputClass = "w-full border border-gray-700 bg-[#0d0d0f] p-3.5 rounded-xl text-sm font-medium outline-none focus:border-gray-500 transition-all placeholder:text-gray-600 text-gray-100";
+  const selectClass = "w-full border border-gray-700 bg-[#1a1a1d] p-3.5 rounded-xl text-sm font-black outline-none focus:border-gray-500 transition-all text-gray-200";
   const labelClass = "block text-[10px] font-black text-gray-500 mb-1.5 uppercase tracking-widest";
 
+  // ── DUPLICATE DETECTION ──
+  const duplicateMatches = useMemo(() => {
+    if (!newAd.concept && !newAd.sub_avatar) return [];
+    return ads.filter(ad => {
+      const conceptMatch = newAd.concept && ad.concept && ad.concept === newAd.concept;
+      const subAvatarMatch = newAd.sub_avatar && ad.sub_avatar && ad.sub_avatar === newAd.sub_avatar;
+      return conceptMatch && subAvatarMatch;
+    });
+  }, [ads, newAd.concept, newAd.sub_avatar]);
+
+  const duplicateWarning = useMemo(() => {
+    if (duplicateMatches.length === 0) return null;
+    const tested = duplicateMatches.filter(a => ["Testing", "Winner", "Killed"].includes(a.status));
+    const winners = duplicateMatches.filter(a => a.result === "Winner" || a.status === "Winner");
+    const losers = duplicateMatches.filter(a => a.result === "Loser");
+    return { matches: duplicateMatches, tested, winners, losers };
+  }, [duplicateMatches]);
+
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[95vh] overflow-y-auto border border-gray-200">
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-xl font-black text-gray-900">New Creative Concept</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all font-black">✕</button>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#141416] rounded-2xl w-full max-w-lg shadow-2xl max-h-[95vh] overflow-y-auto border border-gray-800">
+        <div className="px-6 py-5 border-b border-gray-800 flex items-center justify-between">
+          <h2 className="text-xl font-black text-gray-100">New Creative Concept</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#1a1a1d] text-gray-500 hover:text-gray-300 transition-all font-black">✕</button>
         </div>
         <form onSubmit={onSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -100,6 +128,71 @@ export default function NewAdModal({
               </select>
             </div>
 
+            {/* ── DUPLICATE WARNING ── */}
+            {duplicateWarning && (
+              <div className="md:col-span-2">
+                <div className={`rounded-2xl p-4 border-2 ${
+                  duplicateWarning.winners.length > 0
+                    ? "bg-green-950/30 border-green-800"
+                    : duplicateWarning.losers.length > 0
+                    ? "bg-red-950/30 border-red-800"
+                    : "bg-amber-950/30 border-amber-800"
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl shrink-0">
+                      {duplicateWarning.winners.length > 0 ? "🏆" : duplicateWarning.losers.length > 0 ? "⚠️" : "🔁"}
+                    </span>
+                    <div className="flex-1">
+                      <p className={`text-[11px] font-black uppercase tracking-widest mb-2 ${
+                        duplicateWarning.winners.length > 0 ? "text-green-400" :
+                        duplicateWarning.losers.length > 0 ? "text-red-400" :
+                        "text-amber-400"
+                      }`}>
+                        {duplicateWarning.winners.length > 0
+                          ? "This combo already produced a winner!"
+                          : duplicateWarning.losers.length > 0
+                          ? "This combo was already tested and lost"
+                          : "This concept + sub avatar combo was already used"}
+                      </p>
+                      <div className="space-y-1.5">
+                        {duplicateWarning.matches.slice(0, 3).map(ad => (
+                          <div key={ad.id} className="bg-[#141416] rounded-xl px-3 py-2 border border-gray-700 flex items-center justify-between gap-2">
+                            <div>
+                              {ad.imprint_number && (
+                                <span className="text-[9px] font-black font-mono text-amber-500 mr-2">DTC #{ad.imprint_number}</span>
+                              )}
+                              <span className="text-[11px] font-black text-gray-100">{ad.concept_name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {ad.result && (
+                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
+                                  ad.result === "Winner" ? "bg-green-950 text-green-400" :
+                                  ad.result === "Loser" ? "bg-red-950 text-red-400" :
+                                  "bg-[#0d0d0f] text-gray-500"
+                                }`}>{ad.result}</span>
+                              )}
+                              <span className="text-[9px] font-bold text-gray-500">
+                                {ad.created_at ? `Week of ${getWeekLabel(ad.created_at)}` : ""}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        {duplicateWarning.matches.length > 3 && (
+                          <p className="text-[10px] font-bold text-gray-500 pl-1">+{duplicateWarning.matches.length - 3} more</p>
+                        )}
+                      </div>
+                      {duplicateWarning.winners.length > 0 && (
+                        <p className="text-[10px] font-bold text-green-500 mt-2">Consider iterating on this instead of starting fresh.</p>
+                      )}
+                      {duplicateWarning.losers.length > 0 && duplicateWarning.winners.length === 0 && (
+                        <p className="text-[10px] font-bold text-red-400 mt-2">Are you sure you want to test this combo again?</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {(isFounder || isStrategist) && (
               <div>
                 <label className={labelClass}>Priority</label>
@@ -139,9 +232,9 @@ export default function NewAdModal({
 
             {(isFounder || isStrategist) && (
               <div className="md:col-span-2">
-                <label className={labelClass}>Strategist <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
+                <label className={labelClass}>Strategist <span className="text-gray-600 normal-case font-medium">(optional)</span></label>
                 {isStrategist ? (
-                  <input disabled className="w-full border border-gray-100 bg-gray-50 p-3.5 rounded-xl text-sm font-bold text-gray-400 cursor-not-allowed" value={`${currentUser || ""} (${currentRole})`} />
+                  <input disabled className="w-full border border-gray-800 bg-[#0d0d0f] p-3.5 rounded-xl text-sm font-bold text-gray-500 cursor-not-allowed" value={`${currentUser || ""} (${currentRole})`} />
                 ) : (
                   <select className={selectClass} value={newAd.assigned_copywriter || defaultStrategist} onChange={e => setNewAd({ ...newAd, assigned_copywriter: e.target.value })}>
                     <option value="">— Select Strategist —</option>
@@ -152,9 +245,9 @@ export default function NewAdModal({
             )}
 
             <div>
-              <label className={labelClass}>Editor <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
+              <label className={labelClass}>Editor <span className="text-gray-600 normal-case font-medium">(optional)</span></label>
               {isEditor ? (
-                <input disabled className="w-full border border-gray-100 bg-gray-50 p-3.5 rounded-xl text-sm font-bold text-gray-400 cursor-not-allowed" value={`${currentUser || ""} (${currentRole})`} />
+                <input disabled className="w-full border border-gray-800 bg-[#0d0d0f] p-3.5 rounded-xl text-sm font-bold text-gray-500 cursor-not-allowed" value={`${currentUser || ""} (${currentRole})`} />
               ) : (
                 <select className={selectClass} value={newAd.assigned_editor} onChange={e => setNewAd({ ...newAd, assigned_editor: e.target.value })}>
                   <option value="">— Select Editor —</option>
@@ -167,7 +260,7 @@ export default function NewAdModal({
             </div>
 
             <div>
-              <label className={labelClass}>Due Date <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
+              <label className={labelClass}>Due Date <span className="text-gray-600 normal-case font-medium">(optional)</span></label>
               <input type="date" className={inputClass} value={newAd.due_date ? newAd.due_date.split("T")[0] : ""} onChange={e => setNewAd({ ...newAd, due_date: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
             </div>
 
@@ -177,7 +270,7 @@ export default function NewAdModal({
             </div>
 
             <div className="md:col-span-2">
-              <label className={labelClass}>Destination URLs <span className="text-gray-300 normal-case font-medium">(landing pages — add multiple for A/B test)</span></label>
+              <label className={labelClass}>Destination URLs <span className="text-gray-600 normal-case font-medium">(landing pages — add multiple for A/B test)</span></label>
               <div className="space-y-2">
                 {(newAd.destination_url || []).map((url, i) => (
                   <div key={i} className="flex gap-2">
@@ -196,21 +289,21 @@ export default function NewAdModal({
                     <button type="button" onClick={() => {
                       const updated = (newAd.destination_url || []).filter((_, idx) => idx !== i);
                       setNewAd({ ...newAd, destination_url: updated });
-                    }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
+                    }} className="text-red-400 hover:text-red-300 font-black px-2">✕</button>
                   </div>
                 ))}
                 <datalist id="destination-url-suggestions">
                   {(destinationUrls || []).map(url => <option key={url} value={url} />)}
                 </datalist>
                 <button type="button" onClick={() => setNewAd({ ...newAd, destination_url: [...(newAd.destination_url || []), ""] })}
-                  className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">
+                  className="text-[10px] font-black text-gray-300 hover:text-white uppercase tracking-widest">
                   + Add URL
                 </button>
               </div>
             </div>
 
             <div className="md:col-span-2">
-              <label className={labelClass}>Whitelisting Pages <span className="text-gray-300 normal-case font-medium">(FB/IG pages — add multiple for A/B test)</span></label>
+              <label className={labelClass}>Whitelisting Pages <span className="text-gray-600 normal-case font-medium">(FB/IG pages — add multiple for A/B test)</span></label>
               <div className="space-y-2">
                 {(newAd.whitelisting_page || []).map((page, i) => (
                   <div key={i} className="flex gap-2">
@@ -225,20 +318,20 @@ export default function NewAdModal({
                     <button type="button" onClick={() => {
                       const updated = (newAd.whitelisting_page || []).filter((_, idx) => idx !== i);
                       setNewAd({ ...newAd, whitelisting_page: updated });
-                    }} className="text-red-400 hover:text-red-600 font-black px-2">✕</button>
+                    }} className="text-red-400 hover:text-red-300 font-black px-2">✕</button>
                   </div>
                 ))}
                 <button type="button" onClick={() => setNewAd({ ...newAd, whitelisting_page: [...(newAd.whitelisting_page || []), ""] })}
-                  className="text-[10px] font-black text-green-700 hover:text-green-800 uppercase tracking-widest">
+                  className="text-[10px] font-black text-gray-300 hover:text-white uppercase tracking-widest">
                   + Add Page
                 </button>
               </div>
             </div>
 
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="text-sm font-bold text-gray-400 px-4 py-2.5 hover:bg-gray-100 rounded-xl transition-all">Cancel</button>
-            <button type="submit" className="bg-green-700 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-800 transition-all shadow-sm">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
+            <button type="button" onClick={onClose} className="text-sm font-bold text-gray-400 px-4 py-2.5 hover:bg-[#1a1a1d] rounded-xl transition-all">Cancel</button>
+            <button type="submit" className="bg-gray-100 text-gray-900 px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-sm">
               Submit to Pipeline
             </button>
           </div>
