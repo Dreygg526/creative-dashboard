@@ -18,6 +18,11 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
   const isContentCoord = currentRole === "Content Coordinator";
   const canDelete = isFounder || (isStrategist && selectedAd?.assigned_copywriter === currentUser);
 
+  // Who is allowed to reassign the editor / strategist on an ad.
+  // Must match the canReassign logic in AdDetailModal (Founder + Strategist),
+  // plus Editors are allowed to pass an ad to another editor.
+  const canReassign = isFounder || isStrategist;
+
   const fetchAds = useCallback(async () => {
     if (!supabase) return;
     const { data, error } = await supabase
@@ -104,8 +109,6 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       const statusChanged = originalAd.status !== selectedAd.status;
 
       if (statusChanged) {
-      
-
         if (!isFounder && !isStrategist) {
           const daysLeft = getDaysLeftInTesting(originalAd.live_date);
           if (originalAd.status === "Testing" && daysLeft > 0) {
@@ -124,6 +127,19 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
         }
       }
 
+      // ── Resolve final assignment values based on permissions ──
+      // Founder + Strategist can reassign either field.
+      // Editors can pass an ad to a different editor (but not change strategist).
+      const finalEditor = (canReassign || isEditor)
+        ? (selectedAd.assigned_editor ?? "")
+        : originalAd.assigned_editor;
+      const finalCopywriter = canReassign
+        ? (selectedAd.assigned_copywriter ?? "")
+        : originalAd.assigned_copywriter;
+
+      const editorChanged = finalEditor !== originalAd.assigned_editor;
+      const copywriterChanged = finalCopywriter !== originalAd.assigned_copywriter;
+
       let updatedTimeLog: TimeLogEntry[] = [];
       try { updatedTimeLog = JSON.parse(originalAd.time_log || "[]"); } catch { updatedTimeLog = []; }
 
@@ -132,6 +148,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
       let newStageUpdatedDate = selectedAd.stage_updated_at;
       let newKilledAt = selectedAd.killed_at || originalAd.killed_at || null;
 
+      // Log status change / manual note
       if (statusChanged || manualLogNote.trim()) {
         updatedTimeLog.push({
           action: statusChanged ? `Moved to ${selectedAd.status}` : "Activity Updated",
@@ -139,83 +156,102 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           timestamp: new Date().toISOString(),
           note: manualLogNote.trim() || undefined
         });
+      }
 
-        // Log editor reassignment
-        if (selectedAd.assigned_editor !== originalAd.assigned_editor) {
-          updatedTimeLog.push({
-            action: `Passed to ${selectedAd.assigned_editor}`,
-            user: currentUser,
-            timestamp: new Date().toISOString(),
-          });
-        }
+      // Log reassignments independently of status change so they always record
+      if (editorChanged) {
+        updatedTimeLog.push({
+          action: finalEditor ? `Editor changed to ${finalEditor}` : "Editor unassigned",
+          user: currentUser,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      if (copywriterChanged) {
+        updatedTimeLog.push({
+          action: finalCopywriter ? `Strategist changed to ${finalCopywriter}` : "Strategist unassigned",
+          user: currentUser,
+          timestamp: new Date().toISOString(),
+        });
+      }
 
-        if (statusChanged) {
-          newStageUpdatedDate = new Date().toISOString();
-          if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
-          if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
-          if (selectedAd.status === "Killed") newKilledAt = new Date().toISOString();
-          if (selectedAd.status !== "Killed") newKilledAt = null;
+      if (statusChanged) {
+        newStageUpdatedDate = new Date().toISOString();
+        if (selectedAd.status === "Ad Revision") newRevisionCount += 1;
+        if (selectedAd.status === "Testing") newLiveDate = new Date().toISOString();
+        if (selectedAd.status === "Killed") newKilledAt = new Date().toISOString();
+        if (selectedAd.status !== "Killed") newKilledAt = null;
 
-          const getAllStrategists = async (): Promise<string[]> => {
-            const { data } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("role", "Strategist")
-              .eq("is_active", true);
-            return (data || []).map((p: any) => p.full_name).filter(Boolean);
-          };
+        const getAllStrategists = async (): Promise<string[]> => {
+          const { data } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("role", "Strategist")
+            .eq("is_active", true);
+          return (data || []).map((p: any) => p.full_name).filter(Boolean);
+        };
 
-          const getFounderName = async (): Promise<string> => {
-            const { data } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("role", "Founder")
-              .eq("is_active", true)
-              .limit(1);
-            return data?.[0]?.full_name || "";
-          };
+        const getFounderName = async (): Promise<string> => {
+          const { data } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("role", "Founder")
+            .eq("is_active", true)
+            .limit(1);
+          return data?.[0]?.full_name || "";
+        };
 
-          const insertNotification = async (targetUser: string, message: string) => {
-            if (!targetUser?.trim()) return;
-            await supabase.from("notifications").insert([{
-              ad_id: selectedAd.id,
-              message,
-              target_user: targetUser.trim(),
-              is_read: false
-            }]);
-          };
+        const insertNotification = async (targetUser: string, message: string) => {
+          if (!targetUser?.trim()) return;
+          await supabase.from("notifications").insert([{
+            ad_id: selectedAd.id,
+            message,
+            target_user: targetUser.trim(),
+            is_read: false
+          }]);
+        };
 
-          const msg = `${selectedAd.concept_name} moved to ${selectedAd.status}`;
+        const msg = `${selectedAd.concept_name} moved to ${selectedAd.status}`;
 
-          if (selectedAd.status === "Brief Revision Required") {
-            await insertNotification(selectedAd.assigned_copywriter || "", msg);
-          } else if (selectedAd.status === "Brief Approved") {
-            await insertNotification(selectedAd.assigned_editor || "", msg);
-          } else if (selectedAd.status === "Editor Assigned") {
-            await insertNotification(selectedAd.assigned_editor || "", msg);
-          } else if (selectedAd.status === "In Progress") {
-            const founder = await getFounderName();
-            await insertNotification(founder, msg);
-          } else if (selectedAd.status === "Done, Waiting for Approval") {
-            const founder = await getFounderName();
-            await insertNotification(founder, `✋ ${selectedAd.concept_name} — Done, Waiting for Approval`);
-            const strategists = await getAllStrategists();
-            for (const name of strategists) {
-              await insertNotification(name, `✋ ${selectedAd.concept_name} — Done, Waiting for Approval`);
-            }
-          } else if (selectedAd.status === "Ad Revision") {
-            await insertNotification(selectedAd.assigned_editor || "", msg);
-          } else if (selectedAd.status === "Pending Upload") {
-            const va = await getProfileByRole("VA");
-            await insertNotification(va, msg);
-          } else if (selectedAd.status === "Testing") {
-            await insertNotification(selectedAd.assigned_copywriter || "", msg);
-          } else if (selectedAd.status === "Winner") {
-            await insertNotification(selectedAd.assigned_copywriter || "", msg);
-          } else if (selectedAd.status === "Killed") {
-            const founder = await getFounderName();
-            await insertNotification(founder, `💀 ${selectedAd.concept_name} was killed`);
+        if (selectedAd.status === "Brief Revision Required") {
+          await insertNotification(finalCopywriter || "", msg);
+        } else if (selectedAd.status === "Brief Approved") {
+          await insertNotification(finalEditor || "", msg);
+        } else if (selectedAd.status === "Editor Assigned") {
+          await insertNotification(finalEditor || "", msg);
+        } else if (selectedAd.status === "In Progress") {
+          const founder = await getFounderName();
+          await insertNotification(founder, msg);
+        } else if (selectedAd.status === "Done, Waiting for Approval") {
+          const founder = await getFounderName();
+          await insertNotification(founder, `✋ ${selectedAd.concept_name} — Done, Waiting for Approval`);
+          const strategists = await getAllStrategists();
+          for (const name of strategists) {
+            await insertNotification(name, `✋ ${selectedAd.concept_name} — Done, Waiting for Approval`);
           }
+        } else if (selectedAd.status === "Ad Revision") {
+          await insertNotification(finalEditor || "", msg);
+        } else if (selectedAd.status === "Pending Upload") {
+          const va = await getProfileByRole("VA");
+          await insertNotification(va, msg);
+        } else if (selectedAd.status === "Testing") {
+          await insertNotification(finalCopywriter || "", msg);
+        } else if (selectedAd.status === "Winner") {
+          await insertNotification(finalCopywriter || "", msg);
+        } else if (selectedAd.status === "Killed") {
+          const founder = await getFounderName();
+          await insertNotification(founder, `💀 ${selectedAd.concept_name} was killed`);
+        }
+      }
+
+      // Notify a newly-assigned editor even when the stage didn't change
+      if (editorChanged && finalEditor && !statusChanged) {
+        if (finalEditor.trim()) {
+          await supabase.from("notifications").insert([{
+            ad_id: selectedAd.id,
+            message: `${selectedAd.concept_name} was assigned to you`,
+            target_user: finalEditor.trim(),
+            is_read: false
+          }]);
         }
       }
 
@@ -226,8 +262,8 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           ad_format: selectedAd.ad_format,
           ad_spend: selectedAd.ad_spend,
           ad_type: selectedAd.ad_type,
-          assigned_copywriter: isFounder ? selectedAd.assigned_copywriter : originalAd.assigned_copywriter,
-          assigned_editor: (isFounder || isEditor) ? selectedAd.assigned_editor : originalAd.assigned_editor,
+          assigned_copywriter: finalCopywriter,
+          assigned_editor: finalEditor,
           brief_link: selectedAd.brief_link,
           concept_name: selectedAd.concept_name,
           content_source: selectedAd.content_source,
@@ -237,7 +273,7 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           notes: selectedAd.notes,
           priority: (isFounder || isStrategist) ? selectedAd.priority : originalAd.priority,
           product: selectedAd.product,
-          result: isFounder || isStrategist ? selectedAd.result : originalAd.result,
+          result: (isFounder || isStrategist) ? selectedAd.result : originalAd.result,
           review_link: selectedAd.review_link,
           revision_count: newRevisionCount,
           stage_updated_at: newStageUpdatedDate,
