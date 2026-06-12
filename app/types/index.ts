@@ -12,6 +12,11 @@ export interface Ad {
   sub_avatar?: string;
   concept?: string;
   awareness?: string;
+  persona?: string;
+  core_emotion?: string;
+  problem?: string;
+  purchases?: number;
+  cvr?: number;
   ad_format: string;
   product: string;
   assigned_editor: string;
@@ -92,6 +97,9 @@ export interface NewAdForm {
   sub_avatar?: string;
   concept?: string;
   awareness?: string;
+  persona?: string;
+  core_emotion?: string;
+  problem?: string;
   ad_format: string;
   product: string;
   ad_type: string;

@@ -102,6 +102,9 @@ export default function App() {
   const [subAvatars, setSubAvatars] = useState<string[]>([]);
   const [angles, setAngles] = useState<string[]>([]);
   const [concepts, setConcepts] = useState<string[]>([]);
+  const [personas, setPersonas] = useState<string[]>([]);
+  const [coreEmotions, setCoreEmotions] = useState<string[]>([]);
+  const [problems, setProblems] = useState<string[]>([]);
 
   const loadProducts = async () => {
     if (!supabase) return;
@@ -139,6 +142,30 @@ export default function App() {
       const { data } = await supabase.from("settings").select("value").eq("key", "concepts").single();
       if (data?.value && Array.isArray(data.value)) setConcepts(data.value);
     } catch { setConcepts([]); }
+  };
+
+  const loadPersonas = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "personas").single();
+      if (data?.value && Array.isArray(data.value)) setPersonas(data.value);
+    } catch { setPersonas([]); }
+  };
+
+  const loadCoreEmotions = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "core_emotions").single();
+      if (data?.value && Array.isArray(data.value)) setCoreEmotions(data.value);
+    } catch { setCoreEmotions([]); }
+  };
+
+  const loadProblems = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "problems").single();
+      if (data?.value && Array.isArray(data.value)) setProblems(data.value);
+    } catch { setProblems([]); }
   };
 
   const currentUserRef = useRef(currentUser);
@@ -205,7 +232,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (supabase && user) { loadAllProfiles(); loadProducts(); loadWhitelistPages(); loadSubAvatars(); loadAngles(); loadConcepts(); }
+    if (supabase && user) { loadAllProfiles(); loadProducts(); loadWhitelistPages(); loadSubAvatars(); loadAngles(); loadConcepts(); loadPersonas(); loadCoreEmotions(); loadProblems(); }
   }, [supabase, user, profile]);
 
   useEffect(() => {
@@ -225,7 +252,7 @@ export default function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => loadAllProfiles())
       .subscribe();
     const settingsChannel = supabase.channel("settings-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => { loadProducts(); loadWhitelistPages(); loadSubAvatars(); loadAngles(); loadConcepts(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => { loadProducts(); loadWhitelistPages(); loadSubAvatars(); loadAngles(); loadConcepts(); loadPersonas(); loadCoreEmotions(); loadProblems(); })
       .subscribe();
     const notifChannel = supabase.channel("notif-realtime-v2")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload: any) => {
@@ -616,13 +643,13 @@ export default function App() {
 
       {/* ── MODALS ── */}
       {isNewAdOpen && canCreateAd && (
-        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} subAvatars={subAvatars} angles={angles} concepts={concepts} ads={ads} />
+        <NewAdModal newAd={newAd} setNewAd={setNewAd} onSubmit={handleCreateAd} onClose={() => setIsNewAdOpen(false)} editors={allEditors} copywriters={allCopywriters} currentRole={currentRole} currentUser={currentUser} allEditorProfiles={allEditorProfiles} allStrategistProfiles={allStrategistProfiles} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} subAvatars={subAvatars} angles={angles} concepts={concepts} personas={personas} coreEmotions={coreEmotions} problems={problems} ads={ads} />
       )}
       {ideaToPromote && (
         <PromoteIdeaModal idea={ideaToPromote} onConfirm={(idea) => handlePromoteIdea(idea, setNewAd, setIsNewAdOpen, handleSetViewMode)} onCancel={() => setIdeaToPromote(null)} />
       )}
       {selectedAd && (
-        <AdDetailModal selectedAd={selectedAd} ads={ads} manualLogNote={manualLogNote} setManualLogNote={setManualLogNote} setSelectedAd={setSelectedAd} onUpdate={handleUpdateAdWithSession} onDelete={handleDeleteAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allEditorProfiles={allEditorProfiles} allStrategists={allStrategists} allStrategistProfiles={allStrategistProfiles} supabase={supabase} activeSession={getSessionForAd(selectedAd.id, selectedAd)} onFinishSession={async () => { await finishSession(selectedAd.id); }} fetchSessionsForAd={fetchSessionsForAd} fetchAllSessions={fetchAllSessions} formatTimer={formatTimer} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} subAvatars={subAvatars} angles={angles} concepts={concepts} />
+        <AdDetailModal selectedAd={selectedAd} ads={ads} manualLogNote={manualLogNote} setManualLogNote={setManualLogNote} setSelectedAd={setSelectedAd} onUpdate={handleUpdateAdWithSession} onDelete={handleDeleteAd} currentRole={currentRole} currentUser={currentUser} allEditors={allEditors} allEditorProfiles={allEditorProfiles} allStrategists={allStrategists} allStrategistProfiles={allStrategistProfiles} supabase={supabase} activeSession={getSessionForAd(selectedAd.id, selectedAd)} onFinishSession={async () => { await finishSession(selectedAd.id); }} fetchSessionsForAd={fetchSessionsForAd} fetchAllSessions={fetchAllSessions} formatTimer={formatTimer} products={products} whitelistPages={whitelistPages} destinationUrls={destinationUrls} subAvatars={subAvatars} angles={angles} concepts={concepts} personas={personas} coreEmotions={coreEmotions} problems={problems} />
       )}
     </div>
   );

@@ -347,6 +347,22 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
     return () => clearInterval(interval);
   }, [supabase, ads]);
 
+  // Founder-only: wipe all active sessions (clears the timers, no time saved)
+  const clearAllSessions = async () => {
+    if (!supabase) return;
+    if (!confirm("Clear all live sessions? This stops every running timer. Elapsed time will NOT be saved.")) return;
+    const { error } = await supabase
+      .from("ad_sessions")
+      .update({ is_active: false })
+      .eq("is_active", true);
+    if (error) {
+      console.error("clearAllSessions error:", error);
+      alert("Failed to clear sessions: " + error.message);
+      return;
+    }
+    setAdSessions({});
+  };
+
   const activeAds = ads.filter(a => !["Winner", "Killed"].includes(a.status));
   const totalAds = activeAds.length;
   const inTesting = ads.filter(a => a.status === "Testing").length;
@@ -439,12 +455,23 @@ function FounderDashboard({ ads, onSelectAd, onNavigate, allProfiles, activeSess
         <div className="bg-[#141416] rounded-2xl p-6 border border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-black text-gray-100">Live Sessions</h3>
-            {activeSessionAdIds.size > 0 && (
-              <span className="text-xs font-black text-green-400 bg-green-950 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-                {activeSessionAdIds.size} active
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {activeSessionAdIds.size > 0 && (
+                <span className="text-xs font-black text-green-400 bg-green-950 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+                  {activeSessionAdIds.size} active
+                </span>
+              )}
+              {activeSessionAdIds.size > 0 && (
+                <button
+                  onClick={clearAllSessions}
+                  className="text-[10px] font-black text-gray-400 hover:text-red-400 bg-[#1f1f23] hover:bg-red-950 border border-gray-700 hover:border-red-900 px-2.5 py-1 rounded-full uppercase tracking-widest transition-all"
+                  title="Clear all live sessions (stops timers, no time saved)"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
           {activeSessionAdIds.size === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-gray-500">

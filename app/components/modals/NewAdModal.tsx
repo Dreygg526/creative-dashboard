@@ -23,6 +23,9 @@ interface Props {
   subAvatars?: string[];
   angles?: string[];
   concepts?: string[];
+  personas?: string[];
+  coreEmotions?: string[];
+  problems?: string[];
   ads?: Ad[];
 }
 
@@ -38,7 +41,7 @@ export default function NewAdModal({
   newAd, setNewAd, onSubmit, onClose,
   editors, currentRole, currentUser, allEditorProfiles = [],
   allStrategistProfiles = [], products = [], whitelistPages = [], destinationUrls = [],
-  subAvatars = [], angles = [], concepts = [], ads = []
+  subAvatars = [], angles = [], concepts = [], personas = [], coreEmotions = [], problems = [], ads = []
 }: Props) {
   const isFounder = currentRole === "Founder";
   const isStrategist = currentRole === "Strategist";
@@ -117,6 +120,30 @@ export default function NewAdModal({
               <select className={selectClass} value={newAd.angle || ""} onChange={e => setNewAd({ ...newAd, angle: e.target.value })}>
                 <option value="">— Select Angle —</option>
                 {angles.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Persona</label>
+              <select className={selectClass} value={newAd.persona || ""} onChange={e => setNewAd({ ...newAd, persona: e.target.value })}>
+                <option value="">— Select Persona —</option>
+                {personas.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Core Emotion</label>
+              <select className={selectClass} value={newAd.core_emotion || ""} onChange={e => setNewAd({ ...newAd, core_emotion: e.target.value })}>
+                <option value="">— Select Core Emotion —</option>
+                {coreEmotions.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className={labelClass}>Problem</label>
+              <select className={selectClass} value={newAd.problem || ""} onChange={e => setNewAd({ ...newAd, problem: e.target.value })}>
+                <option value="">— Select Problem —</option>
+                {problems.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
 

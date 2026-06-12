@@ -16,12 +16,17 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
   const isEditor = currentRole === "Editor" || currentRole === "Graphic Designer";
   const isVA = currentRole === "VA";
   const isContentCoord = currentRole === "Content Coordinator";
+  const isMediaBuyer = currentRole === "Media Buyer";
   const canDelete = isFounder || (isStrategist && selectedAd?.assigned_copywriter === currentUser);
 
   // Who is allowed to reassign the editor / strategist on an ad.
   // Must match the canReassign logic in AdDetailModal (Founder + Strategist),
   // plus Editors are allowed to pass an ad to another editor.
   const canReassign = isFounder || isStrategist;
+
+  // Who can edit the performance metrics (purchases / cvr) and the
+  // analytics tagging fields (persona / core emotion / problem).
+  const canEditMetrics = isFounder || isStrategist || isMediaBuyer;
 
   const fetchAds = useCallback(async () => {
     if (!supabase) return;
@@ -287,6 +292,11 @@ export function useAds(supabase: any, currentUser: string, currentRole?: string)
           sub_avatar: selectedAd.sub_avatar ?? originalAd.sub_avatar ?? null,
           concept: selectedAd.concept ?? originalAd.concept ?? null,
           awareness: selectedAd.awareness ?? originalAd.awareness ?? null,
+          persona: canEditMetrics ? (selectedAd.persona ?? originalAd.persona ?? null) : (originalAd.persona ?? null),
+          core_emotion: canEditMetrics ? (selectedAd.core_emotion ?? originalAd.core_emotion ?? null) : (originalAd.core_emotion ?? null),
+          problem: canEditMetrics ? (selectedAd.problem ?? originalAd.problem ?? null) : (originalAd.problem ?? null),
+          purchases: canEditMetrics ? (selectedAd.purchases ?? originalAd.purchases ?? null) : (originalAd.purchases ?? null),
+          cvr: canEditMetrics ? (selectedAd.cvr ?? originalAd.cvr ?? null) : (originalAd.cvr ?? null),
         })
         .eq("id", selectedAd.id)
         .select();

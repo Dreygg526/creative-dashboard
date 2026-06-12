@@ -35,6 +35,9 @@ interface Props {
   subAvatars?: string[];
   angles?: string[];
   concepts?: string[];
+  personas?: string[];
+  coreEmotions?: string[];
+  problems?: string[];
 }
 
 function formatDate(dateStr?: string) {
@@ -55,6 +58,12 @@ function fmtDuration(seconds: number) {
   if (h > 0) return `${h}h ${m}m`;
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
+}
+
+// CPA = spend / purchases (auto-calc, never stored)
+function calcCPA(spend?: number, purchases?: number): string {
+  if (!spend || !purchases || purchases <= 0) return "—";
+  return `$${(spend / purchases).toFixed(2)}`;
 }
 
 function EditableTitle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -338,7 +347,7 @@ export default function AdDetailModal({
   allStrategists = [], allStrategistProfiles = [], supabase,
   activeSession, onFinishSession, fetchSessionsForAd, fetchAllSessions, formatTimer,
   products = [], whitelistPages = [], destinationUrls = [],
-  subAvatars = [], angles = [], concepts = []
+  subAvatars = [], angles = [], concepts = [], personas = [], coreEmotions = [], problems = []
 }: Props) {
   const daysLeft = getDaysLeftInTesting(selectedAd.live_date);
   const isLocked = selectedAd.status === "Testing" && daysLeft > 0;
@@ -576,6 +585,9 @@ export default function AdDetailModal({
                       { label: "Angle", value: selectedAd.angle },
                       { label: "Concept", value: selectedAd.concept },
                       { label: "Awareness", value: selectedAd.awareness },
+                      { label: "Persona", value: selectedAd.persona },
+                      { label: "Core Emotion", value: selectedAd.core_emotion },
+                      { label: "Problem", value: selectedAd.problem },
                     ].filter(item => item.value).map(item => (
                       <div key={item.label}>
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">{item.label}</p>
@@ -676,9 +688,23 @@ export default function AdDetailModal({
                     </div>
                   </div>
                 )}
-                <div>
-                  <label className={labelClass}>Ad Spend ($)</label>
-                  <input type="number" min="0" step="0.01" className={inputClass} placeholder="0.00" value={selectedAd.ad_spend || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })} />
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className={labelClass}>Ad Spend ($)</label>
+                    <input type="number" min="0" step="0.01" className={inputClass} placeholder="0.00" value={selectedAd.ad_spend || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Purchases</label>
+                    <input type="number" min="0" step="1" className={inputClass} placeholder="0" value={selectedAd.purchases ?? ""} onChange={e => setSelectedAd({ ...selectedAd, purchases: e.target.value ? Number(e.target.value) : undefined })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>CVR (%)</label>
+                    <input type="number" min="0" step="0.01" className={inputClass} placeholder="0.00" value={selectedAd.cvr ?? ""} onChange={e => setSelectedAd({ ...selectedAd, cvr: e.target.value ? Number(e.target.value) : undefined })} />
+                  </div>
+                </div>
+                <div className="bg-[#0d0d0f] border border-gray-800 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">CPA (auto)</span>
+                  <span className="text-sm font-black text-gray-200 font-mono">{calcCPA(selectedAd.ad_spend, selectedAd.purchases)}</span>
                 </div>
                 <div className="bg-green-950/30 p-4 rounded-2xl border border-green-900">
                   <label className="block text-[10px] font-black text-green-400 uppercase tracking-widest mb-2">Note</label>
@@ -859,12 +885,37 @@ export default function AdDetailModal({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className={labelClass}>Persona</label>
+                  <select className={selectClass} value={selectedAd.persona || ""} onChange={e => setSelectedAd({ ...selectedAd, persona: e.target.value })}>
+                    <option value="">— Select Persona —</option>
+                    {personas.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Core Emotion</label>
+                  <select className={selectClass} value={selectedAd.core_emotion || ""} onChange={e => setSelectedAd({ ...selectedAd, core_emotion: e.target.value })}>
+                    <option value="">— Select Core Emotion —</option>
+                    {coreEmotions.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>Problem</label>
+                  <select className={selectClass} value={selectedAd.problem || ""} onChange={e => setSelectedAd({ ...selectedAd, problem: e.target.value })}>
+                    <option value="">— Select Problem —</option>
+                    {problems.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
                   <label className={labelClass}>Concept</label>
                   <select className={selectClass} value={selectedAd.concept || ""} onChange={e => setSelectedAd({ ...selectedAd, concept: e.target.value })}>
                     <option value="">— Select Concept —</option>
                     {concepts.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Awareness</label>
                   <select className={selectClass} value={selectedAd.awareness || ""} onChange={e => setSelectedAd({ ...selectedAd, awareness: e.target.value })}>
@@ -876,6 +927,7 @@ export default function AdDetailModal({
                     <option value="Most aware">Most aware</option>
                   </select>
                 </div>
+                <div></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -914,11 +966,25 @@ export default function AdDetailModal({
                   </select>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className={labelClass}>Ad Spend ($)</label>
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="0.00" value={selectedAd.ad_spend || ""} onChange={e => setSelectedAd({ ...selectedAd, ad_spend: e.target.value ? Number(e.target.value) : undefined })} />
                 </div>
+                <div>
+                  <label className={labelClass}>Purchases</label>
+                  <input type="number" min="0" step="1" className={inputClass} placeholder="0" value={selectedAd.purchases ?? ""} onChange={e => setSelectedAd({ ...selectedAd, purchases: e.target.value ? Number(e.target.value) : undefined })} />
+                </div>
+                <div>
+                  <label className={labelClass}>CVR (%)</label>
+                  <input type="number" min="0" step="0.01" className={inputClass} placeholder="0.00" value={selectedAd.cvr ?? ""} onChange={e => setSelectedAd({ ...selectedAd, cvr: e.target.value ? Number(e.target.value) : undefined })} />
+                </div>
+              </div>
+              <div className="bg-[#0d0d0f] border border-gray-800 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">CPA (auto — spend ÷ purchases)</span>
+                <span className="text-sm font-black text-gray-200 font-mono">{calcCPA(selectedAd.ad_spend, selectedAd.purchases)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Review Link (Frame.io)</label>
                   <div className="relative">
@@ -928,8 +994,6 @@ export default function AdDetailModal({
                     )}
                   </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Brief Link (Milanote)</label>
                   <div className="relative">
@@ -939,10 +1003,10 @@ export default function AdDetailModal({
                     )}
                   </div>
                 </div>
-                <div>
-                  <label className={labelClass}>Due Date</label>
-                  <input type="date" className={`${inputClass} ${overdue ? "border-red-800 bg-red-950/30" : ""}`} value={formatDate(selectedAd.due_date)} onChange={e => setSelectedAd({ ...selectedAd, due_date: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
-                </div>
+              </div>
+              <div>
+                <label className={labelClass}>Due Date</label>
+                <input type="date" className={`${inputClass} ${overdue ? "border-red-800 bg-red-950/30" : ""}`} value={formatDate(selectedAd.due_date)} onChange={e => setSelectedAd({ ...selectedAd, due_date: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
               </div>
               <div>
                 <label className={labelClass}>Destination URLs <span className="text-gray-600 normal-case font-medium">(add multiple for A/B test)</span></label>

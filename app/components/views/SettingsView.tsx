@@ -143,6 +143,21 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
   const [isSavingConcept, setIsSavingConcept] = useState(false);
   const [conceptMsg, setConceptMsg] = useState("");
 
+  const [personas, setPersonas] = useState<string[]>([]);
+  const [newPersona, setNewPersona] = useState("");
+  const [isSavingPersona, setIsSavingPersona] = useState(false);
+  const [personaMsg, setPersonaMsg] = useState("");
+
+  const [coreEmotions, setCoreEmotions] = useState<string[]>([]);
+  const [newCoreEmotion, setNewCoreEmotion] = useState("");
+  const [isSavingCoreEmotion, setIsSavingCoreEmotion] = useState(false);
+  const [coreEmotionMsg, setCoreEmotionMsg] = useState("");
+
+  const [problems, setProblems] = useState<string[]>([]);
+  const [newProblem, setNewProblem] = useState("");
+  const [isSavingProblem, setIsSavingProblem] = useState(false);
+  const [problemMsg, setProblemMsg] = useState("");
+
   const selectClass = "w-full border border-gray-700 bg-[#1a1a1d] p-3 rounded-xl text-sm font-black outline-none focus:border-gray-500 text-gray-200";
 
   useEffect(() => {
@@ -150,6 +165,9 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
     loadSubAvatars();
     loadAngles();
     loadConcepts();
+    loadPersonas();
+    loadCoreEmotions();
+    loadProblems();
     if (isFounder) { loadUsers(); loadProducts(); }
   }, []);
 
@@ -191,6 +209,30 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
       const { data } = await supabase.from("settings").select("value").eq("key", "concepts").single();
       if (data?.value) setConcepts(Array.isArray(data.value) ? data.value : []);
     } catch { setConcepts([]); }
+  };
+
+  const loadPersonas = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "personas").single();
+      if (data?.value) setPersonas(Array.isArray(data.value) ? data.value : []);
+    } catch { setPersonas([]); }
+  };
+
+  const loadCoreEmotions = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "core_emotions").single();
+      if (data?.value) setCoreEmotions(Array.isArray(data.value) ? data.value : []);
+    } catch { setCoreEmotions([]); }
+  };
+
+  const loadProblems = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from("settings").select("value").eq("key", "problems").single();
+      if (data?.value) setProblems(Array.isArray(data.value) ? data.value : []);
+    } catch { setProblems([]); }
   };
 
   const saveProducts = async (updated: string[]) => {
@@ -241,6 +283,36 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
     setIsSavingConcept(false);
     setConceptMsg("Saved!");
     setTimeout(() => setConceptMsg(""), 2000);
+  };
+
+  const savePersonas = async (updated: string[]) => {
+    if (!supabase) return;
+    setIsSavingPersona(true);
+    await supabase.from("settings").upsert({ key: "personas", value: updated, updated_at: new Date().toISOString() });
+    setPersonas(updated);
+    setIsSavingPersona(false);
+    setPersonaMsg("Saved!");
+    setTimeout(() => setPersonaMsg(""), 2000);
+  };
+
+  const saveCoreEmotions = async (updated: string[]) => {
+    if (!supabase) return;
+    setIsSavingCoreEmotion(true);
+    await supabase.from("settings").upsert({ key: "core_emotions", value: updated, updated_at: new Date().toISOString() });
+    setCoreEmotions(updated);
+    setIsSavingCoreEmotion(false);
+    setCoreEmotionMsg("Saved!");
+    setTimeout(() => setCoreEmotionMsg(""), 2000);
+  };
+
+  const saveProblems = async (updated: string[]) => {
+    if (!supabase) return;
+    setIsSavingProblem(true);
+    await supabase.from("settings").upsert({ key: "problems", value: updated, updated_at: new Date().toISOString() });
+    setProblems(updated);
+    setIsSavingProblem(false);
+    setProblemMsg("Saved!");
+    setTimeout(() => setProblemMsg(""), 2000);
   };
 
   const handleAddWhitelistPage = async () => {
@@ -312,6 +384,24 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
     if (userId === currentProfile.id) window.location.reload();
   };
 
+  // ── Analytics tagging lists, shared between Founder + limited views ──
+  const analyticsListsBlock = (
+    <>
+      <ListSection title="Personas" description="High-level target personas (e.g. Busy Mom, Preventive Millennial)" items={personas} newValue={newPersona} setNewValue={setNewPersona} isSaving={isSavingPersona} msg={personaMsg} color="bg-emerald-950 border border-emerald-900 text-emerald-400"
+        onAdd={async () => { const t = newPersona.trim(); if (!t || personas.includes(t)) return; setNewPersona(""); await savePersonas([...personas, t]); }}
+        onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await savePersonas(personas.filter(x => x !== v)); }}
+        placeholder="e.g. Preventive Millennial" />
+      <ListSection title="Core Emotions" description="Primary emotional driver for the persona (e.g. Security / Safety)" items={coreEmotions} newValue={newCoreEmotion} setNewValue={setNewCoreEmotion} isSaving={isSavingCoreEmotion} msg={coreEmotionMsg} color="bg-pink-950 border border-pink-900 text-pink-400"
+        onAdd={async () => { const t = newCoreEmotion.trim(); if (!t || coreEmotions.includes(t)) return; setNewCoreEmotion(""); await saveCoreEmotions([...coreEmotions, t]); }}
+        onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveCoreEmotions(coreEmotions.filter(x => x !== v)); }}
+        placeholder="e.g. Security / Safety" />
+      <ListSection title="Problems" description="The core problem the ad addresses (e.g. Hair Thinning)" items={problems} newValue={newProblem} setNewValue={setNewProblem} isSaving={isSavingProblem} msg={problemMsg} color="bg-yellow-950 border border-yellow-900 text-yellow-400"
+        onAdd={async () => { const t = newProblem.trim(); if (!t || problems.includes(t)) return; setNewProblem(""); await saveProblems([...problems, t]); }}
+        onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveProblems(problems.filter(x => x !== v)); }}
+        placeholder="e.g. Hair Thinning" />
+    </>
+  );
+
   // ── LIMITED VIEW for Strategist and Media Buyer ──
   if (!isFounder) {
     return (
@@ -338,6 +428,7 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
             onAdd={async () => { const t = newConcept.trim(); if (!t || concepts.includes(t)) return; setNewConcept(""); await saveConcepts([...concepts, t]); }}
             onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveConcepts(concepts.filter(x => x !== v)); }}
             placeholder="e.g. Hungover" />
+          {analyticsListsBlock}
         </>}
       </div>
     );
@@ -411,6 +502,9 @@ export default function SettingsView({ currentProfile, onInviteUser, onUpdateRol
         onAdd={async () => { const t = newConcept.trim(); if (!t || concepts.includes(t)) return; setNewConcept(""); await saveConcepts([...concepts, t]); }}
         onRemove={async (v) => { if (!confirm(`Remove "${v}"?`)) return; await saveConcepts(concepts.filter(x => x !== v)); }}
         placeholder="e.g. Hungover" />
+
+      {/* Analytics tagging lists: Personas / Core Emotions / Problems */}
+      {analyticsListsBlock}
 
       {/* Invite Form */}
       {isInviteOpen && (

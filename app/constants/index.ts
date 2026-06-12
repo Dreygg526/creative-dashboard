@@ -34,5 +34,6 @@ export const DEFAULT_NEW_AD = {
   concept_name: "", angle: "", ad_format: "Video Ad", product: "",
   ad_type: "Iteration", priority: "Medium", content_source: "Internal Team",
   assigned_editor: "", assigned_copywriter: "", brief_link: "", destination_url: [], whitelisting_page: [],
-  sub_avatar: "", concept: "", awareness: ""
+  sub_avatar: "", concept: "", awareness: "",
+  persona: "", core_emotion: "", problem: ""
 };
