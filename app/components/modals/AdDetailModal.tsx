@@ -3,6 +3,7 @@ import { Ad, TimeLogEntry } from "../../types";
 import { ALLOWED_TRANSITIONS } from "../../constants";
 import { getDaysLeftInTesting } from "../../utils/helpers";
 import { useComments } from "../../hooks/useComments";
+import { useScripts } from "../../hooks/useScripts";
 
 interface EditorProfile {
   full_name: string;
@@ -148,6 +149,187 @@ function CommentsSection({ adId, adName, assignedEditor, assignedCopywriter, cur
         <input type="text" placeholder="Add a comment..." className="flex-1 border border-gray-700 bg-[#0d0d0f] p-3 rounded-xl text-sm font-medium outline-none focus:border-gray-500 transition-all placeholder:text-gray-600 text-gray-100" value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(adId, adName, assignedEditor, assignedCopywriter); } }} />
         <button onClick={() => submitComment(adId, adName, assignedEditor, assignedCopywriter)} disabled={isSubmitting || !newComment.trim()} className="bg-gray-100 text-gray-900 px-4 py-3 rounded-xl font-black text-xs hover:bg-white transition-all disabled:opacity-40 shrink-0">{isSubmitting ? "..." : "Post"}</button>
       </div>
+    </div>
+  );
+}
+
+function ScriptTab({ adId, currentUser, supabase, canEdit }: {
+  adId: string; currentUser: string; supabase: any; canEdit: boolean;
+}) {
+  const {
+    scripts, scenes, activeScriptId, setActiveScriptId,
+    isLoading, isSaving,
+    fetchScripts, fetchScenes,
+    createScript, updateScript, setPrimaryScript, deleteScript,
+    addScene, updateScene, deleteScene, toggleSceneDone,
+  } = useScripts(supabase, currentUser);
+
+  const [draftIntent, setDraftIntent] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => { fetchScripts(adId); }, [adId]);
+
+  const activeScript = scripts.find(s => s.id === activeScriptId) || null;
+
+  // Load active script content into local drafts when it changes
+  useEffect(() => {
+    if (activeScript) {
+      setDraftIntent(activeScript.messaging_intent || "");
+      setDraftBody(activeScript.body || "");
+      setDirty(false);
+      fetchScenes(activeScript.id);
+    } else {
+      setDraftIntent(""); setDraftBody("");
+    }
+  }, [activeScriptId, scripts.length]);
+
+  const handleSave = async () => {
+    if (!activeScript) return;
+    await updateScript(activeScript.id, adId, { messaging_intent: draftIntent, body: draftBody });
+    setDirty(false);
+  };
+
+  const inputBg = "w-full bg-[#0d0d0f] border border-gray-700 rounded-xl p-3 text-sm text-gray-100 outline-none focus:border-gray-500 resize-none";
+
+  if (isLoading) {
+    return <div className="flex-1 flex items-center justify-center text-gray-500 text-[11px] font-bold">Loading scripts…</div>;
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      {/* Version selector */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {scripts.map(s => (
+          <button
+            key={s.id}
+            onClick={() => setActiveScriptId(s.id)}
+            className={`text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all ${
+              s.id === activeScriptId ? "bg-gray-100 text-gray-900 border-gray-100" : "bg-[#0d0d0f] text-gray-400 border-gray-700 hover:border-gray-500"
+            }`}
+          >
+            {s.is_primary ? "★ " : ""}v{s.version}
+          </button>
+        ))}
+        {canEdit && (
+          <button
+            onClick={() => createScript(adId)}
+            className="text-[10px] font-black px-2.5 py-1 rounded-lg border border-dashed border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 transition-all"
+          >
+            + New
+          </button>
+        )}
+      </div>
+
+      {!activeScript ? (
+        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+          <span className="text-3xl mb-2">📝</span>
+          <p className="text-[11px] font-bold text-center mb-3">No script yet</p>
+          {canEdit && (
+            <button onClick={() => createScript(adId)} className="bg-gray-100 text-gray-900 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white transition-all">
+              Create Script
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Status + primary controls */}
+          <div className="flex items-center justify-between gap-2">
+            <select
+              disabled={!canEdit}
+              value={activeScript.status}
+              onChange={e => updateScript(activeScript.id, adId, { status: e.target.value })}
+              className="text-[10px] font-black bg-[#1a1a1d] border border-gray-700 rounded-lg px-2 py-1 text-gray-200 outline-none disabled:opacity-60"
+            >
+              <option>Draft</option>
+              <option>In Review</option>
+              <option>Approved</option>
+            </select>
+            <div className="flex items-center gap-2">
+              {!activeScript.is_primary && canEdit && (
+                <button onClick={() => setPrimaryScript(activeScript.id, adId)} className="text-[9px] font-black text-amber-500 hover:text-amber-400 uppercase tracking-widest">Set Primary</button>
+              )}
+              {activeScript.is_primary && <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">★ Primary</span>}
+              {canEdit && scripts.length > 1 && (
+                <button onClick={() => { if (confirm("Delete this script version?")) deleteScript(activeScript.id, adId); }} className="text-[9px] font-black text-gray-600 hover:text-red-400 uppercase tracking-widest">Delete</button>
+              )}
+            </div>
+          </div>
+
+          {activeScript.generated_by_ai && (
+            <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">⚡ AI-drafted{activeScript.ai_model ? ` · ${activeScript.ai_model}` : ""}</p>
+          )}
+
+          {/* Messaging intent */}
+          <div>
+            <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Messaging Intent <span className="normal-case text-gray-600">(what we're saying & why)</span></label>
+            <textarea
+              rows={3}
+              disabled={!canEdit}
+              className={inputBg}
+              placeholder="The core message and why it lands for this persona/emotion…"
+              value={draftIntent}
+              onChange={e => { setDraftIntent(e.target.value); setDirty(true); }}
+            />
+          </div>
+
+          {/* Script body */}
+          <div>
+            <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Script</label>
+            <textarea
+              rows={10}
+              disabled={!canEdit}
+              className={inputBg}
+              placeholder="Write the full script here…"
+              value={draftBody}
+              onChange={e => { setDraftBody(e.target.value); setDirty(true); }}
+            />
+          </div>
+
+          {canEdit && (
+            <button
+              onClick={handleSave}
+              disabled={!dirty || isSaving}
+              className="w-full bg-gray-100 text-gray-900 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white transition-all disabled:opacity-40"
+            >
+              {isSaving ? "Saving…" : dirty ? "Save Script" : "Saved"}
+            </button>
+          )}
+
+          {/* Scenes */}
+          <div className="pt-2 border-t border-gray-800">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Scene Breakdown ({scenes.length})</p>
+              {canEdit && (
+                <button onClick={() => addScene(activeScript.id)} className="text-[9px] font-black text-gray-400 hover:text-gray-200 uppercase tracking-widest">+ Add Scene</button>
+              )}
+            </div>
+            {scenes.length === 0 ? (
+              <p className="text-[10px] text-gray-600 italic">No scenes yet. Add scenes manually, or AI breakdown coming soon.</p>
+            ) : (
+              <div className="space-y-2">
+                {scenes.map((sc, i) => (
+                  <div key={sc.id} className="bg-[#0d0d0f] border border-gray-800 rounded-xl p-2.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={sc.is_done} disabled={!canEdit} onChange={e => toggleSceneDone(sc.id, activeScript.id, e.target.checked)} className="accent-green-500" />
+                        <span className="text-[10px] font-black text-gray-300">Scene {i + 1}</span>
+                      </div>
+                      {canEdit && (
+                        <button onClick={() => deleteScene(sc.id, activeScript.id)} className="text-[9px] font-black text-gray-600 hover:text-red-400">✕</button>
+                      )}
+                    </div>
+                    <textarea rows={2} disabled={!canEdit} className={`${inputBg} text-[12px] mb-1.5`} placeholder="Scene text / VO line…"
+                      defaultValue={sc.scene_text} onBlur={e => { if (e.target.value !== sc.scene_text) updateScene(sc.id, activeScript.id, { scene_text: e.target.value }); }} />
+                    <textarea rows={2} disabled={!canEdit} className={`${inputBg} text-[12px]`} placeholder="Visual direction / B-roll…"
+                      defaultValue={sc.visual_direction} onBlur={e => { if (e.target.value !== sc.visual_direction) updateScene(sc.id, activeScript.id, { visual_direction: e.target.value }); }} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -382,7 +564,7 @@ export default function AdDetailModal({
   let activityLog: TimeLogEntry[] = [];
   try { activityLog = JSON.parse(selectedAd.time_log || "[]"); } catch { activityLog = []; }
 
-  const [activeTab, setActiveTab] = useState<"log" | "comments" | "monitoring">("log");
+  const [activeTab, setActiveTab] = useState<"log" | "comments" | "script" | "monitoring">("log");
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); if (!allowed) { alert(reason); return; } onUpdate(e); };
   const handleClose = () => { setSelectedAd(null); setManualLogNote(""); };
@@ -757,7 +939,7 @@ export default function AdDetailModal({
   // ── FOUNDER / STRATEGIST FULL VIEW ──
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="relative w-full max-w-5xl">
+      <div className="relative w-full max-w-6xl">
         <CloseButton onClose={handleClose} />
         <div className="bg-[#141416] rounded-2xl w-full shadow-2xl flex flex-col md:flex-row overflow-hidden max-h-[90vh] border border-gray-800">
           <div className="flex-1 p-6 overflow-y-auto border-r border-gray-800">
@@ -1081,12 +1263,13 @@ export default function AdDetailModal({
               </div>
             </form>
           </div>
-          <div className="w-full md:w-72 bg-[#0d0d0f] border-l border-gray-800 p-5 flex flex-col max-h-full">
-            <div className="flex bg-[#141416] border border-gray-800 p-1 rounded-xl mb-4">
-              <button onClick={() => setActiveTab("log")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "log" ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-300"}`}>Log</button>
-              <button onClick={() => setActiveTab("comments")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "comments" ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-300"}`}>Comments</button>
+          <div className="w-full md:w-80 bg-[#0d0d0f] border-l border-gray-800 p-5 flex flex-col max-h-full">
+            <div className="flex gap-1 bg-[#141416] border border-gray-800 p-1 rounded-xl mb-4">
+              <button onClick={() => setActiveTab("log")} className={`flex-1 px-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tight transition-all ${activeTab === "log" ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-300 hover:text-white hover:bg-[#1f1f23]"}`}>Log</button>
+              <button onClick={() => setActiveTab("comments")} className={`flex-1 px-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tight transition-all ${activeTab === "comments" ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-300 hover:text-white hover:bg-[#1f1f23]"}`}>Comments</button>
+              <button onClick={() => setActiveTab("script")} className={`flex-1 px-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tight transition-all flex items-center justify-center gap-1 ${activeTab === "script" ? "bg-amber-400 text-gray-900 shadow-sm" : "text-amber-400 hover:text-amber-300 bg-amber-500/10 ring-1 ring-inset ring-amber-500/40"}`}>✍️ Script</button>
               {isFounder && (
-                <button onClick={() => setActiveTab("monitoring")} className={`flex-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === "monitoring" ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-300"}`}>Sessions</button>
+                <button onClick={() => setActiveTab("monitoring")} className={`flex-1 px-1 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tight transition-all ${activeTab === "monitoring" ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-300 hover:text-white hover:bg-[#1f1f23]"}`}>Sessions</button>
               )}
             </div>
             {activeTab === "log" && (
@@ -1106,6 +1289,9 @@ export default function AdDetailModal({
               <div className="flex-1 overflow-y-auto">
                 <CommentsSection adId={selectedAd.id} adName={selectedAd.concept_name} assignedEditor={selectedAd.assigned_editor} assignedCopywriter={selectedAd.assigned_copywriter} currentUser={currentUser} currentRole={currentRole} supabase={supabase} />
               </div>
+            )}
+            {activeTab === "script" && (
+              <ScriptTab adId={selectedAd.id} currentUser={currentUser} supabase={supabase} canEdit={isFounder || isStrategist} />
             )}
             {activeTab === "monitoring" && isFounder && (
               <MonitoringTab adId={selectedAd.id} fetchSessionsForAd={fetchSessionsForAd} />
