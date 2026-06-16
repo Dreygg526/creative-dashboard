@@ -201,7 +201,7 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   const [creativeUrl, setCreativeUrl] = useState("");
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [videoBase64, setVideoBase64] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -223,14 +223,35 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   };
 
   const processImage = (file: File) => {
-    if (file.size > 5 * 1024 * 1024) { setError("Image too large — max 5MB"); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const res = reader.result as string;
-      setImagePreview(res);
-      setImageBase64(res.split(",")[1]);
+    if (file.size > 100 * 1024 * 1024) { setError("Image too large — max 100MB"); return; }
+    setError("");
+    // The AI caps images around 5MB, so shrink large photos in the browser first.
+    // It only needs ~1568px on the longest edge, so quality stays high.
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      const MAX_EDGE = 1568;
+      let width = img.naturalWidth;
+      let height = img.naturalHeight;
+      if (width > MAX_EDGE || height > MAX_EDGE) {
+        const scale = MAX_EDGE / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
+      const compressed = canvas.toDataURL("image/jpeg", 0.9);
+      setImagePreview(compressed);
+      setImageBase64(compressed.split(",")[1]);
+      URL.revokeObjectURL(url);
     };
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      setError("Couldn't read that image — try a JPG, PNG, or WEBP.");
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
   };
 
   const handleVideoDrop = useCallback((e: React.DragEvent) => {
@@ -246,14 +267,12 @@ export default function CopyAgentView({ ads, currentUser, currentRole, supabase 
   };
 
   const processVideo = (file: File) => {
-    if (file.size > 100 * 1024 * 1024) { setError("Video too large — max 100MB"); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const res = reader.result as string;
-      setVideoFileName(file.name);
-      setVideoBase64(res.split(",")[1]);
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 1024 * 1024 * 1024) { setError("Video too large — max 1GB"); return; }
+    setError("");
+    // Keep the real file and stream it to Gemini directly. Base64-ing a 1GB
+    // file would crash the browser tab.
+    setVideoFile(file);
+    setVideoFileName(file.name);
   };
 
   const PROVEN_COPY_FORMULAS = `
@@ -399,7 +418,7 @@ FORMATTING RULES:
     if (inputTab === "describe" && !conceptDesc.trim()) { setError("Please paste the competitor's ad copy first."); return; }
     if (inputTab === "url" && !creativeUrl.trim()) { setError("Please paste a URL."); return; }
     if (inputTab === "image" && !imageBase64) { setError("Please upload an image."); return; }
-    if (inputTab === "video" && !videoBase64) { setError("Please upload a video."); return; }
+    if (inputTab === "video" && !videoFile) { setError("Please upload a video."); return; }
     setError("");
     setIsGenerating(true);
     setResult(null);
@@ -463,30 +482,27 @@ EXAMPLE OF CORRECT OUTPUT:
             }
           ]
         }];
-      } else if (inputTab === "video" && videoBase64) {
+      } else if (inputTab === "video" && videoFile) {
         const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 
-        const mimeType = videoFileName?.endsWith(".mov") ? "video/quicktime" :
-                         videoFileName?.endsWith(".avi") ? "video/avi" :
-                         videoFileName?.endsWith(".webm") ? "video/webm" : "video/mp4";
+        const mimeType = videoFile.type ||
+                         (videoFileName?.endsWith(".mov") ? "video/quicktime" :
+                          videoFileName?.endsWith(".avi") ? "video/avi" :
+                          videoFileName?.endsWith(".webm") ? "video/webm" : "video/mp4");
 
-        const byteCharacters = atob(videoBase64);
-        const byteNumbers = new Array(byteCharacters.length).fill(0).map((_, i) => byteCharacters.charCodeAt(i));
-        const byteArray = new Uint8Array(byteNumbers);
-        const videoBlob = new Blob([byteArray], { type: mimeType });
-
-        // Upload to Gemini Files API
+        // Stream the file straight to Gemini — no base64, so big videos
+        // (up to 1GB) upload without blowing up browser memory.
         const uploadResponse = await fetch(
           `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${GEMINI_API_KEY}`,
           {
             method: "POST",
             headers: {
               "X-Goog-Upload-Command": "start, upload, finalize",
-              "X-Goog-Upload-Header-Content-Length": String(videoBlob.size),
+              "X-Goog-Upload-Header-Content-Length": String(videoFile.size),
               "X-Goog-Upload-Header-Content-Type": mimeType,
               "Content-Type": mimeType,
             },
-            body: videoBlob,
+            body: videoFile,
           }
         );
 
@@ -503,7 +519,7 @@ EXAMPLE OF CORRECT OUTPUT:
         // Poll until file is ACTIVE using the full file name path
         let fileActive = false;
         let pollAttempts = 0;
-        while (!fileActive && pollAttempts < 20) {
+        while (!fileActive && pollAttempts < 45) {
           await new Promise(resolve => setTimeout(resolve, 4000));
           try {
             const statusRes = await fetch(
@@ -700,7 +716,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
     (inputTab === "describe" && !conceptDesc.trim()) ||
     (inputTab === "url" && !creativeUrl.trim()) ||
     (inputTab === "image" && !imageBase64) ||
-    (inputTab === "video" && !videoBase64);
+    (inputTab === "video" && !videoFile);
 
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto">
@@ -767,7 +783,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
                       <p className="text-sm font-black text-gray-400">Drop image or click to upload</p>
-                      <p className="text-[10px] text-gray-600 mt-1">PNG, JPG, WEBP · Max 5MB</p>
+                      <p className="text-[10px] text-gray-600 mt-1">PNG, JPG, WEBP · Max 100MB</p>
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageInput} />
                     </label>
                   )}
@@ -784,7 +800,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                         <p className="text-[10px] text-gray-500">Video ready for analysis</p>
                       </div>
                       <button
-                        onClick={() => { setVideoBase64(null); setVideoFileName(null); }}
+                        onClick={() => { setVideoFile(null); setVideoFileName(null); }}
                         className="w-6 h-6 bg-[#1a1a1d] rounded-full shadow flex items-center justify-center text-gray-400 hover:text-red-400 font-black text-xs border border-gray-700 shrink-0"
                       >✕</button>
                     </div>
@@ -797,7 +813,7 @@ Be specific and detailed. This analysis will be used to write new ad copy for a 
                     >
                       <span className="text-3xl mb-2">🎥</span>
                       <p className="text-sm font-black text-gray-400">Drop video ad or click to upload</p>
-                      <p className="text-[10px] text-gray-600 mt-1">MP4, MOV, AVI · Max 100MB</p>
+                      <p className="text-[10px] text-gray-600 mt-1">MP4, MOV, AVI · Max 1GB</p>
                       <input type="file" accept="video/*" className="hidden" onChange={handleVideoInput} />
                     </label>
                   )}
